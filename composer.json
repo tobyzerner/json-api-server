@@ -1,0 +1,33 @@
+{
+    "name": "tobscure/json-api-server",
+    "require": {
+        "php": "^7.1",
+        "illuminate/database": "5.7.*",
+        "illuminate/events": "5.7.*",
+        "illuminate/validation": "5.7.*",
+        "zendframework/zend-diactoros": "^1.8",
+        "json-api-php/json-api": "^2.0",
+        "psr/http-server-handler": "^1.0",
+        "psr/http-message": "^1.0"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Toby Zerner",
+            "email": "toby.zerner@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Tobscure\\JsonApiServer\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tobscure\\Tests\\JsonApiServer\\": "tests/"
+        }
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^7.4"
+    }
+}
