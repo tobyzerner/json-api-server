@@ -1,6 +1,6 @@
 # tobscure/json-api-server
 
-[![Build Status](https://img.shields.io/travis/tobscure/json-api-server/master.svg?style=flat)](https://travis-ci.org/tobscure/json-api-server)
+[![Build Status](https://img.shields.io/travis/com/tobscure/json-api-server.svg?style=flat)](https://travis-ci.com/tobscure/json-api-server)
 [![Pre Release](https://img.shields.io/packagist/vpre/tobscure/json-api-server.svg?style=flat)](https://github.com/tobscure/json-api-server/releases)
 [![License](https://img.shields.io/packagist/l/tobscure/json-api-server.svg?style=flat)](https://packagist.org/packages/tobscure/json-api-server)
 
