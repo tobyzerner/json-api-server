@@ -2,13 +2,12 @@
     "name": "tobscure/json-api-server",
     "require": {
         "php": "^7.2",
-        "illuminate/database": "5.7.*",
-        "illuminate/events": "5.7.*",
-        "illuminate/validation": "5.7.*",
-        "zendframework/zend-diactoros": "^1.8",
+        "doctrine/inflector": "^1.3",
         "json-api-php/json-api": "^2.0",
+        "psr/http-message": "^1.0",
         "psr/http-server-handler": "^1.0",
-        "psr/http-message": "^1.0"
+        "spatie/macroable": "^1.0",
+        "zendframework/zend-diactoros": "^2.0"
     },
     "license": "MIT",
     "authors": [
@@ -29,5 +28,8 @@
     },
     "require-dev": {
         "phpunit/phpunit": "^7.4"
+    },
+    "config": {
+        "sort-packages": true
     }
 }

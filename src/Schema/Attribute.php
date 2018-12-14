@@ -3,7 +3,7 @@
 namespace Tobscure\JsonApiServer\Schema;
 
 use Closure;
-use Illuminate\Support\Traits\Macroable;
+use Spatie\Macroable\Macroable;
 
 class Attribute extends Field
 {
@@ -16,8 +16,6 @@ class Attribute extends Field
     public function __construct(string $name)
     {
         parent::__construct($name);
-
-        $this->property = snake_case($name);
     }
 
     public function sortable(Closure $callback = null)

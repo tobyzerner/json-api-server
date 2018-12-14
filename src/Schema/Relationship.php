@@ -3,7 +3,7 @@
 namespace Tobscure\JsonApiServer\Schema;
 
 use Closure;
-use Illuminate\Support\Traits\Macroable;
+use Spatie\Macroable\Macroable;
 
 abstract class Relationship extends Field
 {
