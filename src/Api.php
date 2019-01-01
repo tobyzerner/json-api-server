@@ -44,48 +44,22 @@ class Api implements RequestHandlerInterface
         );
 
         $segments = explode('/', trim($path, '/'));
-        $count = count($segments);
 
-        $resource = $this->getResource($segments[0]);
+        switch (count($segments)) {
+            case 1:
+                return $this->getCollectionHandler($request, $segments)
+                    ->handle($request);
 
-        if ($count === 1) {
-            switch ($request->getMethod()) {
-                case 'GET':
-                    return (new Handler\Index($this, $resource))->handle($request);
+            case 2:
+                return $this->getMemberHandler($request, $segments)
+                    ->handle($request);
 
-                case 'POST':
-                    return (new Handler\Create($this, $resource))->handle($request);
+            // case 3:
+            //     return $this->handleRelated($request, $resource, $model, $segments[2]);
 
-                default:
-                    throw new MethodNotAllowedException;
-            }
+            // case 4:
+            //     return $this->handleRelationship($request, $resource, $model, $segments[3]);
         }
-
-        $model = $this->findResource($request, $resource, $segments[1]);
-
-        if ($count === 2) {
-            switch ($request->getMethod()) {
-                case 'PATCH':
-                    return (new Handler\Update($this, $resource, $model))->handle($request);
-
-                case 'GET':
-                    return (new Handler\Show($this, $resource, $model))->handle($request);
-
-                case 'DELETE':
-                    return (new Handler\Delete($resource, $model))->handle($request);
-
-                default:
-                    throw new MethodNotAllowedException;
-            }
-        }
-
-        // if ($count === 3) {
-        //     return $this->handleRelated($request, $resource, $model, $segments[2]);
-        // }
-
-        // if ($count === 4 && $segments[2] === 'relationship') {
-        //     return $this->handleRelationship($request, $resource, $model, $segments[3]);
-        // }
 
         throw new \RuntimeException;
     }
@@ -101,6 +75,42 @@ class Api implements RequestHandlerInterface
         }
 
         return $path;
+    }
+
+    private function getCollectionHandler(Request $request, array $segments): RequestHandlerInterface
+    {
+        $resource = $this->getResource($segments[0]);
+
+        switch ($request->getMethod()) {
+            case 'GET':
+                return new Handler\Index($this, $resource);
+
+            case 'POST':
+                return new Handler\Create($this, $resource);
+
+            default:
+                throw new MethodNotAllowedException;
+        }
+    }
+
+    private function getMemberHandler(Request $request, array $segments): RequestHandlerInterface
+    {
+        $resource = $this->getResource($segments[0]);
+        $model = $this->findResource($request, $resource, $segments[1]);
+
+        switch ($request->getMethod()) {
+            case 'PATCH':
+                return new Handler\Update($this, $resource, $model);
+
+            case 'GET':
+                return new Handler\Show($this, $resource, $model);
+
+            case 'DELETE':
+                return new Handler\Delete($resource, $model);
+
+            default:
+                throw new MethodNotAllowedException;
+        }
     }
 
     public function error(\Throwable $e)
