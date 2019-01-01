@@ -8,11 +8,16 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface;
 use Tobscure\JsonApiServer\Exception\MethodNotAllowedException;
+use Tobscure\JsonApiServer\Exception\NotAcceptableException;
 use Tobscure\JsonApiServer\Exception\ResourceNotFoundException;
+use Tobscure\JsonApiServer\Exception\UnsupportedMediaTypeException;
 use Tobscure\JsonApiServer\Handler\Concerns\FindsResources;
+use Tobscure\JsonApiServer\Http\MediaTypes;
 
 class Api implements RequestHandlerInterface
 {
+    const CONTENT_TYPE = 'application/vnd.api+json';
+
     use FindsResources;
 
     protected $resources = [];
@@ -39,6 +44,8 @@ class Api implements RequestHandlerInterface
 
     public function handle(Request $request): Response
     {
+        $this->validateRequest($request);
+
         $path = $this->stripBasePath(
             $request->getUri()->getPath()
         );
@@ -62,6 +69,40 @@ class Api implements RequestHandlerInterface
         }
 
         throw new \RuntimeException;
+    }
+
+    private function validateRequest(Request $request): void
+    {
+        $this->validateRequestContentType($request);
+        $this->validateRequestAccepts($request);
+    }
+
+    private function validateRequestContentType(Request $request): void
+    {
+        $header = $request->getHeaderLine('Content-Type');
+        if (empty($header)) {
+            return;
+        }
+
+        if ((new MediaTypes($header))->containsExactly(self::CONTENT_TYPE)) {
+            return;
+        }
+
+        throw new UnsupportedMediaTypeException($header);
+    }
+
+    private function validateRequestAccepts(Request $request): void
+    {
+        $header = $request->getHeaderLine('Accept');
+        if (empty($header)) {
+            return;
+        }
+
+        if ((new MediaTypes($header))->containsExactly(self::CONTENT_TYPE)) {
+            return;
+        }
+
+        throw new NotAcceptableException;
     }
 
     private function stripBasePath(string $path): string
