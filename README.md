@@ -346,6 +346,8 @@ Attribute::macro('rules', function ($rules) use ($validator) {
             $fail((string) $validation->messages());
         }
     });
+
+    return $this;
 });
 ```
 
