@@ -10,7 +10,7 @@ class ResourceNotFoundException extends RuntimeException
 
     public function __construct(string $type, $id = null)
     {
-        parent::__construct("Resource [$type] not found.");
+        parent::__construct("Resource [$type".($id !== null ? ".$id" : '').'] not found.');
 
         $this->type = $type;
     }
