@@ -7,11 +7,24 @@ use Closure;
 class Builder
 {
     public $fields = [];
+    public $meta = [];
     public $paginate = 20;
+    public $limit = 50;
+    public $countable = true;
     public $scopes = [];
+    public $indexScopes = [];
+    public $singleScopes = [];
     public $isVisible;
     public $isCreatable;
+    public $creatingCallbacks = [];
+    public $createdCallbacks = [];
+    public $isUpdatable;
+    public $updatingCallbacks = [];
+    public $updatedCallbacks = [];
     public $isDeletable;
+    public $deletingCallbacks = [];
+    public $deletedCallbacks = [];
+    public $defaultSort;
 
     public function __construct()
     {
@@ -46,14 +59,44 @@ class Builder
         return $field;
     }
 
+    public function meta(string $name, $value)
+    {
+        return $this->meta[$name] = new Meta($name, $value);
+    }
+
     public function paginate(?int $perPage)
     {
         $this->paginate = $perPage;
     }
 
+    public function limit(?int $limit)
+    {
+        $this->limit = $limit;
+    }
+
+    public function countable()
+    {
+        $this->countable = true;
+    }
+
+    public function uncountable()
+    {
+        $this->countable = false;
+    }
+
     public function scope(Closure $callback)
     {
         $this->scopes[] = $callback;
+    }
+
+    public function scopeIndex(Closure $callback)
+    {
+        $this->indexScopes[] = $callback;
+    }
+
+    public function scopeSingle(Closure $callback)
+    {
+        $this->singleScopes[] = $callback;
     }
 
     public function creatableIf(Closure $condition)
@@ -84,6 +127,54 @@ class Builder
         });
     }
 
+    public function creating(Closure $callback)
+    {
+        $this->creatingCallbacks[] = $callback;
+    }
+
+    public function created(Closure $callback)
+    {
+        $this->createdCallbacks[] = $callback;
+    }
+
+    public function updatableIf(Closure $condition)
+    {
+        $this->isUpdatable = $condition;
+
+        return $this;
+    }
+
+    public function updatable()
+    {
+        return $this->updatableIf(function () {
+            return true;
+        });
+    }
+
+    public function notUpdatableIf(Closure $condition)
+    {
+        return $this->updatableIf(function (...$args) use ($condition) {
+            return ! $condition(...$args);
+        });
+    }
+
+    public function notUpdatable()
+    {
+        return $this->notUpdatableIf(function () {
+            return true;
+        });
+    }
+
+    public function updating(Closure $callback)
+    {
+        $this->updatingCallbacks[] = $callback;
+    }
+
+    public function updated(Closure $callback)
+    {
+        $this->updatedCallbacks[] = $callback;
+    }
+
     public function deletableIf(Closure $condition)
     {
         $this->isDeletable = $condition;
@@ -110,6 +201,21 @@ class Builder
         return $this->notDeletableIf(function () {
             return true;
         });
+    }
+
+    public function deleting(Closure $callback)
+    {
+        $this->deletingCallbacks[] = $callback;
+    }
+
+    public function deleted(Closure $callback)
+    {
+        $this->deletedCallbacks[] = $callback;
+    }
+
+    public function defaultSort(string $sort)
+    {
+        $this->defaultSort = $sort;
     }
 
     private function field(string $class, string $name, string $property = null)

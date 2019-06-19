@@ -7,7 +7,9 @@ use JsonApiPhp\JsonApi;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface;
+use Tobscure\JsonApiServer\Exception\BadRequestException;
 use Tobscure\JsonApiServer\Exception\MethodNotAllowedException;
+use Tobscure\JsonApiServer\Exception\NotImplementedException;
 use Tobscure\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobscure\JsonApiServer\Handler\Concerns\FindsResources;
 
@@ -51,10 +53,10 @@ class Api implements RequestHandlerInterface
         if ($count === 1) {
             switch ($request->getMethod()) {
                 case 'GET':
-                    return (new Handler\Index($this, $resource))->handle($request);
+                    return $this->handleWithHandler($request, new Handler\Index($this, $resource));
 
                 case 'POST':
-                    return (new Handler\Create($this, $resource))->handle($request);
+                    return $this->handleWithHandler($request, new Handler\Create($this, $resource));
 
                 default:
                     throw new MethodNotAllowedException;
@@ -66,28 +68,32 @@ class Api implements RequestHandlerInterface
         if ($count === 2) {
             switch ($request->getMethod()) {
                 case 'PATCH':
-                    return (new Handler\Update($this, $resource, $model))->handle($request);
+                    return $this->handleWithHandler($request, new Handler\Update($this, $resource, $model));
 
                 case 'GET':
-                    return (new Handler\Show($this, $resource, $model))->handle($request);
+                    return $this->handleWithHandler($request, new Handler\Show($this, $resource, $model));
 
                 case 'DELETE':
-                    return (new Handler\Delete($resource, $model))->handle($request);
+                    return $this->handleWithHandler($request, new Handler\Delete($resource, $model));
 
                 default:
                     throw new MethodNotAllowedException;
             }
         }
 
-        // if ($count === 3) {
-        //     return $this->handleRelated($request, $resource, $model, $segments[2]);
-        // }
+        if ($count === 3) {
+            throw new NotImplementedException;
 
-        // if ($count === 4 && $segments[2] === 'relationship') {
-        //     return $this->handleRelationship($request, $resource, $model, $segments[3]);
-        // }
+            // return $this->handleRelated($request, $resource, $model, $segments[2]);
+        }
 
-        throw new \RuntimeException;
+        if ($count === 4 && $segments[2] === 'relationships') {
+            throw new NotImplementedException;
+
+            // return $this->handleRelationship($request, $resource, $model, $segments[3]);
+        }
+
+        throw new BadRequestException;
     }
 
     private function stripBasePath(string $path): string
@@ -103,13 +109,23 @@ class Api implements RequestHandlerInterface
         return $path;
     }
 
-    public function error(\Throwable $e)
+    private function handleWithHandler(Request $request, RequestHandlerInterface $handler)
     {
+        $request = $request->withAttribute('jsonApiHandler', $handler);
+
+        return $handler->handle($request);
+    }
+
+    public function handleError($e)
+    {
+        if (! $e instanceof ErrorProviderInterface) {
+            $e = new Exception\InternalServerErrorException;
+        }
+
+        $errors = $e->getJsonApiErrors();
+
         $data = new JsonApi\ErrorDocument(
-            new JsonApi\Error(
-                new JsonApi\Error\Title($e->getMessage()),
-                new JsonApi\Error\Detail((string) $e)
-            )
+            ...$errors
         );
 
         return new JsonApiResponse($data);

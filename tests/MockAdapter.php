@@ -4,6 +4,7 @@ namespace Tobscure\Tests\JsonApiServer;
 
 use Tobscure\JsonApiServer\Adapter\AdapterInterface;
 use Tobscure\JsonApiServer\Schema\Attribute;
+use Tobscure\JsonApiServer\Schema\Field;
 use Tobscure\JsonApiServer\Schema\HasMany;
 use Tobscure\JsonApiServer\Schema\HasOne;
 
@@ -44,27 +45,27 @@ class MockAdapter implements AdapterInterface
 
     public function getAttribute($model, Attribute $attribute)
     {
-        return $model->{$attribute->property} ?? 'default';
+        return $model->{$this->getProperty($attribute)} ?? 'default';
     }
 
     public function getHasOne($model, HasOne $relationship)
     {
-        return $model->{$relationship->property} ?? null;
+        return $model->{$this->getProperty($relationship)} ?? null;
     }
 
     public function getHasMany($model, HasMany $relationship): array
     {
-        return $model->{$relationship->property} ?? [];
+        return $model->{$this->getProperty($relationship)} ?? [];
     }
 
     public function applyAttribute($model, Attribute $attribute, $value)
     {
-        $model->{$attribute->property} = $value;
+        $model->{$this->getProperty($attribute)} = $value;
     }
 
     public function applyHasOne($model, HasOne $relationship, $related)
     {
-        $model->{$relationship->property} = $related;
+        $model->{$this->getProperty($relationship)} = $related;
     }
 
     public function save($model)
@@ -119,5 +120,10 @@ class MockAdapter implements AdapterInterface
     public function load($model, array $relationships)
     {
         $model->load[] = $relationships;
+    }
+
+    private function getProperty(Field $field)
+    {
+        return $field->property ?: $field->name;
     }
 }

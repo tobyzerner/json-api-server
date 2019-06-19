@@ -35,6 +35,8 @@ trait SavesData
         $adapter->save($model);
 
         $this->saveFields($data, $model, $request);
+
+        $this->runSavedCallbacks($data, $model, $request);
     }
 
     private function parseData($body): array
@@ -65,8 +67,12 @@ trait SavesData
 
     private function getModelForIdentifier(Request $request, $identifier)
     {
-        if (! isset($identifier['type']) || ! isset($identifier['id'])) {
-            throw new BadRequestException('type/id not specified');
+        if (! isset($identifier['type'])) {
+            throw new BadRequestException('type not specified');
+        }
+
+        if (! isset($identifier['id'])) {
+            throw new BadRequestException('id not specified');
         }
 
         $resource = $this->api->getResource($identifier['type']);
@@ -96,7 +102,7 @@ trait SavesData
         foreach ($schema->fields as $name => $field) {
             $valueProvided = isset($data[$field->location][$name]);
 
-            if ($valueProvided && ! ($field->isWritable)($model, $request)) {
+            if ($valueProvided && ! ($field->isWritable)($request, $model)) {
                 throw new BadRequestException("Field [$name] is not writable");
             }
         }
@@ -152,7 +158,7 @@ trait SavesData
             };
 
             foreach ($field->validators as $validator) {
-                $validator($fail, $data[$field->location][$name], $model, $request);
+                $validator($fail, $data[$field->location][$name] ?? null, $request, $model, $field);
             }
         }
 
@@ -202,9 +208,24 @@ trait SavesData
             $value = $data[$field->location][$name];
 
             if ($field->saver) {
-                ($field->saver)($model, $value, $request);
+                ($field->saver)($request, $model, $value);
             } elseif ($field instanceof Schema\HasMany) {
                 $adapter->saveHasMany($model, $field, $value);
+            }
+        }
+    }
+
+    private function runSavedCallbacks(array $data, $model, Request $request)
+    {
+        $schema = $this->resource->getSchema();
+
+        foreach ($schema->fields as $name => $field) {
+            if (! isset($data[$field->location][$name])) {
+                continue;
+            }
+
+            foreach ($field->savedCallbacks as $callback) {
+                $callback($request, $model, $data[$field->location][$name]);
             }
         }
     }

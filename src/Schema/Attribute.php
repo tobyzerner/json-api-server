@@ -13,11 +13,6 @@ class Attribute extends Field
     public $sortable = false;
     public $sorter;
 
-    public function __construct(string $name)
-    {
-        parent::__construct($name);
-    }
-
     public function sortable(Closure $callback = null)
     {
         $this->sortable = true;

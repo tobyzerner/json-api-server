@@ -2,21 +2,42 @@
 
 namespace Tobscure\JsonApiServer\Exception;
 
-use RuntimeException;
+use JsonApiPhp\JsonApi\Error;
+use Tobscure\JsonApiServer\ErrorProviderInterface;
 
-class ResourceNotFoundException extends RuntimeException
+class ResourceNotFoundException extends \RuntimeException implements ErrorProviderInterface
 {
     protected $type;
+    protected $id;
 
-    public function __construct(string $type, $id = null)
+    public function __construct(string $type, string $id = null)
     {
-        parent::__construct("Resource [$type".($id !== null ? ".$id" : '').'] not found.');
+        parent::__construct(
+            sprintf('Resource [%s] not found.', $type.($id !== null ? '.'.$id : ''))
+        );
 
         $this->type = $type;
+        $this->id = $id;
     }
 
-    public function getStatusCode()
+    public function getJsonApiErrors(): array
     {
-        return 404;
+        return [
+            new Error(
+                new Error\Title('Resource Not Found'),
+                new Error\Status('404'),
+                new Error\Detail($this->getMessage())
+            )
+        ];
+    }
+
+    public function getType(): string
+    {
+        return $this->type;
+    }
+
+    public function getId(): ?string
+    {
+        return $this->id;
     }
 }

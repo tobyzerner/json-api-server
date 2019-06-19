@@ -93,8 +93,8 @@ class ShowTest extends AbstractTestCase
         $api->resource('users', $adapter, function (Builder $schema) use ($model, $request) {
             $schema->attribute('attribute1')
                 ->get(function ($arg1, $arg2) use ($model, $request) {
-                    $this->assertEquals($model, $arg1);
-                    $this->assertEquals($request, $arg2);
+                    $this->assertEquals($request, $arg1);
+                    $this->assertEquals($model, $arg2);
                     return 'value1';
                 });
         });
@@ -127,14 +127,14 @@ class ShowTest extends AbstractTestCase
             $schema->attribute('visible2')->visible();
 
             $schema->attribute('visible3')->visibleIf(function ($arg1, $arg2) use ($model, $request) {
-                $this->assertEquals($model, $arg1);
-                $this->assertEquals($request, $arg2);
+                $this->assertEquals($request, $arg1);
+                $this->assertEquals($model, $arg2);
                 return true;
             });
 
             $schema->attribute('visible4')->hiddenIf(function ($arg1, $arg2) use ($model, $request) {
-                $this->assertEquals($model, $arg1);
-                $this->assertEquals($request, $arg2);
+                $this->assertEquals($request, $arg1);
+                $this->assertEquals($model, $arg2);
                 return false;
             });
 

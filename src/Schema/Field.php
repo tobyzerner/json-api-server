@@ -13,6 +13,7 @@ abstract class Field
     public $getter;
     public $setter;
     public $saver;
+    public $savedCallbacks = [];
     public $default;
     public $validators = [];
     public $filterable = false;
@@ -20,7 +21,7 @@ abstract class Field
 
     public function __construct(string $name)
     {
-        $this->name = $this->property = $name;
+        $this->name = $name;
 
         $this->visible();
         $this->readonly();
@@ -110,6 +111,13 @@ abstract class Field
         return $this;
     }
 
+    public function saved(Closure $callback)
+    {
+        $this->savedCallbacks[] = $callback;
+
+        return $this;
+    }
+
     public function default($value)
     {
         $this->default = $this->wrap($value);
@@ -132,7 +140,7 @@ abstract class Field
         return $this;
     }
 
-    private function wrap($value)
+    protected function wrap($value)
     {
         if (! $value instanceof Closure) {
             $value = function () use ($value) {

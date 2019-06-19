@@ -30,7 +30,7 @@ class Show implements RequestHandlerInterface
     {
         $include = $this->getInclude($request);
 
-        $this->load($include);
+        $this->loadRelationships([$this->model], $include, $request);
 
         $serializer = new Serializer($this->api, $request);
 
@@ -42,16 +42,5 @@ class Show implements RequestHandlerInterface
                 new JsonApi\Included(...$serializer->included())
             )
         );
-    }
-
-    private function load(array $include)
-    {
-        $adapter = $this->resource->getAdapter();
-
-        $trails = $this->buildRelationshipTrails($this->resource, $include);
-
-        foreach ($trails as $relationships) {
-            $adapter->load($this->model, $relationships);
-        }
     }
 }

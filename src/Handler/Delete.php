@@ -22,11 +22,21 @@ class Delete implements RequestHandlerInterface
 
     public function handle(Request $request): Response
     {
-        if (! ($this->resource->getSchema()->isDeletable)($this->model, $request)) {
+        $schema = $this->resource->getSchema();
+
+        if (! ($schema->isDeletable)($request, $this->model)) {
             throw new ForbiddenException('You cannot delete this resource');
         }
 
+        foreach ($schema->deletingCallbacks as $callback) {
+            $callback($request, $this->model);
+        }
+
         $this->resource->getAdapter()->delete($this->model);
+
+        foreach ($schema->deletedCallbacks as $callback) {
+            $callback($request, $this->model);
+        }
 
         return new EmptyResponse;
     }

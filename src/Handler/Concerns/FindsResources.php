@@ -15,7 +15,11 @@ trait FindsResources
         $query = $adapter->query();
 
         foreach ($resource->getSchema()->scopes as $scope) {
-            $scope($query, $request);
+            $scope($request, $query);
+        }
+
+        foreach ($resource->getSchema()->singleScopes as $scope) {
+            $scope($request, $query, $id);
         }
 
         $model = $adapter->find($query, $id);

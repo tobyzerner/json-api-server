@@ -4,9 +4,11 @@ namespace Tobscure\JsonApiServer\Adapter;
 
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Tobscure\JsonApiServer\Schema\Attribute;
 use Tobscure\JsonApiServer\Schema\HasMany;
 use Tobscure\JsonApiServer\Schema\HasOne;
+use Tobscure\JsonApiServer\Schema\Relationship;
 
 class EloquentAdapter implements AdapterInterface
 {
@@ -44,6 +46,11 @@ class EloquentAdapter implements AdapterInterface
         return $query->get()->all();
     }
 
+    public function count($query): int
+    {
+        return $query->count();
+    }
+
     public function getId($model): string
     {
         return $model->getKey();
@@ -51,27 +58,48 @@ class EloquentAdapter implements AdapterInterface
 
     public function getAttribute($model, Attribute $field)
     {
-        return $model->{$field->property};
+        return $model->{$this->getAttributeProperty($field)};
+    }
+
+    public function getHasOneId($model, HasOne $field)
+    {
+        $relation = $model->{$this->getRelationshipProperty($field)}();
+
+        if ($relation instanceof BelongsTo) {
+            $related = $relation->getRelated();
+
+            $key = $model->{$relation->getForeignKeyName()};
+
+            if ($key) {
+                return $related->forceFill([$related->getKeyName() => $key]);
+            }
+
+            return null;
+        }
+
+        return $model->{$this->getRelationshipProperty($field)};
     }
 
     public function getHasOne($model, HasOne $field)
     {
-        return $model->{$field->property};
+        return $model->{$this->getRelationshipProperty($field)};
     }
 
     public function getHasMany($model, HasMany $field): array
     {
-        return $model->{$field->property}->all();
+        $collection = $model->{$this->getRelationshipProperty($field)};
+
+        return $collection ? $collection->all() : [];
     }
 
     public function applyAttribute($model, Attribute $field, $value)
     {
-        $model->{$field->property} = $value;
+        $model->{$this->getAttributeProperty($field)} = $value;
     }
 
     public function applyHasOne($model, HasOne $field, $related)
     {
-        $model->{$field->property}()->associate($related);
+        $model->{$this->getRelationshipProperty($field)}()->associate($related);
     }
 
     public function save($model)
@@ -81,7 +109,7 @@ class EloquentAdapter implements AdapterInterface
 
     public function saveHasMany($model, HasMany $field, array $related)
     {
-        $model->{$field->property}()->sync(Collection::make($related));
+        $model->{$this->getRelationshipProperty($field)}()->sync(Collection::make($related));
     }
 
     public function delete($model)
@@ -91,12 +119,12 @@ class EloquentAdapter implements AdapterInterface
 
     public function filterByAttribute($query, Attribute $field, $value)
     {
-        $query->where($field->property, $value);
+        $query->where($this->getAttributeProperty($field), $value);
     }
 
     public function filterByHasOne($query, HasOne $field, array $ids)
     {
-        $property = $field->property;
+        $property = $this->getRelationshipProperty($field);
         $foreignKey = $query->getModel()->{$property}()->getQualifiedForeignKey();
 
         $query->whereIn($foreignKey, $ids);
@@ -104,7 +132,7 @@ class EloquentAdapter implements AdapterInterface
 
     public function filterByHasMany($query, HasMany $field, array $ids)
     {
-        $property = $field->property;
+        $property = $this->getRelationshipProperty($field);
         $relation = $query->getModel()->{$property}();
         $relatedKey = $relation->getRelated()->getQualifiedKeyName();
 
@@ -115,7 +143,7 @@ class EloquentAdapter implements AdapterInterface
 
     public function sortByAttribute($query, Attribute $field, string $direction)
     {
-        $query->orderBy($field->property, $direction);
+        $query->orderBy($this->getAttributeProperty($field), $direction);
     }
 
     public function paginate($query, int $limit, int $offset)
@@ -123,20 +151,48 @@ class EloquentAdapter implements AdapterInterface
         $query->take($limit)->skip($offset);
     }
 
-    public function include($query, array $trail)
+    public function load(array $models, array $trail)
     {
-        $query->with($this->relationshipTrailToPath($trail));
+        (new Collection($models))->load($this->relationshipTrailToPath($trail));
     }
 
-    public function load($model, array $trail)
+    public function loadIds(array $models, Relationship $relationship)
     {
-        $model->load($this->relationshipTrailToPath($trail));
+        if (empty($models)) {
+            return;
+        }
+
+        $property = $this->getRelationshipProperty($relationship);
+        $relation = $models[0]->$property();
+
+        if ($relation instanceof BelongsTo) {
+            return;
+        }
+
+        (new Collection($models))->load([
+            $property => function ($query) use ($relation) {
+                $query->select([
+                    $relation->getRelated()->getKeyName(),
+                    $relation->getForeignKeyName()
+                ]);
+            }
+        ]);
+    }
+
+    private function getAttributeProperty(Attribute $field)
+    {
+        return $field->property ?: strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $field->name));
+    }
+
+    private function getRelationshipProperty(Relationship $field)
+    {
+        return $field->property ?: $field->name;
     }
 
     private function relationshipTrailToPath(array $trail)
     {
         return implode('.', array_map(function ($relationship) {
-            return $relationship->property;
+            return $this->getRelationshipProperty($relationship);
         }, $trail));
     }
 }

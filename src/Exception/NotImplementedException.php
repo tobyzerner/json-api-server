@@ -5,14 +5,14 @@ namespace Tobscure\JsonApiServer\Exception;
 use JsonApiPhp\JsonApi\Error;
 use Tobscure\JsonApiServer\ErrorProviderInterface;
 
-class BadRequestException extends \DomainException implements ErrorProviderInterface
+class NotImplementedException extends \DomainException implements ErrorProviderInterface
 {
     public function getJsonApiErrors(): array
     {
         return [
             new Error(
-                new Error\Title('Method Not Allowed'),
-                new Error\Status('405')
+                new Error\Title('Not Implemented'),
+                new Error\Status('501')
             )
         ];
     }

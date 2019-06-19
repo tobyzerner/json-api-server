@@ -118,14 +118,14 @@ class CreateTest extends AbstractTestCase
             $schema->attribute('writable1')->writable();
 
             $schema->attribute('writable2')->writableIf(function ($arg1, $arg2) use ($adapter, $request) {
-                $this->assertEquals($adapter->createdModel, $arg1);
-                $this->assertEquals($request, $arg2);
+                $this->assertEquals($request, $arg1);
+                $this->assertEquals($adapter->createdModel, $arg2);
                 return true;
             });
 
             $schema->attribute('writable3')->readonlyIf(function ($arg1, $arg2) use ($adapter, $request) {
-                $this->assertEquals($adapter->createdModel, $arg1);
-                $this->assertEquals($request, $arg2);
+                $this->assertEquals($request, $arg1);
+                $this->assertEquals($adapter->createdModel, $arg2);
                 return false;
             });
         });

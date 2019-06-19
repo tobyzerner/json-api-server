@@ -44,7 +44,5 @@ interface AdapterInterface
 
     public function paginate($query, int $limit, int $offset);
 
-    public function include($query, array $relationships);
-
-    public function load($model, array $relationships);
+    public function load(array $models, array $relationships);
 }

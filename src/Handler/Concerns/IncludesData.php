@@ -22,7 +22,7 @@ trait IncludesData
             return $include;
         }
 
-        return $this->defaultInclude($this->resource);
+        return [];
     }
 
     private function parseInclude(string $include): array
@@ -54,30 +54,13 @@ trait IncludesData
                 || ! $schema->fields[$name] instanceof Relationship
                 || ($schema->fields[$name] instanceof HasMany && ! $schema->fields[$name]->includable)
             ) {
-                throw new BadRequestException("Invalid include [{$path}{$name}]");
+                throw new BadRequestException("Invalid include [{$path}{$name}]", 'include');
             }
 
             $relatedResource = $this->api->getResource($schema->fields[$name]->resource);
 
             $this->validateInclude($relatedResource, $nested, $name.'.');
         }
-    }
-
-    private function defaultInclude(ResourceType $resource): array
-    {
-        $include = [];
-
-        foreach ($resource->getSchema()->fields as $name => $field) {
-            if (! $field instanceof Relationship || ! $field->included) {
-                continue;
-            }
-
-            $include[$name] = $this->defaultInclude(
-                $this->api->getResource($field->resource)
-            );
-        }
-
-        return $include;
     }
 
     private function buildRelationshipTrails(ResourceType $resource, array $include): array
@@ -88,7 +71,9 @@ trait IncludesData
         foreach ($include as $name => $nested) {
             $relationship = $schema->fields[$name];
 
-            $trails[] = [$relationship];
+            if ($relationship->loadable) {
+                $trails[] = [$relationship];
+            }
 
             $relatedResource = $this->api->getResource($relationship->resource);
 
@@ -104,5 +89,25 @@ trait IncludesData
         }
 
         return $trails;
+    }
+
+    private function loadRelationships(array $models, array $include, Request $request)
+    {
+        $adapter = $this->resource->getAdapter();
+        $schema = $this->resource->getSchema();
+
+        foreach ($schema->fields as $name => $field) {
+            if (! $field instanceof Relationship || ! ($field->linkage)($request) || ! $field->loadable) {
+                continue;
+            }
+
+            $adapter->loadIds($models, $field);
+        }
+
+        $trails = $this->buildRelationshipTrails($this->resource, $include);
+
+        foreach ($trails as $relationships) {
+            $adapter->load($models, $relationships);
+        }
     }
 }

@@ -24,13 +24,23 @@ class Create implements RequestHandlerInterface
 
     public function handle(Request $request): Response
     {
-        if (! ($this->resource->getSchema()->isCreatable)($request)) {
+        $schema = $this->resource->getSchema();
+
+        if (! ($schema->isCreatable)($request)) {
             throw new ForbiddenException('You cannot create this resource');
         }
 
         $model = $this->resource->getAdapter()->create();
 
+        foreach ($schema->creatingCallbacks as $callback) {
+            $callback($request, $model);
+        }
+
         $this->save($model, $request, true);
+
+        foreach ($schema->createdCallbacks as $callback) {
+            $callback($request, $model);
+        }
 
         return (new Show($this->api, $this->resource, $model))
             ->handle($request)
