@@ -127,6 +127,14 @@ class Index implements RequestHandlerInterface
             unset($queryParams['page']['offset']);
         }
 
+        if (isset($queryParams['filter'])) {
+            foreach ($queryParams['filter'] as $k => &$v) {
+                if ($v === null) {
+                    $v = '';
+                }
+            }
+        }
+
         $queryString = http_build_query($queryParams);
 
         return $selfUrl.($queryString ? '?'.$queryString : '');

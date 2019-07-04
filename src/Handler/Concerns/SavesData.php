@@ -48,15 +48,15 @@ trait SavesData
         $body = (array) $body;
 
         if (! isset($body['data'])) {
-            throw new BadRequestException;
+            throw new BadRequestException('Root data attribute missing');
         }
 
         if (isset($body['data']['attributes']) && ! is_array($body['data']['attributes'])) {
-            throw new BadRequestException;
+            throw new BadRequestException('data.attributes must be an object');
         }
 
         if (isset($body['data']['relationships']) && ! is_array($body['data']['relationships'])) {
-            throw new BadRequestException;
+            throw new BadRequestException('data.relationships must be an object');
         }
 
         return array_merge(

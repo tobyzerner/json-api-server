@@ -34,9 +34,14 @@ class BadRequestException extends \DomainException implements ErrorProviderInter
         return [
             new Error(
                 new Error\Title('Bad Request'),
-                new Error\Status('400'),
+                new Error\Status($this->getJsonApiStatus()),
                 ...$members
             )
         ];
+    }
+
+    public function getJsonApiStatus(): string
+    {
+        return '400';
     }
 }

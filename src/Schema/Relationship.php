@@ -3,13 +3,10 @@
 namespace Tobscure\JsonApiServer\Schema;
 
 use Closure;
-use Spatie\Macroable\Macroable;
 use Tobscure\JsonApiServer\Handler\Show;
 
 abstract class Relationship extends Field
 {
-    use Macroable;
-
     public $location = 'relationships';
     public $linkage;
     public $hasLinks = true;

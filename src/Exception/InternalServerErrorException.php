@@ -16,4 +16,9 @@ class InternalServerErrorException extends \RuntimeException implements ErrorPro
             )
         ];
     }
+
+    public function getJsonApiStatus(): string
+    {
+        return '500';
+    }
 }

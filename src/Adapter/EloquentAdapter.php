@@ -119,7 +119,28 @@ class EloquentAdapter implements AdapterInterface
 
     public function filterByAttribute($query, Attribute $field, $value)
     {
-        $query->where($this->getAttributeProperty($field), $value);
+        $property = $this->getAttributeProperty($field);
+
+        if (preg_match('/(.+)\.\.(.+)/', $value, $matches)) {
+            if ($matches[1] !== '*') {
+                $query->where($property, '>=', $matches[1]);
+            }
+            if ($matches[2] !== '*') {
+                $query->where($property, '<=', $matches[2]);
+            }
+
+            return;
+        }
+
+        foreach (['>=', '>', '<=', '<'] as $operator) {
+            if (strpos($value, $operator) === 0) {
+                $query->where($property, $operator, substr($value, strlen($operator)));
+
+                return;
+            }
+        }
+
+        $query->where($property, $value);
     }
 
     public function filterByHasOne($query, HasOne $field, array $ids)

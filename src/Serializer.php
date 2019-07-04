@@ -34,7 +34,7 @@ class Serializer
         $schema = $resource->getSchema();
 
         $data = [
-            'type' => $resource->getType(),
+            'type' => $type = $resource->getType(),
             'id' => $adapter->getId($model),
             'fields' => [],
             'links' => [],
@@ -43,9 +43,17 @@ class Serializer
 
         $resourceUrl = $this->api->getBaseUrl().'/'.$data['type'].'/'.$data['id'];
 
-        ksort($schema->fields);
+        $fields = $schema->fields;
 
-        foreach ($schema->fields as $name => $field) {
+        $queryParams = $this->request->getQueryParams();
+
+        if (isset($queryParams['fields'][$type])) {
+            $fields = array_intersect_key($fields, array_flip(explode(',', $queryParams['fields'][$type])));
+        }
+
+        ksort($fields);
+
+        foreach ($fields as $name => $field) {
             if (! ($field->isVisible)($this->request, $model)) {
                 continue;
             }
@@ -132,7 +140,7 @@ class Serializer
         if ($field->getter) {
             $value = ($field->getter)($this->request, $model);
         } else {
-            $value = $isLinkage ? $adapter->getHasMany($model, $field) : null;
+            $value = ($isLinkage || $isIncluded) ? $adapter->getHasMany($model, $field) : null;
         }
 
         $identifiers = [];

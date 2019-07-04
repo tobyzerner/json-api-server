@@ -123,12 +123,13 @@ class Api implements RequestHandlerInterface
         }
 
         $errors = $e->getJsonApiErrors();
+        $status = $e->getJsonApiStatus();
 
         $data = new JsonApi\ErrorDocument(
             ...$errors
         );
 
-        return new JsonApiResponse($data);
+        return new JsonApiResponse($data, $status);
     }
 
     public function getBaseUrl(): string

@@ -6,8 +6,7 @@
         "json-api-php/json-api": "^2.0",
         "psr/http-message": "^1.0",
         "psr/http-server-handler": "^1.0",
-        "spatie/macroable": "^1.0",
-        "zendframework/zend-diactoros": "^2.0"
+        "zendframework/zend-diactoros": "^2.1"
     },
     "license": "MIT",
     "authors": [
