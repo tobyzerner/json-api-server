@@ -34,6 +34,8 @@ interface AdapterInterface
 
     public function delete($model);
 
+    public function filterByIds($query, array $ids);
+
     public function filterByAttribute($query, Attribute $attribute, $value);
 
     public function filterByHasOne($query, HasOne $relationship, array $ids);

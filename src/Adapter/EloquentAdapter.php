@@ -117,6 +117,13 @@ class EloquentAdapter implements AdapterInterface
         $model->delete();
     }
 
+    public function filterByIds($query, array $ids)
+    {
+        $key = $query->getModel()->getQualifiedKeyName();
+
+        $query->whereIn($key, $ids);
+    }
+
     public function filterByAttribute($query, Attribute $field, $value)
     {
         $property = $this->getAttributeProperty($field);
@@ -145,8 +152,9 @@ class EloquentAdapter implements AdapterInterface
 
     public function filterByHasOne($query, HasOne $field, array $ids)
     {
-        $property = $this->getRelationshipProperty($field);
-        $foreignKey = $query->getModel()->{$property}()->getQualifiedForeignKey();
+        $relation = $query->getModel()->{$this->getRelationshipProperty($field)}();
+
+        $foreignKey = $relation->getQualifiedForeignKeyName();
 
         $query->whereIn($foreignKey, $ids);
     }

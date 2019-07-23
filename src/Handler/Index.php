@@ -40,11 +40,11 @@ class Index implements RequestHandlerInterface
         $query = $adapter->query();
 
         foreach ($schema->scopes as $scope) {
-            $scope($request, $query);
+            $request = $scope($request, $query) ?: $request;
         }
 
         foreach ($schema->indexScopes as $scope) {
-            $scope($request, $query);
+            $request = $scope($request, $query) ?: $request;
         }
 
         if ($filter = $request->getAttribute('jsonApiFilter')) {
@@ -57,7 +57,9 @@ class Index implements RequestHandlerInterface
 
         $paginationLinks = [];
         $members = [
-            new Link\SelfLink($this->buildUrl($request))
+            new Link\SelfLink($this->buildUrl($request)),
+            new Meta('offset', $offset),
+            new Meta('limit', $limit),
         ];
 
         if ($offset > 0) {
@@ -197,9 +199,7 @@ class Index implements RequestHandlerInterface
             }
 
             foreach ($filter as $name => $value) {
-                if (! isset($schema->fields[$name])
-                    || ! $schema->fields[$name]->filterable
-                ) {
+                if ($name !== 'id' && (! isset($schema->fields[$name]) || ! $schema->fields[$name]->filterable)) {
                     throw new BadRequestException("Invalid filter [$name]", "filter[$name]");
                 }
             }
@@ -261,6 +261,11 @@ class Index implements RequestHandlerInterface
         $adapter = $this->resource->getAdapter();
 
         foreach ($filter as $name => $value) {
+            if ($name === 'id') {
+                $adapter->filterByIds($query, explode(',', $value));
+                continue;
+            }
+
             $field = $schema->fields[$name];
 
             if ($field->filter) {

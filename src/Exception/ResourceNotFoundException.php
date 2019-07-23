@@ -25,10 +25,15 @@ class ResourceNotFoundException extends \RuntimeException implements ErrorProvid
         return [
             new Error(
                 new Error\Title('Resource Not Found'),
-                new Error\Status('404'),
+                new Error\Status($this->getJsonApiStatus()),
                 new Error\Detail($this->getMessage())
             )
         ];
+    }
+
+    public function getJsonApiStatus(): string
+    {
+        return '404';
     }
 
     public function getType(): string

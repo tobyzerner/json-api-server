@@ -32,11 +32,31 @@ class Create implements RequestHandlerInterface
 
         $model = $this->resource->getAdapter()->create();
 
+        $data = $this->parseData($request->getParsedBody());
+
+        $adapter = $this->resource->getAdapter();
+
+        $this->assertFieldsExist($data);
+
+        $this->assertFieldsWritable($data, $model, $request);
+
+        $this->fillDefaultValues($data, $request);
+
+        $this->loadRelatedResources($data, $request);
+
+        $this->assertDataValid($data, $model, $request, true);
+
+        $this->applyValues($data, $model, $request);
+
         foreach ($schema->creatingCallbacks as $callback) {
             $callback($request, $model);
         }
 
-        $this->save($model, $request, true);
+        $adapter->save($model);
+
+        $this->saveFields($data, $model, $request);
+
+        $this->runSavedCallbacks($data, $model, $request);
 
         foreach ($schema->createdCallbacks as $callback) {
             $callback($request, $model);
