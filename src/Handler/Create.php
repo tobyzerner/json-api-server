@@ -30,7 +30,7 @@ class Create implements RequestHandlerInterface
             throw new ForbiddenException('You cannot create this resource');
         }
 
-        $model = $this->resource->getAdapter()->create();
+        $model = $schema->createModel ? ($schema->createModel)($request) : $this->resource->getAdapter()->create();
 
         $data = $this->parseData($request->getParsedBody());
 
@@ -52,7 +52,7 @@ class Create implements RequestHandlerInterface
             $callback($request, $model);
         }
 
-        $adapter->save($model);
+        $this->saveModel($model, $request);
 
         $this->saveFields($data, $model, $request);
 

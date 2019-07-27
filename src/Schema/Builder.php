@@ -25,10 +25,13 @@ class Builder
     public $deletingCallbacks = [];
     public $deletedCallbacks = [];
     public $defaultSort;
+    public $createModel;
+    public $saver;
 
     public function __construct()
     {
         $this->notCreatable();
+        $this->notUpdatable();
         $this->notDeletable();
     }
 
@@ -82,6 +85,11 @@ class Builder
     public function uncountable()
     {
         $this->countable = false;
+    }
+
+    public function createModel(Closure $callback)
+    {
+        $this->createModel = $callback;
     }
 
     public function scope(Closure $callback)
@@ -173,6 +181,13 @@ class Builder
     public function updated(Closure $callback)
     {
         $this->updatedCallbacks[] = $callback;
+    }
+
+    public function save(Closure $callback)
+    {
+        $this->saver = $callback;
+
+        return $this;
     }
 
     public function deletableIf(Closure $condition)

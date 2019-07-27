@@ -32,7 +32,7 @@ trait SavesData
 
         $this->applyValues($data, $model, $request);
 
-        $adapter->save($model);
+        $this->saveModel($model, $request);
 
         $this->saveFields($data, $model, $request);
 
@@ -153,8 +153,8 @@ trait SavesData
                 continue;
             }
 
-            $fail = function ($message) use (&$failures, $field, $name) {
-                $failures[$field->location][$name][] = $message;
+            $fail = function ($message) use (&$failures, $field) {
+                $failures[] = compact('field', 'message');
             };
 
             foreach ($field->validators as $validator) {
@@ -163,7 +163,7 @@ trait SavesData
         }
 
         if (count($failures)) {
-            throw new UnprocessableEntityException(print_r($failures, true));
+            throw new UnprocessableEntityException($failures);
         }
     }
 
@@ -181,7 +181,7 @@ trait SavesData
 
             if ($field->setter || $field->saver) {
                 if ($field->setter) {
-                    ($field->setter)($model, $value, $request);
+                    ($field->setter)($request, $model, $value);
                 }
 
                 continue;
@@ -192,6 +192,18 @@ trait SavesData
             } elseif ($field instanceof Schema\HasOne) {
                 $adapter->applyHasOne($model, $field, $value);
             }
+        }
+    }
+
+    private function saveModel($model, Request $request)
+    {
+        $adapter = $this->resource->getAdapter();
+        $schema = $this->resource->getSchema();
+
+        if ($schema->saver) {
+            ($schema->saver)($request, $model);
+        } else {
+            $adapter->save($model);
         }
     }
 

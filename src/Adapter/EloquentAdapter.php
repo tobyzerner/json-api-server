@@ -5,6 +5,7 @@ namespace Tobscure\JsonApiServer\Adapter;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Tobscure\JsonApiServer\Schema\Attribute;
 use Tobscure\JsonApiServer\Schema\HasMany;
 use Tobscure\JsonApiServer\Schema\HasOne;
@@ -114,7 +115,11 @@ class EloquentAdapter implements AdapterInterface
 
     public function delete($model)
     {
-        $model->delete();
+        if (method_exists($model, 'forceDelete')) {
+            $model->forceDelete();
+        } else {
+            $model->delete();
+        }
     }
 
     public function filterByIds($query, array $ids)
