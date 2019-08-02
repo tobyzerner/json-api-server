@@ -10,6 +10,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface;
 use Tobscure\JsonApiServer\Api;
 use Tobscure\JsonApiServer\Exception\BadRequestException;
+use Tobscure\JsonApiServer\Exception\ForbiddenException;
 use Tobscure\JsonApiServer\JsonApiResponse;
 use Tobscure\JsonApiServer\ResourceType;
 use Tobscure\JsonApiServer\Schema;
@@ -36,6 +37,10 @@ class Index implements RequestHandlerInterface
 
         $adapter = $this->resource->getAdapter();
         $schema = $this->resource->getSchema();
+
+        if (! ($schema->isVisible)($request)) {
+            throw new ForbiddenException('You cannot view this resource');
+        }
 
         $query = $adapter->query();
 
@@ -219,7 +224,7 @@ class Index implements RequestHandlerInterface
             $attribute = $schema->fields[$name];
 
             if ($attribute->sorter) {
-                ($attribute->sorter)($query, $direction, $request);
+                ($attribute->sorter)($request, $query, $direction);
             } else {
                 $adapter->sortByAttribute($query, $attribute, $direction);
             }

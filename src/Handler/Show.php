@@ -7,6 +7,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface;
 use Tobscure\JsonApiServer\Api;
+use Tobscure\JsonApiServer\Exception\ForbiddenException;
 use Tobscure\JsonApiServer\JsonApiResponse;
 use Tobscure\JsonApiServer\ResourceType;
 use Tobscure\JsonApiServer\Serializer;
@@ -28,6 +29,12 @@ class Show implements RequestHandlerInterface
 
     public function handle(Request $request): Response
     {
+        $schema = $this->resource->getSchema();
+
+        if (! ($schema->isVisible)($request)) {
+            throw new ForbiddenException('You cannot view this resource');
+        }
+
         $include = $this->getInclude($request);
 
         $this->loadRelationships([$this->model], $include, $request);

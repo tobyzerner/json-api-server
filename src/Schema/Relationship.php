@@ -11,6 +11,7 @@ abstract class Relationship extends Field
     public $linkage;
     public $hasLinks = true;
     public $loadable = true;
+    public $loader;
     public $included = false;
     public $resource;
 
@@ -66,6 +67,13 @@ abstract class Relationship extends Field
     public function notLoadable()
     {
         $this->loadable = false;
+
+        return $this;
+    }
+
+    public function load(Closure $callback)
+    {
+        $this->loader = $callback;
 
         return $this;
     }

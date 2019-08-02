@@ -57,9 +57,11 @@ trait IncludesData
                 throw new BadRequestException("Invalid include [{$path}{$name}]", 'include');
             }
 
-            $relatedResource = $this->api->getResource($schema->fields[$name]->resource);
+            if (is_string($schema->fields[$name]->resource)) {
+                $relatedResource = $this->api->getResource($schema->fields[$name]->resource);
 
-            $this->validateInclude($relatedResource, $nested, $name.'.');
+                $this->validateInclude($relatedResource, $nested, $name.'.');
+            }
         }
     }
 
@@ -75,17 +77,19 @@ trait IncludesData
                 $trails[] = [$relationship];
             }
 
-            $relatedResource = $this->api->getResource($relationship->resource);
+            if (is_string($schema->fields[$name]->resource)) {
+                $relatedResource = $this->api->getResource($relationship->resource);
 
-            $trails = array_merge(
-                $trails,
-                array_map(
-                    function ($trail) use ($relationship) {
-                        return array_merge([$relationship], $trail);
-                    },
-                    $this->buildRelationshipTrails($relatedResource, $nested)
-                )
-            );
+                $trails = array_merge(
+                    $trails,
+                    array_map(
+                        function ($trail) use ($relationship) {
+                            return array_merge([$relationship], $trail);
+                        },
+                        $this->buildRelationshipTrails($relatedResource, $nested)
+                    )
+                );
+            }
         }
 
         return $trails;
@@ -101,13 +105,21 @@ trait IncludesData
                 continue;
             }
 
-            $adapter->loadIds($models, $field);
+            if ($field->loader) {
+                ($field->loader)($models, true);
+            } else {
+                $adapter->loadIds($models, $field);
+            }
         }
 
         $trails = $this->buildRelationshipTrails($this->resource, $include);
 
         foreach ($trails as $relationships) {
-            $adapter->load($models, $relationships);
+            if ($loader = end($relationships)->loader) {
+                ($loader)($models, false);
+            } else {
+                $adapter->load($models, $relationships);
+            }
         }
     }
 }

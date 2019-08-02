@@ -30,6 +30,7 @@ class Builder
 
     public function __construct()
     {
+        $this->visible();
         $this->notCreatable();
         $this->notUpdatable();
         $this->notDeletable();
@@ -40,7 +41,7 @@ class Builder
         return $this->field(Attribute::class, $name, $property);
     }
 
-    public function hasOne(string $name, string $resource = null, string $property = null): HasOne
+    public function hasOne(string $name, $resource = null, string $property = null): HasOne
     {
         $field = $this->field(HasOne::class, $name, $property);
 
@@ -51,7 +52,7 @@ class Builder
         return $field;
     }
 
-    public function hasMany(string $name, string $resource = null, string $property = null): HasMany
+    public function hasMany(string $name, $resource = null, string $property = null): HasMany
     {
         $field = $this->field(HasMany::class, $name, $property);
 
@@ -105,6 +106,34 @@ class Builder
     public function scopeSingle(Closure $callback)
     {
         $this->singleScopes[] = $callback;
+    }
+
+    public function visibleIf(Closure $condition)
+    {
+        $this->isVisible = $condition;
+
+        return $this;
+    }
+
+    public function visible()
+    {
+        return $this->visibleIf(function () {
+            return true;
+        });
+    }
+
+    public function notVisibleIf(Closure $condition)
+    {
+        return $this->visibleIf(function (...$args) use ($condition) {
+            return ! $condition(...$args);
+        });
+    }
+
+    public function notVisible()
+    {
+        return $this->notVisibleIf(function () {
+            return true;
+        });
     }
 
     public function creatableIf(Closure $condition)

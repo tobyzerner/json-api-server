@@ -184,7 +184,17 @@ class Serializer
 
     private function addRelated(Schema\Relationship $field, $model, array $include): JsonApi\ResourceIdentifier
     {
-        $relatedResource = $this->api->getResource($field->resource);
+        if (is_array($field->resource)) {
+            foreach ($field->resource as $class => $resource) {
+                if ($model instanceof $class) {
+                    break;
+                }
+            }
+        } else {
+            $resource = $field->resource;
+        }
+
+        $relatedResource = $this->api->getResource($resource);
 
         return $this->resourceIdentifier(
             $this->addToMap($relatedResource, $model, $include)
