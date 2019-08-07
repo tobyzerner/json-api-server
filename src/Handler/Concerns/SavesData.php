@@ -132,12 +132,18 @@ trait SavesData
 
             $value = &$data[$field->location][$name];
 
-            if ($field instanceof Schema\HasOne) {
-                $value = $this->getModelForIdentifier($request, $value['data']);
-            } elseif ($field instanceof Schema\HasMany) {
-                $value = array_map(function ($identifier) use ($request) {
-                    return $this->getModelForIdentifier($request, $identifier);
-                }, $value['data']);
+            if ($field instanceof Schema\Relationship) {
+                $value = $value['data'];
+
+                if ($value) {
+                    if ($field instanceof Schema\HasOne) {
+                        $value = $this->getModelForIdentifier($request, $value);
+                    } elseif ($field instanceof Schema\HasMany) {
+                        $value = array_map(function ($identifier) use ($request) {
+                            return $this->getModelForIdentifier($request, $identifier);
+                        }, $value);
+                    }
+                }
             }
         }
     }

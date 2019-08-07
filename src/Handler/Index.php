@@ -81,7 +81,7 @@ class Index implements RequestHandlerInterface
             $paginationLinks[] = new Link\PrevLink($this->buildUrl($request, $params));
         }
 
-        if ($schema->countable) {
+        if ($schema->countable && $schema->paginate) {
             $total = $adapter->count($query);
 
             $members[] = new Meta('total', $total);
