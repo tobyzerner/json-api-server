@@ -53,7 +53,13 @@ class Serializer
 
         ksort($fields);
 
+        $key = $data['type'].':'.$data['id'];
+
         foreach ($fields as $name => $field) {
+            if (isset($this->map[$key]['fields'][$name])) {
+                continue;
+            }
+
             if (! ($field->isVisible)($this->request, $model)) {
                 continue;
             }

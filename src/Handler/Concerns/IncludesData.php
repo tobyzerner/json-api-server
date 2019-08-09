@@ -116,6 +116,7 @@ trait IncludesData
 
         foreach ($trails as $relationships) {
             if ($loader = end($relationships)->loader) {
+                // TODO: probably need to loop through relationships here
                 ($loader)($models, false);
             } else {
                 $adapter->load($models, $relationships);
