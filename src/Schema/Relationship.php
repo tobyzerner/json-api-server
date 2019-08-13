@@ -13,6 +13,7 @@ abstract class Relationship extends Field
     public $loadable = true;
     public $loader;
     public $included = false;
+    public $includable = true;
     public $resource;
 
     public function __construct(string $name)
@@ -78,8 +79,24 @@ abstract class Relationship extends Field
         return $this;
     }
 
+    public function includable()
+    {
+        $this->includable = true;
+
+        return $this;
+    }
+
+    public function notIncludable()
+    {
+        $this->includable = false;
+
+        return $this;
+    }
+
     public function included()
     {
+        $this->includable();
+
         $this->included = true;
 
         return $this;

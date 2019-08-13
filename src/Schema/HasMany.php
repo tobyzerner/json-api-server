@@ -12,18 +12,4 @@ class HasMany extends Relationship
 
         $this->resource = $name;
     }
-
-    public function includable()
-    {
-        $this->includable = true;
-
-        return $this;
-    }
-
-    public function included()
-    {
-        $this->includable();
-
-        return parent::included();
-    }
 }

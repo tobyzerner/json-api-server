@@ -5,6 +5,7 @@ namespace Tobscure\JsonApiServer\Adapter;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Tobscure\JsonApiServer\Schema\Attribute;
 use Tobscure\JsonApiServer\Schema\HasMany;
@@ -185,9 +186,13 @@ class EloquentAdapter implements AdapterInterface
         $query->take($limit)->skip($offset);
     }
 
-    public function load(array $models, array $trail)
+    public function load(array $models, array $trail, \Closure $scope)
     {
-        (new Collection($models))->load($this->relationshipTrailToPath($trail));
+        (new Collection($models))->load([
+            $this->relationshipTrailToPath($trail) => function ($relation) use ($scope) {
+                $scope($relation->getQuery());
+            }
+        ]);
     }
 
     public function loadIds(array $models, Relationship $relationship)
@@ -199,7 +204,7 @@ class EloquentAdapter implements AdapterInterface
         $property = $this->getRelationshipProperty($relationship);
         $relation = $models[0]->$property();
 
-        if ($relation instanceof BelongsTo) {
+        if ($relation instanceof BelongsTo || $relation instanceof BelongsToMany) {
             return;
         }
 

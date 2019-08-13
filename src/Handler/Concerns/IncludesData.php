@@ -119,7 +119,13 @@ trait IncludesData
                 // TODO: probably need to loop through relationships here
                 ($loader)($models, false);
             } else {
-                $adapter->load($models, $relationships);
+                $scope = function ($query) use ($relationships, $request) {
+                    foreach ($this->api->getResource(end($relationships)->resource)->getSchema()->scopes as $scope) {
+                        $scope($request, $query);
+                    }
+                };
+
+                $adapter->load($models, $relationships, $scope);
             }
         }
     }
