@@ -1,12 +1,12 @@
 <?php
 
-namespace Tobscure\JsonApiServer\Handler\Concerns;
+namespace Tobyz\JsonApiServer\Handler\Concerns;
 
 use Psr\Http\Message\ServerRequestInterface as Request;
-use Tobscure\JsonApiServer\Exception\BadRequestException;
-use Tobscure\JsonApiServer\Exception\UnprocessableEntityException;
-use Tobscure\JsonApiServer\ResourceType;
-use Tobscure\JsonApiServer\Schema;
+use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
+use Tobyz\JsonApiServer\ResourceType;
+use Tobyz\JsonApiServer\Schema;
 
 trait SavesData
 {
@@ -164,7 +164,7 @@ trait SavesData
             };
 
             foreach ($field->validators as $validator) {
-                $validator($fail, $data[$field->location][$name] ?? null, $request, $model, $field);
+                $validator($fail, $data[$field->location][$name] ?? null, $model, $request, $field);
             }
         }
 

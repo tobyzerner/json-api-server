@@ -1,12 +1,12 @@
 <?php
 
-namespace Tobscure\JsonApiServer\Handler\Concerns;
+namespace Tobyz\JsonApiServer\Handler\Concerns;
 
 use Psr\Http\Message\ServerRequestInterface as Request;
-use Tobscure\JsonApiServer\Exception\BadRequestException;
-use Tobscure\JsonApiServer\ResourceType;
-use Tobscure\JsonApiServer\Schema\HasMany;
-use Tobscure\JsonApiServer\Schema\Relationship;
+use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\ResourceType;
+use Tobyz\JsonApiServer\Schema\HasMany;
+use Tobyz\JsonApiServer\Schema\Relationship;
 
 trait IncludesData
 {
@@ -57,10 +57,12 @@ trait IncludesData
                 throw new BadRequestException("Invalid include [{$path}{$name}]", 'include');
             }
 
-            if (is_string($schema->fields[$name]->resource)) {
+            if ($schema->fields[$name]->resource) {
                 $relatedResource = $this->api->getResource($schema->fields[$name]->resource);
 
                 $this->validateInclude($relatedResource, $nested, $name.'.');
+            } elseif ($nested) {
+                throw new BadRequestException("Invalid include [{$path}{$name}.*]", 'include');
             }
         }
     }
@@ -77,7 +79,7 @@ trait IncludesData
                 $trails[] = [$relationship];
             }
 
-            if (is_string($schema->fields[$name]->resource)) {
+            if ($schema->fields[$name]->resource) {
                 $relatedResource = $this->api->getResource($relationship->resource);
 
                 $trails = array_merge(
@@ -119,13 +121,7 @@ trait IncludesData
                 // TODO: probably need to loop through relationships here
                 ($loader)($models, false);
             } else {
-                $scope = function ($query) use ($relationships, $request) {
-                    foreach ($this->api->getResource(end($relationships)->resource)->getSchema()->scopes as $scope) {
-                        $scope($request, $query);
-                    }
-                };
-
-                $adapter->load($models, $relationships, $scope);
+                $adapter->load($models, $relationships);
             }
         }
     }

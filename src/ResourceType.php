@@ -1,10 +1,10 @@
 <?php
 
-namespace Tobscure\JsonApiServer;
+namespace Tobyz\JsonApiServer;
 
 use Closure;
-use Tobscure\JsonApiServer\Adapter\AdapterInterface;
-use Tobscure\JsonApiServer\Schema\Builder;
+use Tobyz\JsonApiServer\Adapter\AdapterInterface;
+use Tobyz\JsonApiServer\Schema\Builder;
 
 class ResourceType
 {

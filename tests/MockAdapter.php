@@ -1,21 +1,24 @@
 <?php
 
-namespace Tobscure\Tests\JsonApiServer;
+namespace Tobyz\Tests\JsonApiServer;
 
-use Tobscure\JsonApiServer\Adapter\AdapterInterface;
-use Tobscure\JsonApiServer\Schema\Attribute;
-use Tobscure\JsonApiServer\Schema\Field;
-use Tobscure\JsonApiServer\Schema\HasMany;
-use Tobscure\JsonApiServer\Schema\HasOne;
+use Tobyz\JsonApiServer\Adapter\AdapterInterface;
+use Tobyz\JsonApiServer\Schema\Attribute;
+use Tobyz\JsonApiServer\Schema\Field;
+use Tobyz\JsonApiServer\Schema\HasMany;
+use Tobyz\JsonApiServer\Schema\HasOne;
+use Tobyz\JsonApiServer\Schema\Relationship;
 
 class MockAdapter implements AdapterInterface
 {
     public $models = [];
     public $createdModel;
+    private $type;
 
-    public function __construct(array $models = [])
+    public function __construct(array $models = [], string $type = null)
     {
         $this->models = $models;
+        $this->type = $type;
     }
 
     public function create()
@@ -87,6 +90,11 @@ class MockAdapter implements AdapterInterface
         $model->deleteWasCalled = true;
     }
 
+    public function filterByIds($query, array $ids)
+    {
+        $query->filters[] = ['ids', $ids];
+    }
+
     public function filterByAttribute($query, Attribute $attribute, $value)
     {
         $query->filters[] = [$attribute, $value];
@@ -117,13 +125,27 @@ class MockAdapter implements AdapterInterface
         $query->include[] = $relationships;
     }
 
-    public function load($model, array $relationships)
+    public function load(array $models, array $relationships)
     {
-        $model->load[] = $relationships;
+        foreach ($models as $model) {
+            $model->load[] = $relationships;
+        }
+    }
+
+    public function loadIds(array $models, Relationship $relationship)
+    {
+        foreach ($models as $model) {
+            $model->loadIds[] = $relationship;
+        }
     }
 
     private function getProperty(Field $field)
     {
         return $field->property ?: $field->name;
+    }
+
+    public function handles($model)
+    {
+        return isset($model['type']) && $model['type'] === $this->type;
     }
 }

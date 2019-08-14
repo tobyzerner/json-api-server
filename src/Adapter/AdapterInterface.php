@@ -1,13 +1,16 @@
 <?php
 
-namespace Tobscure\JsonApiServer\Adapter;
+namespace Tobyz\JsonApiServer\Adapter;
 
-use Tobscure\JsonApiServer\Schema\Attribute;
-use Tobscure\JsonApiServer\Schema\HasMany;
-use Tobscure\JsonApiServer\Schema\HasOne;
+use Tobyz\JsonApiServer\Schema\Attribute;
+use Tobyz\JsonApiServer\Schema\HasMany;
+use Tobyz\JsonApiServer\Schema\HasOne;
+use Tobyz\JsonApiServer\Schema\Relationship;
 
 interface AdapterInterface
 {
+    public function handles($model);
+
     public function create();
 
     public function query();
@@ -46,5 +49,7 @@ interface AdapterInterface
 
     public function paginate($query, int $limit, int $offset);
 
-    public function load(array $models, array $relationships, \Closure $scope);
+    public function load(array $models, array $relationships);
+
+    public function loadIds(array $models, Relationship $relationship);
 }

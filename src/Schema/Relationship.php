@@ -1,9 +1,9 @@
 <?php
 
-namespace Tobscure\JsonApiServer\Schema;
+namespace Tobyz\JsonApiServer\Schema;
 
 use Closure;
-use Tobscure\JsonApiServer\Handler\Show;
+use Tobyz\JsonApiServer\Handler\Show;
 
 abstract class Relationship extends Field
 {
@@ -41,13 +41,6 @@ abstract class Relationship extends Field
     {
         return $this->linkageIf(function () {
             return true;
-        });
-    }
-
-    public function linkageIfSingle()
-    {
-        return $this->linkageIf(function ($request) {
-            return $request->getAttribute('jsonApiHandler') instanceof Show;
         });
     }
 
@@ -89,15 +82,6 @@ abstract class Relationship extends Field
     public function notIncludable()
     {
         $this->includable = false;
-
-        return $this;
-    }
-
-    public function included()
-    {
-        $this->includable();
-
-        $this->included = true;
 
         return $this;
     }

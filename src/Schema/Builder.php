@@ -1,6 +1,6 @@
 <?php
 
-namespace Tobscure\JsonApiServer\Schema;
+namespace Tobyz\JsonApiServer\Schema;
 
 use Closure;
 
@@ -12,9 +12,6 @@ class Builder
     public $limit = 50;
     public $countable = true;
     public $scopes = [];
-    public $indexScopes = [];
-    public $singleScopes = [];
-    public $isVisible;
     public $isCreatable;
     public $creatingCallbacks = [];
     public $createdCallbacks = [];
@@ -50,6 +47,11 @@ class Builder
         }
 
         return $field;
+    }
+
+    public function morphOne(string $name, string $property = null): HasOne
+    {
+        return $this->field(HasOne::class, $name, $property)->resource(null);
     }
 
     public function hasMany(string $name, $resource = null, string $property = null): HasMany
@@ -96,44 +98,6 @@ class Builder
     public function scope(Closure $callback)
     {
         $this->scopes[] = $callback;
-    }
-
-    public function scopeIndex(Closure $callback)
-    {
-        $this->indexScopes[] = $callback;
-    }
-
-    public function scopeSingle(Closure $callback)
-    {
-        $this->singleScopes[] = $callback;
-    }
-
-    public function visibleIf(Closure $condition)
-    {
-        $this->isVisible = $condition;
-
-        return $this;
-    }
-
-    public function visible()
-    {
-        return $this->visibleIf(function () {
-            return true;
-        });
-    }
-
-    public function notVisibleIf(Closure $condition)
-    {
-        return $this->visibleIf(function (...$args) use ($condition) {
-            return ! $condition(...$args);
-        });
-    }
-
-    public function notVisible()
-    {
-        return $this->notVisibleIf(function () {
-            return true;
-        });
     }
 
     public function creatableIf(Closure $condition)

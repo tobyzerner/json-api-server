@@ -1,12 +1,12 @@
 <?php
 
-namespace Tobscure\JsonApiServer\Handler;
+namespace Tobyz\JsonApiServer\Handler;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface;
-use Tobscure\JsonApiServer\Exception\ForbiddenException;
-use Tobscure\JsonApiServer\ResourceType;
+use Tobyz\JsonApiServer\Exception\ForbiddenException;
+use Tobyz\JsonApiServer\ResourceType;
 use Zend\Diactoros\Response\EmptyResponse;
 
 class Delete implements RequestHandlerInterface

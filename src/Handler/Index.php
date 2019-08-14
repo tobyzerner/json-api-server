@@ -1,6 +1,6 @@
 <?php
 
-namespace Tobscure\JsonApiServer\Handler;
+namespace Tobyz\JsonApiServer\Handler;
 
 use JsonApiPhp\JsonApi;
 use JsonApiPhp\JsonApi\Link;
@@ -8,13 +8,13 @@ use JsonApiPhp\JsonApi\Meta;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface;
-use Tobscure\JsonApiServer\Api;
-use Tobscure\JsonApiServer\Exception\BadRequestException;
-use Tobscure\JsonApiServer\Exception\ForbiddenException;
-use Tobscure\JsonApiServer\JsonApiResponse;
-use Tobscure\JsonApiServer\ResourceType;
-use Tobscure\JsonApiServer\Schema;
-use Tobscure\JsonApiServer\Serializer;
+use Tobyz\JsonApiServer\Api;
+use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Exception\ForbiddenException;
+use Tobyz\JsonApiServer\JsonApiResponse;
+use Tobyz\JsonApiServer\ResourceType;
+use Tobyz\JsonApiServer\Schema;
+use Tobyz\JsonApiServer\Serializer;
 
 class Index implements RequestHandlerInterface
 {
@@ -45,10 +45,6 @@ class Index implements RequestHandlerInterface
         $query = $adapter->query();
 
         foreach ($schema->scopes as $scope) {
-            $request = $scope($request, $query) ?: $request;
-        }
-
-        foreach ($schema->indexScopes as $scope) {
             $request = $scope($request, $query) ?: $request;
         }
 

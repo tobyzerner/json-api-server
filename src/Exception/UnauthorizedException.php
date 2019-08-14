@@ -5,13 +5,13 @@ namespace Tobyz\JsonApiServer\Exception;
 use JsonApiPhp\JsonApi\Error;
 use Tobyz\JsonApiServer\ErrorProviderInterface;
 
-class ForbiddenException extends \DomainException implements ErrorProviderInterface
+class UnauthorizedException extends \DomainException implements ErrorProviderInterface
 {
     public function getJsonApiErrors(): array
     {
         return [
             new Error(
-                new Error\Title('Forbidden'),
+                new Error\Title('Unauthorized'),
                 new Error\Status($this->getJsonApiStatus())
             )
         ];
@@ -19,6 +19,6 @@ class ForbiddenException extends \DomainException implements ErrorProviderInterf
 
     public function getJsonApiStatus(): string
     {
-        return '403';
+        return '401';
     }
 }

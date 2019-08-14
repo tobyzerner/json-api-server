@@ -1,6 +1,6 @@
 <?php
 
-namespace Tobscure\JsonApiServer;
+namespace Tobyz\JsonApiServer;
 
 use Zend\Diactoros\Response\JsonResponse;
 

@@ -9,13 +9,13 @@
  * file that was distributed with this source code.
  */
 
-namespace Tobscure\Tests\JsonApiServer;
+namespace Tobyz\Tests\JsonApiServer;
 
-use Tobscure\JsonApiServer\Api;
-use Tobscure\JsonApiServer\Exception\BadRequestException;
-use Tobscure\JsonApiServer\Exception\ForbiddenException;
-use Tobscure\JsonApiServer\Serializer;
-use Tobscure\JsonApiServer\Schema\Builder;
+use Tobyz\JsonApiServer\Api;
+use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Exception\ForbiddenException;
+use Tobyz\JsonApiServer\Serializer;
+use Tobyz\JsonApiServer\Schema\Builder;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use JsonApiPhp\JsonApi;
 use Zend\Diactoros\ServerRequest;
@@ -118,13 +118,13 @@ class CreateTest extends AbstractTestCase
             $schema->attribute('writable1')->writable();
 
             $schema->attribute('writable2')->writableIf(function ($arg1, $arg2) use ($adapter, $request) {
-                $this->assertEquals($request, $arg1);
+                $this->assertInstanceOf(Request::class, $arg1);
                 $this->assertEquals($adapter->createdModel, $arg2);
                 return true;
             });
 
             $schema->attribute('writable3')->readonlyIf(function ($arg1, $arg2) use ($adapter, $request) {
-                $this->assertEquals($request, $arg1);
+                $this->assertInstanceOf(Request::class, $arg1);
                 $this->assertEquals($adapter->createdModel, $arg2);
                 return false;
             });
@@ -182,7 +182,7 @@ class CreateTest extends AbstractTestCase
 
             $schema->attribute('attribute1')->default('defaultValue');
             $schema->attribute('attribute2')->default(function ($arg1) use ($request) {
-                $this->assertEquals($request, $arg1);
+                $this->assertInstanceOf(Request::class, $arg1);
                 return 'defaultValue';
             });
             $schema->attribute('attribute3')->writable()->default('defaultValue');

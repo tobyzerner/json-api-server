@@ -1,10 +1,10 @@
 <?php
 
-namespace Tobscure\JsonApiServer\Handler\Concerns;
+namespace Tobyz\JsonApiServer\Handler\Concerns;
 
 use Psr\Http\Message\ServerRequestInterface as Request;
-use Tobscure\JsonApiServer\Exception\ResourceNotFoundException;
-use Tobscure\JsonApiServer\ResourceType;
+use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
+use Tobyz\JsonApiServer\ResourceType;
 
 trait FindsResources
 {
@@ -15,10 +15,6 @@ trait FindsResources
         $query = $adapter->query();
 
         foreach ($resource->getSchema()->scopes as $scope) {
-            $scope($request, $query);
-        }
-
-        foreach ($resource->getSchema()->singleScopes as $scope) {
             $scope($request, $query, $id);
         }
 

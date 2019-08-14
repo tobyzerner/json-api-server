@@ -1,9 +1,9 @@
 <?php
 
-namespace Tobscure\JsonApiServer\Exception;
+namespace Tobyz\JsonApiServer\Exception;
 
 use JsonApiPhp\JsonApi\Error;
-use Tobscure\JsonApiServer\ErrorProviderInterface;
+use Tobyz\JsonApiServer\ErrorProviderInterface;
 
 class MethodNotAllowedException extends \DomainException implements ErrorProviderInterface
 {

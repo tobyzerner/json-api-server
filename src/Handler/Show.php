@@ -1,16 +1,16 @@
 <?php
 
-namespace Tobscure\JsonApiServer\Handler;
+namespace Tobyz\JsonApiServer\Handler;
 
 use JsonApiPhp\JsonApi;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface;
-use Tobscure\JsonApiServer\Api;
-use Tobscure\JsonApiServer\Exception\ForbiddenException;
-use Tobscure\JsonApiServer\JsonApiResponse;
-use Tobscure\JsonApiServer\ResourceType;
-use Tobscure\JsonApiServer\Serializer;
+use Tobyz\JsonApiServer\Api;
+use Tobyz\JsonApiServer\Exception\ForbiddenException;
+use Tobyz\JsonApiServer\JsonApiResponse;
+use Tobyz\JsonApiServer\ResourceType;
+use Tobyz\JsonApiServer\Serializer;
 
 class Show implements RequestHandlerInterface
 {

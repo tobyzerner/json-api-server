@@ -1,6 +1,6 @@
 <?php
 
-namespace Tobscure\JsonApiServer\Schema;
+namespace Tobyz\JsonApiServer\Schema;
 
 use Closure;
 

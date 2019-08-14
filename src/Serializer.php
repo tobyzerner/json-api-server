@@ -1,12 +1,12 @@
 <?php
 
-namespace Tobscure\JsonApiServer;
+namespace Tobyz\JsonApiServer;
 
 use DateTime;
 use DateTimeInterface;
 use JsonApiPhp\JsonApi;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use Tobscure\JsonApiServer\Adapter\AdapterInterface;
+use Tobyz\JsonApiServer\Adapter\AdapterInterface;
 
 class Serializer
 {
@@ -114,11 +114,7 @@ class Serializer
     {
         $links = $this->getRelationshipLinks($field, $resourceUrl);
 
-        if ($field->getter) {
-            $value = ($field->getter)($this->request, $model);
-        } else {
-            $value = $isIncluded ? $adapter->getHasOne($model, $field) : ($isLinkage && $field->loadable ? $adapter->getHasOneId($model, $field) : null);
-        }
+        $value = $isIncluded ? ($field->getter ? ($field->getter)($this->request, $model) : $adapter->getHasOne($model, $field)) : ($isLinkage && $field->loadable ? $adapter->getHasOneId($model, $field) : null);
 
         if (! $value) {
             return new JsonApi\ToNull(
@@ -190,21 +186,22 @@ class Serializer
 
     private function addRelated(Schema\Relationship $field, $model, array $include): JsonApi\ResourceIdentifier
     {
-        if (is_array($field->resource)) {
-            foreach ($field->resource as $class => $resource) {
-                if ($model instanceof $class) {
-                    break;
-                }
-            }
-        } else {
-            $resource = $field->resource;
-        }
-
-        $relatedResource = $this->api->getResource($resource);
+        $relatedResource = $field->resource ? $this->api->getResource($field->resource) : $this->resourceForModel($model);
 
         return $this->resourceIdentifier(
             $this->addToMap($relatedResource, $model, $include)
         );
+    }
+
+    private function resourceForModel($model)
+    {
+        foreach ($this->api->getResources() as $resource) {
+            if ($resource->getAdapter()->handles($model)) {
+                return $resource;
+            }
+        }
+
+        throw new \RuntimeException('No resource defined to handle model of type '.get_class($model));
     }
 
     private function merge($data): void

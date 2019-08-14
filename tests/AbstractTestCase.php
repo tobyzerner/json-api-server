@@ -9,7 +9,7 @@
  * file that was distributed with this source code.
  */
 
-namespace Tobscure\Tests\JsonApiServer;
+namespace Tobyz\Tests\JsonApiServer;
 
 use PHPUnit\Framework\TestCase;
 use Zend\Diactoros\ServerRequest;
@@ -28,7 +28,7 @@ abstract class AbstractTestCase extends TestCase
 
     protected function buildRequest(string $method, string $uri): ServerRequest
     {
-        return (new ServerRequest())
+        return (new ServerRequest)
             ->withMethod($method)
             ->withUri(new Uri($uri));
     }

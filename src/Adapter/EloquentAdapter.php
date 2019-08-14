@@ -1,16 +1,16 @@
 <?php
 
-namespace Tobscure\JsonApiServer\Adapter;
+namespace Tobyz\JsonApiServer\Adapter;
 
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Tobscure\JsonApiServer\Schema\Attribute;
-use Tobscure\JsonApiServer\Schema\HasMany;
-use Tobscure\JsonApiServer\Schema\HasOne;
-use Tobscure\JsonApiServer\Schema\Relationship;
+use Tobyz\JsonApiServer\Schema\Attribute;
+use Tobyz\JsonApiServer\Schema\HasMany;
+use Tobyz\JsonApiServer\Schema\HasOne;
+use Tobyz\JsonApiServer\Schema\Relationship;
 
 class EloquentAdapter implements AdapterInterface
 {
@@ -26,6 +26,11 @@ class EloquentAdapter implements AdapterInterface
         if (! $this->model instanceof Model) {
             throw new \InvalidArgumentException('Model must be an instance of '.Model::class);
         }
+    }
+
+    public function handles($model)
+    {
+        return $model instanceof $this->model;
     }
 
     public function create()
@@ -186,13 +191,9 @@ class EloquentAdapter implements AdapterInterface
         $query->take($limit)->skip($offset);
     }
 
-    public function load(array $models, array $trail, \Closure $scope)
+    public function load(array $models, array $trail)
     {
-        (new Collection($models))->load([
-            $this->relationshipTrailToPath($trail) => function ($relation) use ($scope) {
-                $scope($relation->getQuery());
-            }
-        ]);
+        (new Collection($models))->loadMissing($this->relationshipTrailToPath($trail));
     }
 
     public function loadIds(array $models, Relationship $relationship)
@@ -208,7 +209,7 @@ class EloquentAdapter implements AdapterInterface
             return;
         }
 
-        (new Collection($models))->load([
+        (new Collection($models))->loadMissing([
             $property => function ($query) use ($relation) {
                 $query->select([
                     $relation->getRelated()->getKeyName(),

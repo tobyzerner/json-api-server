@@ -1,5 +1,5 @@
 {
-    "name": "tobscure/json-api-server",
+    "name": "tobyz/json-api-server",
     "require": {
         "php": "^7.2",
         "doctrine/inflector": "^1.3",
@@ -17,12 +17,12 @@
     ],
     "autoload": {
         "psr-4": {
-            "Tobscure\\JsonApiServer\\": "src/"
+            "Tobyz\\JsonApiServer\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Tobscure\\Tests\\JsonApiServer\\": "tests/"
+            "Tobyz\\Tests\\JsonApiServer\\": "tests/"
         }
     },
     "require-dev": {

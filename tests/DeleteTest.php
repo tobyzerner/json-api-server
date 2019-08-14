@@ -9,13 +9,13 @@
  * file that was distributed with this source code.
  */
 
-namespace Tobscure\Tests\JsonApiServer;
+namespace Tobyz\Tests\JsonApiServer;
 
-use Tobscure\JsonApiServer\Api;
-use Tobscure\JsonApiServer\Exception\BadRequestException;
-use Tobscure\JsonApiServer\Exception\ForbiddenException;
-use Tobscure\JsonApiServer\Serializer;
-use Tobscure\JsonApiServer\Schema\Builder;
+use Tobyz\JsonApiServer\Api;
+use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Exception\ForbiddenException;
+use Tobyz\JsonApiServer\Serializer;
+use Tobyz\JsonApiServer\Schema\Builder;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use JsonApiPhp\JsonApi;
 use Zend\Diactoros\ServerRequest;

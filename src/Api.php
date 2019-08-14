@@ -1,17 +1,17 @@
 <?php
 
-namespace Tobscure\JsonApiServer;
+namespace Tobyz\JsonApiServer;
 
 use Closure;
 use JsonApiPhp\JsonApi;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface;
-use Tobscure\JsonApiServer\Exception\BadRequestException;
-use Tobscure\JsonApiServer\Exception\MethodNotAllowedException;
-use Tobscure\JsonApiServer\Exception\NotImplementedException;
-use Tobscure\JsonApiServer\Exception\ResourceNotFoundException;
-use Tobscure\JsonApiServer\Handler\Concerns\FindsResources;
+use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
+use Tobyz\JsonApiServer\Exception\NotImplementedException;
+use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
+use Tobyz\JsonApiServer\Handler\Concerns\FindsResources;
 
 class Api implements RequestHandlerInterface
 {
@@ -28,6 +28,11 @@ class Api implements RequestHandlerInterface
     public function resource(string $type, $adapter, Closure $buildSchema = null): void
     {
         $this->resources[$type] = new ResourceType($type, $adapter, $buildSchema);
+    }
+
+    public function getResources(): array
+    {
+        return $this->resources;
     }
 
     public function getResource(string $type): ResourceType
@@ -116,7 +121,7 @@ class Api implements RequestHandlerInterface
         return $handler->handle($request);
     }
 
-    public function handleError($e)
+    public function error($e)
     {
         if (! $e instanceof ErrorProviderInterface) {
             $e = new Exception\InternalServerErrorException;
