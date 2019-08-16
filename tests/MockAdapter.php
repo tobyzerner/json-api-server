@@ -13,6 +13,7 @@ class MockAdapter implements AdapterInterface
 {
     public $models = [];
     public $createdModel;
+    public $query;
     private $type;
 
     public function __construct(array $models = [], string $type = null)
@@ -28,10 +29,10 @@ class MockAdapter implements AdapterInterface
 
     public function query()
     {
-        return (object) [];
+        return $this->query = (object) [];
     }
 
-    public function find($query, $id)
+    public function find($query, string $id)
     {
         return $this->models[$id] ?? (object) ['id' => $id];
     }
@@ -61,17 +62,17 @@ class MockAdapter implements AdapterInterface
         return $model->{$this->getProperty($relationship)} ?? [];
     }
 
-    public function applyAttribute($model, Attribute $attribute, $value)
+    public function setAttribute($model, Attribute $attribute, $value): void
     {
         $model->{$this->getProperty($attribute)} = $value;
     }
 
-    public function applyHasOne($model, HasOne $relationship, $related)
+    public function setHasOne($model, HasOne $relationship, $related): void
     {
         $model->{$this->getProperty($relationship)} = $related;
     }
 
-    public function save($model)
+    public function save($model): void
     {
         $model->saveWasCalled = true;
 
@@ -80,59 +81,54 @@ class MockAdapter implements AdapterInterface
         }
     }
 
-    public function saveHasMany($model, HasMany $relationship, array $related)
+    public function saveHasMany($model, HasMany $relationship, array $related): void
     {
         $model->saveHasManyWasCalled = true;
     }
 
-    public function delete($model)
+    public function delete($model): void
     {
         $model->deleteWasCalled = true;
     }
 
-    public function filterByIds($query, array $ids)
+    public function filterByIds($query, array $ids): void
     {
-        $query->filters[] = ['ids', $ids];
+        $query->filter[] = ['ids', $ids];
     }
 
-    public function filterByAttribute($query, Attribute $attribute, $value)
+    public function filterByAttribute($query, Attribute $attribute, $value): void
     {
-        $query->filters[] = [$attribute, $value];
+        $query->filter[] = [$attribute, $value];
     }
 
-    public function filterByHasOne($query, HasOne $relationship, array $ids)
+    public function filterByHasOne($query, HasOne $relationship, array $ids): void
     {
-        $query->filters[] = [$relationship, $ids];
+        $query->filter[] = [$relationship, $ids];
     }
 
-    public function filterByHasMany($query, HasMany $relationship, array $ids)
+    public function filterByHasMany($query, HasMany $relationship, array $ids): void
     {
-        $query->filters[] = [$relationship, $ids];
+        $query->filter[] = [$relationship, $ids];
     }
 
-    public function sortByAttribute($query, Attribute $attribute, string $direction)
+    public function sortByAttribute($query, Attribute $attribute, string $direction): void
     {
         $query->sort[] = [$attribute, $direction];
     }
 
-    public function paginate($query, int $limit, int $offset)
+    public function paginate($query, int $limit, int $offset): void
     {
         $query->paginate[] = [$limit, $offset];
     }
 
-    public function include($query, array $relationships)
-    {
-        $query->include[] = $relationships;
-    }
-
-    public function load(array $models, array $relationships)
+    public function load(array $models, array $relationships): void
     {
         foreach ($models as $model) {
             $model->load[] = $relationships;
         }
     }
 
-    public function loadIds(array $models, Relationship $relationship)
+    public function loadIds(array $models, Relationship $relationship): void
     {
         foreach ($models as $model) {
             $model->loadIds[] = $relationship;
@@ -141,11 +137,34 @@ class MockAdapter implements AdapterInterface
 
     private function getProperty(Field $field)
     {
-        return $field->property ?: $field->name;
+        return $field->getProperty() ?: $field->getName();
     }
 
-    public function handles($model)
+    public function represents($model): bool
     {
         return isset($model['type']) && $model['type'] === $this->type;
+    }
+
+    /**
+     * Get the number of results from the query.
+     *
+     * @param $query
+     * @return int
+     */
+    public function count($query): int
+    {
+        return count($this->models);
+    }
+
+    /**
+     * Get the ID of the related resource for a has-one relationship.
+     *
+     * @param $model
+     * @param HasOne $relationship
+     * @return mixed|null
+     */
+    public function getHasOneId($model, HasOne $relationship): ?string
+    {
+        // TODO: Implement getHasOneId() method.
     }
 }

@@ -4,14 +4,14 @@ namespace Tobyz\JsonApiServer;
 
 use Closure;
 use Tobyz\JsonApiServer\Adapter\AdapterInterface;
-use Tobyz\JsonApiServer\Schema\Builder;
+use Tobyz\JsonApiServer\Schema\Type;
 
-class ResourceType
+final class ResourceType
 {
-    protected $type;
-    protected $adapter;
-    protected $buildSchema;
-    protected $schema;
+    private $type;
+    private $adapter;
+    private $buildSchema;
+    private $schema;
 
     public function __construct(string $type, AdapterInterface $adapter, Closure $buildSchema = null)
     {
@@ -30,10 +30,10 @@ class ResourceType
         return $this->adapter;
     }
 
-    public function getSchema(): Builder
+    public function getSchema(): Type
     {
         if (! $this->schema) {
-            $this->schema = new Builder;
+            $this->schema = new Type;
 
             if ($this->buildSchema) {
                 ($this->buildSchema)($this->schema);

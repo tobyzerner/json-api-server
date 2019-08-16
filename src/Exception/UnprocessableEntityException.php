@@ -2,10 +2,11 @@
 
 namespace Tobyz\JsonApiServer\Exception;
 
+use DomainException;
 use JsonApiPhp\JsonApi\Error;
 use Tobyz\JsonApiServer\ErrorProviderInterface;
 
-class UnprocessableEntityException extends \DomainException implements ErrorProviderInterface
+class UnprocessableEntityException extends DomainException implements ErrorProviderInterface
 {
     private $failures;
 
@@ -19,11 +20,19 @@ class UnprocessableEntityException extends \DomainException implements ErrorProv
     public function getJsonApiErrors(): array
     {
         return array_map(function ($failure) {
-            return new Error(
+            $members = [
                 new Error\Status($this->getJsonApiStatus()),
-                new Error\SourcePointer('/data/'.$failure['field']->location.'/'.$failure['field']->name),
-                new Error\Detail($failure['message'])
-            );
+            ];
+
+            if ($field = $failure['field']) {
+                $members[] = new Error\SourcePointer('/data/'.$field->getLocation().'/'.$field->getName());
+            }
+
+            if ($failure['message']) {
+                $members[] = new Error\Detail($failure['message']);
+            }
+
+            return new Error(...$members);
         }, $this->failures);
     }
 

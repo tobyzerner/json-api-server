@@ -2,10 +2,11 @@
 
 namespace Tobyz\JsonApiServer\Exception;
 
+use DomainException;
 use JsonApiPhp\JsonApi\Error;
 use Tobyz\JsonApiServer\ErrorProviderInterface;
 
-class ForbiddenException extends \DomainException implements ErrorProviderInterface
+class ForbiddenException extends DomainException implements ErrorProviderInterface
 {
     public function getJsonApiErrors(): array
     {

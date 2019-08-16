@@ -11,19 +11,19 @@
 
 namespace Tobyz\Tests\JsonApiServer;
 
+use DMS\PHPUnitExtensions\ArraySubset\ArraySubsetAsserts;
 use PHPUnit\Framework\TestCase;
+use Psr\Http\Message\ResponseInterface;
 use Zend\Diactoros\ServerRequest;
 use Zend\Diactoros\Uri;
 
 abstract class AbstractTestCase extends TestCase
 {
-    public static function assertEncodesTo(string $expected, $obj, string $message = '')
+    use ArraySubsetAsserts;
+
+    protected function assertJsonApiDocumentSubset($subset, string $body, bool $checkForObjectIdentity = false, string $message = ''): void
     {
-        self::assertEquals(
-            json_decode($expected),
-            json_decode(json_encode($obj, JSON_UNESCAPED_SLASHES)),
-            $message
-        );
+        static::assertArraySubset($subset, json_decode($body, true), $checkForObjectIdentity, $message);
     }
 
     protected function buildRequest(string $method, string $uri): ServerRequest

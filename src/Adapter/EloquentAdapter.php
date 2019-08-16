@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use InvalidArgumentException;
 use Tobyz\JsonApiServer\Schema\Attribute;
 use Tobyz\JsonApiServer\Schema\HasMany;
 use Tobyz\JsonApiServer\Schema\HasOne;
@@ -24,11 +25,11 @@ class EloquentAdapter implements AdapterInterface
         $this->model = is_string($model) ? new $model : $model;
 
         if (! $this->model instanceof Model) {
-            throw new \InvalidArgumentException('Model must be an instance of '.Model::class);
+            throw new InvalidArgumentException('Model must be an instance of '.Model::class);
         }
     }
 
-    public function handles($model)
+    public function represents($model): bool
     {
         return $model instanceof $this->model;
     }
@@ -43,7 +44,7 @@ class EloquentAdapter implements AdapterInterface
         return $this->model->query();
     }
 
-    public function find($query, $id)
+    public function find($query, string $id)
     {
         return $query->find($id);
     }
@@ -63,64 +64,63 @@ class EloquentAdapter implements AdapterInterface
         return $model->getKey();
     }
 
-    public function getAttribute($model, Attribute $field)
+    public function getAttribute($model, Attribute $attribute)
     {
-        return $model->{$this->getAttributeProperty($field)};
+        return $model->{$this->getAttributeProperty($attribute)};
     }
 
-    public function getHasOneId($model, HasOne $field)
+    public function getHasOneId($model, HasOne $relationship): ?string
     {
-        $relation = $model->{$this->getRelationshipProperty($field)}();
+        $relation = $this->getRelation($model, $relationship);
 
+        // If this is a belongs-to relation, we can simply return the value of
+        // the foreign key on the model.
         if ($relation instanceof BelongsTo) {
-            $related = $relation->getRelated();
-
-            $key = $model->{$relation->getForeignKeyName()};
-
-            if ($key) {
-                return $related->forceFill([$related->getKeyName() => $key]);
-            }
-
-            return null;
+            return $model->{$relation->getForeignKeyName()};
         }
 
-        return $model->{$this->getRelationshipProperty($field)};
+        $related = $this->getRelationValue($model, $relationship);
+
+        return $related ? $related->getKey() : null;
     }
 
-    public function getHasOne($model, HasOne $field)
+    public function getHasOne($model, HasOne $relationship)
     {
-        return $model->{$this->getRelationshipProperty($field)};
+        return $this->getRelationValue($model, $relationship);
     }
 
-    public function getHasMany($model, HasMany $field): array
+    public function getHasMany($model, HasMany $relationship): array
     {
-        $collection = $model->{$this->getRelationshipProperty($field)};
+        $collection = $this->getRelationValue($model, $relationship);
 
         return $collection ? $collection->all() : [];
     }
 
-    public function applyAttribute($model, Attribute $field, $value)
+    public function setAttribute($model, Attribute $attribute, $value): void
     {
-        $model->{$this->getAttributeProperty($field)} = $value;
+        $model->{$this->getAttributeProperty($attribute)} = $value;
     }
 
-    public function applyHasOne($model, HasOne $field, $related)
+    public function setHasOne($model, HasOne $relationship, $related): void
     {
-        $model->{$this->getRelationshipProperty($field)}()->associate($related);
+        $this->getRelation($model, $relationship)->associate($related);
     }
 
-    public function save($model)
+    public function save($model): void
     {
         $model->save();
     }
 
-    public function saveHasMany($model, HasMany $field, array $related)
+    public function saveHasMany($model, HasMany $relationship, array $related): void
     {
-        $model->{$this->getRelationshipProperty($field)}()->sync(Collection::make($related));
+        $this->getRelation($model, $relationship)->sync(new Collection($related));
     }
 
-    public function delete($model)
+    public function delete($model): void
     {
+        // For models that use the SoftDeletes trait, deleting the resource from
+        // the API implies permanent deletion. Non-permanent deletion should be
+        // achieved by manipulating a resource attribute.
         if (method_exists($model, 'forceDelete')) {
             $model->forceDelete();
         } else {
@@ -128,17 +128,18 @@ class EloquentAdapter implements AdapterInterface
         }
     }
 
-    public function filterByIds($query, array $ids)
+    public function filterByIds($query, array $ids): void
     {
         $key = $query->getModel()->getQualifiedKeyName();
 
         $query->whereIn($key, $ids);
     }
 
-    public function filterByAttribute($query, Attribute $field, $value)
+    public function filterByAttribute($query, Attribute $attribute, $value): void
     {
-        $property = $this->getAttributeProperty($field);
+        $property = $this->getAttributeProperty($attribute);
 
+        // TODO: extract this into non-adapter territory
         if (preg_match('/(.+)\.\.(.+)/', $value, $matches)) {
             if ($matches[1] !== '*') {
                 $query->where($property, '>=', $matches[1]);
@@ -161,19 +162,17 @@ class EloquentAdapter implements AdapterInterface
         $query->where($property, $value);
     }
 
-    public function filterByHasOne($query, HasOne $field, array $ids)
+    public function filterByHasOne($query, HasOne $relationship, array $ids): void
     {
-        $relation = $query->getModel()->{$this->getRelationshipProperty($field)}();
+        $relation = $this->getRelation($query->getModel(), $relationship);
 
-        $foreignKey = $relation->getQualifiedForeignKeyName();
-
-        $query->whereIn($foreignKey, $ids);
+        $query->whereIn($relation->getQualifiedForeignKeyName(), $ids);
     }
 
-    public function filterByHasMany($query, HasMany $field, array $ids)
+    public function filterByHasMany($query, HasMany $relationship, array $ids): void
     {
-        $property = $this->getRelationshipProperty($field);
-        $relation = $query->getModel()->{$property}();
+        $property = $this->getRelationshipProperty($relationship);
+        $relation = $this->getRelation($query->getModel(), $relationship);
         $relatedKey = $relation->getRelated()->getQualifiedKeyName();
 
         $query->whereHas($property, function ($query) use ($relatedKey, $ids) {
@@ -181,22 +180,22 @@ class EloquentAdapter implements AdapterInterface
         });
     }
 
-    public function sortByAttribute($query, Attribute $field, string $direction)
+    public function sortByAttribute($query, Attribute $field, string $direction): void
     {
         $query->orderBy($this->getAttributeProperty($field), $direction);
     }
 
-    public function paginate($query, int $limit, int $offset)
+    public function paginate($query, int $limit, int $offset): void
     {
         $query->take($limit)->skip($offset);
     }
 
-    public function load(array $models, array $trail)
+    public function load(array $models, array $relationships): void
     {
-        (new Collection($models))->loadMissing($this->relationshipTrailToPath($trail));
+        (new Collection($models))->loadMissing($this->getRelationshipPath($relationships));
     }
 
-    public function loadIds(array $models, Relationship $relationship)
+    public function loadIds(array $models, Relationship $relationship): void
     {
         if (empty($models)) {
             return;
@@ -219,20 +218,28 @@ class EloquentAdapter implements AdapterInterface
         ]);
     }
 
-    private function getAttributeProperty(Attribute $field)
+    private function getAttributeProperty(Attribute $attribute): string
     {
-        return $field->property ?: strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $field->name));
+        return $attribute->getProperty() ?: strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $attribute->getName()));
     }
 
-    private function getRelationshipProperty(Relationship $field)
+    private function getRelationshipProperty(Relationship $relationship): string
     {
-        return $field->property ?: $field->name;
+        return $relationship->getProperty() ?: $relationship->getName();
     }
 
-    private function relationshipTrailToPath(array $trail)
+    private function getRelationshipPath(array $trail): string
     {
-        return implode('.', array_map(function ($relationship) {
-            return $this->getRelationshipProperty($relationship);
-        }, $trail));
+        return implode('.', array_map([$this, 'getRelationshipProperty'], $trail));
+    }
+
+    private function getRelation($model, Relationship $relationship)
+    {
+        return $model->{$this->getRelationshipProperty($relationship)}();
+    }
+
+    private function getRelationValue($model, Relationship $relationship)
+    {
+        return $model->{$this->getRelationshipProperty($relationship)};
     }
 }

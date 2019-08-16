@@ -11,11 +11,11 @@
 
 namespace Tobyz\Tests\JsonApiServer;
 
-use Tobyz\JsonApiServer\Api;
+use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Serializer;
-use Tobyz\JsonApiServer\Schema\Builder;
+use Tobyz\JsonApiServer\Schema\Type;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use JsonApiPhp\JsonApi;
 use Zend\Diactoros\ServerRequest;
@@ -25,9 +25,9 @@ class DeleteTest extends AbstractTestCase
 {
     public function testResourceNotDeletableByDefault()
     {
-        $api = new Api('http://example.com');
+        $api = new JsonApi('http://example.com');
 
-        $api->resource('users', new MockAdapter(), function (Builder $schema) {
+        $api->resource('users', new MockAdapter(), function (Type $schema) {
             //
         });
 
@@ -45,9 +45,9 @@ class DeleteTest extends AbstractTestCase
             '1' => $user = (object)['id' => '1']
         ]);
 
-        $api = new Api('http://example.com');
+        $api = new JsonApi('http://example.com');
 
-        $api->resource('users', $usersAdapter, function (Builder $schema) {
+        $api->resource('users', $usersAdapter, function (Type $schema) {
             $schema->deletable();
         });
 

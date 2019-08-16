@@ -4,9 +4,18 @@ namespace Tobyz\JsonApiServer;
 
 use DateTime;
 use DateTimeInterface;
-use JsonApiPhp\JsonApi;
+use JsonApiPhp\JsonApi as Structure;
+use JsonApiPhp\JsonApi\EmptyRelationship;
+use JsonApiPhp\JsonApi\Link\RelatedLink;
+use JsonApiPhp\JsonApi\Link\SelfLink;
+use JsonApiPhp\JsonApi\ResourceIdentifier;
+use JsonApiPhp\JsonApi\ResourceIdentifierCollection;
+use JsonApiPhp\JsonApi\ToMany;
+use JsonApiPhp\JsonApi\ToOne;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Tobyz\JsonApiServer\Adapter\AdapterInterface;
+use Tobyz\JsonApiServer\Schema\Attribute;
+use Tobyz\JsonApiServer\Schema\Relationship;
 
 class Serializer
 {
@@ -15,7 +24,7 @@ class Serializer
     protected $map = [];
     protected $primary = [];
 
-    public function __construct(Api $api, Request $request)
+    public function __construct(JsonApi $api, Request $request)
     {
         $this->api = $api;
         $this->request = $request;
@@ -43,7 +52,7 @@ class Serializer
 
         $resourceUrl = $this->api->getBaseUrl().'/'.$data['type'].'/'.$data['id'];
 
-        $fields = $schema->fields;
+        $fields = $schema->getFields();
 
         $queryParams = $this->request->getQueryParams();
 
@@ -60,7 +69,7 @@ class Serializer
                 continue;
             }
 
-            if (! ($field->isVisible)($this->request, $model)) {
+            if (! evaluate($field->getVisible(), [$model, $this->request])) {
                 continue;
             }
 
@@ -68,7 +77,7 @@ class Serializer
                 $value = $this->attribute($field, $model, $adapter);
             } elseif ($field instanceof Schema\Relationship) {
                 $isIncluded = isset($include[$name]);
-                $isLinkage = ($field->linkage)($this->request);
+                $isLinkage = evaluate($field->getLinkage(), [$this->request]);
 
                 if (! $isIncluded && ! $isLinkage) {
                     $value = $this->emptyRelationship($field, $resourceUrl);
@@ -82,12 +91,14 @@ class Serializer
             $data['fields'][$name] = $value;
         }
 
-        $data['links']['self'] = new JsonApi\Link\SelfLink($resourceUrl);
+        $data['links']['self'] = new SelfLink($resourceUrl);
 
-        ksort($schema->meta);
+        $metas = $schema->getMeta();
 
-        foreach ($schema->meta as $name => $meta) {
-            $data['meta'][$name] = new JsonApi\Meta($meta->name, ($meta->value)($this->request, $model));
+        ksort($metas);
+
+        foreach ($metas as $name => $meta) {
+            $data['meta'][$name] = new Structure\Meta($meta->name, ($meta->value)($this->request, $model));
         }
 
         $this->merge($data);
@@ -95,10 +106,10 @@ class Serializer
         return $data;
     }
 
-    private function attribute(Schema\Attribute $field, $model, AdapterInterface $adapter): JsonApi\Attribute
+    private function attribute(Attribute $field, $model, AdapterInterface $adapter): Structure\Attribute
     {
-        if ($field->getter) {
-            $value = ($field->getter)($this->request, $model);
+        if ($getter = $field->getGetter()) {
+            $value = $getter($model, $this->request);
         } else {
             $value = $adapter->getAttribute($model, $field);
         }
@@ -107,18 +118,18 @@ class Serializer
             $value = $value->format(DateTime::RFC3339);
         }
 
-        return new JsonApi\Attribute($field->name, $value);
+        return new Structure\Attribute($field->getName(), $value);
     }
 
     private function toOne(Schema\HasOne $field, $model, AdapterInterface $adapter, bool $isIncluded, bool $isLinkage, array $include, string $resourceUrl)
     {
         $links = $this->getRelationshipLinks($field, $resourceUrl);
 
-        $value = $isIncluded ? ($field->getter ? ($field->getter)($this->request, $model) : $adapter->getHasOne($model, $field)) : ($isLinkage && $field->loadable ? $adapter->getHasOneId($model, $field) : null);
+        $value = $isIncluded ? (($getter = $field->getGetter()) ? $getter($model, $this->request) : $adapter->getHasOne($model, $field)) : ($isLinkage && $field->getLoadable() ? $adapter->getHasOneId($model, $field) : null);
 
         if (! $value) {
-            return new JsonApi\ToNull(
-                $field->name,
+            return new Structure\ToNull(
+                $field->getName(),
                 ...$links
             );
         }
@@ -130,8 +141,8 @@ class Serializer
         }
 
 
-        return new JsonApi\ToOne(
-            $field->name,
+        return new ToOne(
+            $field->getName(),
             $identifier,
             ...$links
         );
@@ -139,8 +150,8 @@ class Serializer
 
     private function toMany(Schema\HasMany $field, $model, AdapterInterface $adapter, bool $isIncluded, bool $isLinkage, array $include, string $resourceUrl)
     {
-        if ($field->getter) {
-            $value = ($field->getter)($this->request, $model);
+        if ($getter = $field->getGetter()) {
+            $value = $getter($model, $this->request);
         } else {
             $value = ($isLinkage || $isIncluded) ? $adapter->getHasMany($model, $field) : null;
         }
@@ -157,36 +168,36 @@ class Serializer
             }
         }
 
-        return new JsonApi\ToMany(
-            $field->name,
-            new JsonApi\ResourceIdentifierCollection(...$identifiers),
+        return new ToMany(
+            $field->getName(),
+            new ResourceIdentifierCollection(...$identifiers),
             ...$this->getRelationshipLinks($field, $resourceUrl)
         );
     }
 
-    private function emptyRelationship(Schema\Relationship $field, string $resourceUrl): JsonApi\EmptyRelationship
+    private function emptyRelationship(Relationship $field, string $resourceUrl): EmptyRelationship
     {
-        return new JsonApi\EmptyRelationship(
-            $field->name,
+        return new EmptyRelationship(
+            $field->getName(),
             ...$this->getRelationshipLinks($field, $resourceUrl)
         );
     }
 
-    private function getRelationshipLinks(Schema\Relationship $field, string $resourceUrl): array
+    private function getRelationshipLinks(Relationship $field, string $resourceUrl): array
     {
-        if (! $field->hasLinks) {
+        if (! $field->hasLinks()) {
             return [];
         }
 
         return [
-            new JsonApi\Link\SelfLink($resourceUrl.'/relationships/'.$field->name),
-            new JsonApi\Link\RelatedLink($resourceUrl.'/'.$field->name)
+            new SelfLink($resourceUrl.'/relationships/'.$field->getName()),
+            new RelatedLink($resourceUrl.'/'.$field->getName())
         ];
     }
 
-    private function addRelated(Schema\Relationship $field, $model, array $include): JsonApi\ResourceIdentifier
+    private function addRelated(Relationship $field, $model, array $include): ResourceIdentifier
     {
-        $relatedResource = $field->resource ? $this->api->getResource($field->resource) : $this->resourceForModel($model);
+        $relatedResource = $field->getType() ? $this->api->getResource($field->getType()) : $this->resourceForModel($model);
 
         return $this->resourceIdentifier(
             $this->addToMap($relatedResource, $model, $include)
@@ -238,9 +249,9 @@ class Serializer
         }, $items);
     }
 
-    private function resourceObject(array $data): JsonApi\ResourceObject
+    private function resourceObject(array $data): Structure\ResourceObject
     {
-        return new JsonApi\ResourceObject(
+        return new Structure\ResourceObject(
             $data['type'],
             $data['id'],
             ...array_values($data['fields']),
@@ -249,9 +260,9 @@ class Serializer
         );
     }
 
-    private function resourceIdentifier(array $data): JsonApi\ResourceIdentifier
+    private function resourceIdentifier(array $data): Structure\ResourceIdentifier
     {
-        return new JsonApi\ResourceIdentifier(
+        return new Structure\ResourceIdentifier(
             $data['type'],
             $data['id']
         );

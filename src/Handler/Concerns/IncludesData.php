@@ -2,7 +2,9 @@
 
 namespace Tobyz\JsonApiServer\Handler\Concerns;
 
+use Closure;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use function Tobyz\JsonApiServer\evaluate;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\ResourceType;
 use Tobyz\JsonApiServer\Schema\HasMany;
@@ -47,18 +49,18 @@ trait IncludesData
 
     private function validateInclude(ResourceType $resource, array $include, string $path = '')
     {
-        $schema = $resource->getSchema();
+        $fields = $resource->getSchema()->getFields();
 
         foreach ($include as $name => $nested) {
-            if (! isset($schema->fields[$name])
-                || ! $schema->fields[$name] instanceof Relationship
-                || ($schema->fields[$name] instanceof HasMany && ! $schema->fields[$name]->includable)
+            if (! isset($fields[$name])
+                || ! $fields[$name] instanceof Relationship
+                || ! $fields[$name]->isIncludable()
             ) {
                 throw new BadRequestException("Invalid include [{$path}{$name}]", 'include');
             }
 
-            if ($schema->fields[$name]->resource) {
-                $relatedResource = $this->api->getResource($schema->fields[$name]->resource);
+            if ($type = $fields[$name]->getType()) {
+                $relatedResource = $this->api->getResource($type);
 
                 $this->validateInclude($relatedResource, $nested, $name.'.');
             } elseif ($nested) {
@@ -69,18 +71,18 @@ trait IncludesData
 
     private function buildRelationshipTrails(ResourceType $resource, array $include): array
     {
-        $schema = $resource->getSchema();
+        $fields = $resource->getSchema()->getFields();
         $trails = [];
 
         foreach ($include as $name => $nested) {
-            $relationship = $schema->fields[$name];
+            $relationship = $fields[$name];
 
-            if ($relationship->loadable) {
+            if ($relationship->getLoadable()) {
                 $trails[] = [$relationship];
             }
 
-            if ($schema->fields[$name]->resource) {
-                $relatedResource = $this->api->getResource($relationship->resource);
+            if ($type = $fields[$name]->getType()) {
+                $relatedResource = $this->api->getResource($type);
 
                 $trails = array_merge(
                     $trails,
@@ -100,15 +102,15 @@ trait IncludesData
     private function loadRelationships(array $models, array $include, Request $request)
     {
         $adapter = $this->resource->getAdapter();
-        $schema = $this->resource->getSchema();
+        $fields = $this->resource->getSchema()->getFields();
 
-        foreach ($schema->fields as $name => $field) {
-            if (! $field instanceof Relationship || ! ($field->linkage)($request) || ! $field->loadable) {
+        foreach ($fields as $name => $field) {
+            if (! $field instanceof Relationship || ! evaluate($field->getLinkage(), [$request]) || ! $field->getLoadable()) {
                 continue;
             }
 
-            if ($field->loader) {
-                ($field->loader)($models, true);
+            if (($load = $field->getLoadable()) instanceof Closure) {
+                $load($models, true);
             } else {
                 $adapter->loadIds($models, $field);
             }
@@ -117,9 +119,9 @@ trait IncludesData
         $trails = $this->buildRelationshipTrails($this->resource, $include);
 
         foreach ($trails as $relationships) {
-            if ($loader = end($relationships)->loader) {
+            if (($load = end($relationships)->getLoadable()) instanceof Closure) {
                 // TODO: probably need to loop through relationships here
-                ($loader)($models, false);
+                $load($models, false);
             } else {
                 $adapter->load($models, $relationships);
             }

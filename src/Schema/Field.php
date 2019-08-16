@@ -3,29 +3,30 @@
 namespace Tobyz\JsonApiServer\Schema;
 
 use Closure;
+use function Tobyz\JsonApiServer\negate;
+use Tobyz\JsonApiServer\Schema\Concerns\HasListeners;
+use function Tobyz\JsonApiServer\wrap;
 
 abstract class Field
 {
-    public $name;
-    public $property;
-    public $isVisible;
-    public $isWritable;
-    public $getter;
-    public $setter;
-    public $saver;
-    public $savedCallbacks = [];
-    public $default;
-    public $validators = [];
-    public $filterable = false;
-    public $filter;
+    use HasListeners;
+
+    private $name;
+    private $property;
+    private $visible = true;
+    private $writable = false;
+    private $getter;
+    private $setter;
+    private $saver;
+    private $default;
+    private $filterable = false;
 
     public function __construct(string $name)
     {
         $this->name = $name;
-
-        $this->visible();
-        $this->readonly();
     }
+
+    abstract public function getLocation(): string;
 
     public function property(string $property)
     {
@@ -34,65 +35,37 @@ abstract class Field
         return $this;
     }
 
-    public function visibleIf(Closure $condition)
+    public function visible(Closure $condition = null)
     {
-        $this->isVisible = $condition;
+        $this->visible = $condition ?: true;
 
         return $this;
     }
 
-    public function visible()
+    public function hidden(Closure $condition = null)
     {
-        return $this->visibleIf(function () {
-            return true;
-        });
-    }
-
-    public function hiddenIf(Closure $condition)
-    {
-        return $this->visibleIf(function (...$args) use ($condition) {
-            return ! $condition(...$args);
-        });
-    }
-
-    public function hidden()
-    {
-        return $this->hiddenIf(function () {
-            return true;
-        });
-    }
-
-    public function writableIf(Closure $condition)
-    {
-        $this->isWritable = $condition;
+        $this->visible = $condition ? negate($condition) : false;
 
         return $this;
     }
 
-    public function writable()
+    public function writable(Closure $condition = null)
     {
-        return $this->writableIf(function () {
-            return true;
-        });
+        $this->writable = $condition ?: true;
+
+        return $this;
     }
 
-    public function readonlyIf(Closure $condition)
+    public function readonly(Closure $condition = null)
     {
-        return $this->writableIf(function (...$args) use ($condition) {
-            return ! $condition(...$args);
-        });
+        $this->writable = $condition ? negate($condition) : false;
+
+        return $this;
     }
 
-    public function readonly()
+    public function get($value)
     {
-        return $this->readonlyIf(function () {
-            return true;
-        });
-    }
-
-    public function get($callback)
-    {
-        $this->getter = $this->wrap($callback);
+        $this->getter = wrap($value);
 
         return $this;
     }
@@ -113,41 +86,86 @@ abstract class Field
 
     public function saved(Closure $callback)
     {
-        $this->savedCallbacks[] = $callback;
+        $this->listeners['saved'][] = $callback;
 
         return $this;
     }
 
     public function default($value)
     {
-        $this->default = $this->wrap($value);
+        $this->default = wrap($value);
 
         return $this;
     }
 
     public function validate(Closure $callback)
     {
-        $this->validators[] = $callback;
+        $this->listeners['validate'][] = $callback;
 
         return $this;
     }
 
     public function filterable(Closure $callback = null)
     {
-        $this->filterable = true;
-        $this->filter = $callback;
+        $this->filterable = $callback ?: true;
 
         return $this;
     }
 
-    protected function wrap($value)
+    public function notFilterable()
     {
-        if (! $value instanceof Closure) {
-            $value = function () use ($value) {
-                return $value;
-            };
-        }
+        $this->filterable = false;
 
-        return $value;
+        return $this;
     }
+
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
+    public function getProperty()
+    {
+        return $this->property;
+    }
+
+    /**
+     * @return bool|Closure
+     */
+    public function getVisible()
+    {
+        return $this->visible;
+    }
+
+    public function getWritable()
+    {
+        return $this->writable;
+    }
+
+    public function getGetter()
+    {
+        return $this->getter;
+    }
+
+    public function getSetter()
+    {
+        return $this->setter;
+    }
+
+    public function getSaver()
+    {
+        return $this->saver;
+    }
+
+    public function getDefault()
+    {
+        return $this->default;
+    }
+
+    public function getFilterable()
+    {
+        return $this->filterable;
+    }
+
+
 }

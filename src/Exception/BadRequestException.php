@@ -2,10 +2,11 @@
 
 namespace Tobyz\JsonApiServer\Exception;
 
+use DomainException;
 use JsonApiPhp\JsonApi\Error;
 use Tobyz\JsonApiServer\ErrorProviderInterface;
 
-class BadRequestException extends \DomainException implements ErrorProviderInterface
+class BadRequestException extends DomainException implements ErrorProviderInterface
 {
     /**
      * @var string

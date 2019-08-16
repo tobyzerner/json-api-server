@@ -12,7 +12,7 @@ class JsonApiResponse extends JsonResponse
         array $headers = [],
         $encodingOptions = self::DEFAULT_JSON_FLAGS
     ) {
-        $headers['content-type'] = 'application/vnd.api+json';
+        $headers['content-type'] = JsonApi::CONTENT_TYPE;
 
         parent::__construct($data, $status, $headers, $encodingOptions);
     }

@@ -5,9 +5,11 @@ namespace Tobyz\JsonApiServer\Handler;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface;
-use Tobyz\JsonApiServer\Api;
+use function Tobyz\JsonApiServer\evaluate;
+use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\ResourceType;
+use function Tobyz\JsonApiServer\run_callbacks;
 
 class Update implements RequestHandlerInterface
 {
@@ -17,7 +19,7 @@ class Update implements RequestHandlerInterface
     private $resource;
     private $model;
 
-    public function __construct(Api $api, ResourceType $resource, $model)
+    public function __construct(JsonApi $api, ResourceType $resource, $model)
     {
         $this->api = $api;
         $this->resource = $resource;
@@ -28,19 +30,22 @@ class Update implements RequestHandlerInterface
     {
         $schema = $this->resource->getSchema();
 
-        if (! ($schema->isUpdatable)($request, $this->model)) {
-            throw new ForbiddenException('You cannot update this resource');
+        if (! evaluate($schema->getUpdatable(), [$request, $this->model])) {
+            throw new ForbiddenException;
         }
 
-        foreach ($schema->updatingCallbacks as $callback) {
-            $callback($request, $this->model);
-        }
+        $data = $this->parseData($request->getParsedBody());
 
-        $this->save($this->model, $request);
+        $this->validateFields($data, $this->model, $request);
+        $this->loadRelatedResources($data, $request);
+        $this->assertDataValid($data, $this->model, $request, false);
+        $this->setValues($data, $this->model, $request);
 
-        foreach ($schema->updatedCallbacks as $callback) {
-            $callback($request, $this->model);
-        }
+        run_callbacks($schema->getListeners('updating'), [$request, $this->model]);
+
+        $this->save($data, $this->model, $request);
+
+        run_callbacks($schema->getListeners('updated'), [$request, $this->model]);
 
         return (new Show($this->api, $this->resource, $this->model))->handle($request);
     }

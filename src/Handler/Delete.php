@@ -5,8 +5,10 @@ namespace Tobyz\JsonApiServer\Handler;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface;
+use function Tobyz\JsonApiServer\evaluate;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\ResourceType;
+use function Tobyz\JsonApiServer\run_callbacks;
 use Zend\Diactoros\Response\EmptyResponse;
 
 class Delete implements RequestHandlerInterface
@@ -24,19 +26,15 @@ class Delete implements RequestHandlerInterface
     {
         $schema = $this->resource->getSchema();
 
-        if (! ($schema->isDeletable)($request, $this->model)) {
-            throw new ForbiddenException('You cannot delete this resource');
+        if (! evaluate($schema->getDeletable(), [$request, $this->model])) {
+            throw new ForbiddenException;
         }
 
-        foreach ($schema->deletingCallbacks as $callback) {
-            $callback($request, $this->model);
-        }
+        run_callbacks($schema->getListeners('deleting'), [$request, $this->model]);
 
         $this->resource->getAdapter()->delete($this->model);
 
-        foreach ($schema->deletedCallbacks as $callback) {
-            $callback($request, $this->model);
-        }
+        run_callbacks($schema->getListeners('deleted'), [$request, $this->model]);
 
         return new EmptyResponse;
     }

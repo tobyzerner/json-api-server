@@ -11,21 +11,17 @@
 
 namespace Tobyz\Tests\JsonApiServer;
 
-use Tobyz\JsonApiServer\Api;
+use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
-use Tobyz\JsonApiServer\Serializer;
-use Tobyz\JsonApiServer\Schema\Builder;
+use Tobyz\JsonApiServer\Schema\Type;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use JsonApiPhp\JsonApi;
-use Zend\Diactoros\ServerRequest;
-use Zend\Diactoros\Uri;
 
 class ShowTest extends AbstractTestCase
 {
-    public function testResourceWithNoFields()
+    public function test_resource_with_no_fields()
     {
-        $api = new Api('http://example.com');
-        $api->resource('users', new MockAdapter(), function (Builder $schema) {
+        $api = new JsonApi('http://example.com');
+        $api->resource('users', new MockAdapter(), function (Type $schema) {
             // no fields
         });
 
@@ -35,17 +31,19 @@ class ShowTest extends AbstractTestCase
         $this->assertEquals($response->getStatusCode(), 200);
         $this->assertEquals(
             [
-                'type' => 'users',
-                'id' => '1',
-                'links' => [
-                    'self' => 'http://example.com/users/1'
+                'data' => [
+                    'type' => 'users',
+                    'id' => '1',
+                    'links' => [
+                        'self' => 'http://example.com/users/1'
+                    ]
                 ]
             ],
-            json_decode($response->getBody(), true)['data']
+            json_decode($response->getBody(), true)
         );
     }
 
-    public function testAttributes()
+    public function test_attributes()
     {
         $adapter = new MockAdapter([
             '1' => (object) [
@@ -58,9 +56,9 @@ class ShowTest extends AbstractTestCase
 
         $request = $this->buildRequest('GET', '/users/1');
 
-        $api = new Api('http://example.com');
+        $api = new JsonApi('http://example.com');
 
-        $api->resource('users', $adapter, function (Builder $schema) {
+        $api->resource('users', $adapter, function (Type $schema) {
             $schema->attribute('attribute1');
             $schema->attribute('attribute2', 'property2');
             $schema->attribute('attribute3')->property('property3');
@@ -88,9 +86,9 @@ class ShowTest extends AbstractTestCase
 
         $request = $this->buildRequest('GET', '/users/1');
 
-        $api = new Api('http://example.com');
+        $api = new JsonApi('http://example.com');
 
-        $api->resource('users', $adapter, function (Builder $schema) use ($model, $request) {
+        $api->resource('users', $adapter, function (Type $schema) use ($model, $request) {
             $schema->attribute('attribute1')
                 ->get(function ($arg1, $arg2) use ($model, $request) {
                     $this->assertInstanceOf(Request::class, $arg1);
@@ -120,8 +118,8 @@ class ShowTest extends AbstractTestCase
 
         $request = $this->buildRequest('GET', '/users/1');
 
-        $api = new Api('http://example.com');
-        $api->resource('users', $adapter, function (Builder $schema) use ($model, $request) {
+        $api = new JsonApi('http://example.com');
+        $api->resource('users', $adapter, function (Type $schema) use ($model, $request) {
             $schema->attribute('visible1');
 
             $schema->attribute('visible2')->visible();
@@ -183,19 +181,19 @@ class ShowTest extends AbstractTestCase
         $request = $this->buildRequest('GET', '/users/1')
             ->withQueryParams(['include' => 'phone,phone2,phone3']);
 
-        $api = new Api('http://example.com');
+        $api = new JsonApi('http://example.com');
 
-        $api->resource('users', $usersAdapter, function (Builder $schema) {
+        $api->resource('users', $usersAdapter, function (Type $schema) {
             $schema->hasOne('phone');
 
             $schema->hasOne('phone2', 'phones', 'property2');
 
             $schema->hasOne('phone3')
-                ->resource('phones')
+                ->type('phones')
                 ->property('property3');
         });
 
-        $api->resource('phones', $phonesAdapter, function (Builder $schema) {
+        $api->resource('phones', $phonesAdapter, function (Type $schema) {
             $schema->attribute('number');
         });
 
@@ -267,15 +265,15 @@ class ShowTest extends AbstractTestCase
         $request = $this->buildRequest('GET', '/users/1')
             ->withQueryParams(['include' => 'phone2']);
 
-        $api = new Api('http://example.com');
+        $api = new JsonApi('http://example.com');
 
-        $api->resource('users', $usersAdapter, function (Builder $schema) {
+        $api->resource('users', $usersAdapter, function (Type $schema) {
             $schema->hasOne('phone');
 
             $schema->hasOne('phone2', 'phones', 'property2');
         });
 
-        $api->resource('phones', $phonesAdapter, function (Builder $schema) {
+        $api->resource('phones', $phonesAdapter, function (Type $schema) {
             $schema->attribute('number');
         });
 
@@ -338,9 +336,9 @@ class ShowTest extends AbstractTestCase
 
     public function testHasManyRelationshipNotIncludableByDefault()
     {
-        $api = new Api('http://example.com');
+        $api = new JsonApi('http://example.com');
 
-        $api->resource('users', new MockAdapter(), function (Builder $schema) {
+        $api->resource('users', new MockAdapter(), function (Type $schema) {
             $schema->hasMany('groups');
         });
 
@@ -365,9 +363,9 @@ class ShowTest extends AbstractTestCase
             ]
         ]);
 
-        $api = new Api('http://example.com');
+        $api = new JsonApi('http://example.com');
 
-        $api->resource('users', $usersAdapter, function (Builder $schema) {
+        $api->resource('users', $usersAdapter, function (Type $schema) {
             $schema->hasMany('groups');
         });
 
@@ -400,11 +398,11 @@ class ShowTest extends AbstractTestCase
             ]
         ]);
 
-        $api = new Api('http://example.com');
+        $api = new JsonApi('http://example.com');
 
         $relationships = [];
 
-        $api->resource('users', $usersAdapter, function (Builder $schema) use (&$relationships) {
+        $api->resource('users', $usersAdapter, function (Type $schema) use (&$relationships) {
             $relationships[] = $schema->hasMany('groups1', 'groups', 'property1')
                 ->includable();
 
@@ -412,7 +410,7 @@ class ShowTest extends AbstractTestCase
                 ->includable();
         });
 
-        $api->resource('groups', $groupsAdapter, function (Builder $schema) {
+        $api->resource('groups', $groupsAdapter, function (Type $schema) {
             $schema->attribute('name');
         });
 
@@ -519,19 +517,19 @@ class ShowTest extends AbstractTestCase
             '1' => $post = (object) ['id' => '1', 'user' => $user]
         ]);
 
-        $api = new Api('http://example.com');
+        $api = new JsonApi('http://example.com');
 
         $relationships = [];
 
-        $api->resource('posts', $postsAdapter, function (Builder $schema) use (&$relationships) {
+        $api->resource('posts', $postsAdapter, function (Type $schema) use (&$relationships) {
             $relationships[] = $schema->hasOne('user');
         });
 
-        $api->resource('users', $usersAdapter, function (Builder $schema) use (&$relationships) {
+        $api->resource('users', $usersAdapter, function (Type $schema) use (&$relationships) {
             $relationships[] = $schema->hasMany('groups')->includable();
         });
 
-        $api->resource('groups', $groupsAdapter, function (Builder $schema) {
+        $api->resource('groups', $groupsAdapter, function (Type $schema) {
             $schema->attribute('name');
         });
 

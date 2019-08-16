@@ -11,11 +11,11 @@
 
 namespace Tobyz\Tests\JsonApiServer;
 
-use Tobyz\JsonApiServer\Api;
+use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Serializer;
-use Tobyz\JsonApiServer\Schema\Builder;
+use Tobyz\JsonApiServer\Schema\Type;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use JsonApiPhp\JsonApi;
 use Zend\Diactoros\ServerRequest;
@@ -25,9 +25,9 @@ class CreateTest extends AbstractTestCase
 {
     public function testResourceNotCreatableByDefault()
     {
-        $api = new Api('http://example.com');
+        $api = new JsonApi('http://example.com');
 
-        $api->resource('users', new MockAdapter(), function (Builder $schema) {
+        $api->resource('users', new MockAdapter(), function (Type $schema) {
             //
         });
 
@@ -41,9 +41,9 @@ class CreateTest extends AbstractTestCase
 
     public function testCreateResourceValidatesBody()
     {
-        $api = new Api('http://example.com');
+        $api = new JsonApi('http://example.com');
 
-        $api->resource('users', new MockAdapter(), function (Builder $schema) {
+        $api->resource('users', new MockAdapter(), function (Type $schema) {
             $schema->creatable();
         });
 
@@ -56,9 +56,9 @@ class CreateTest extends AbstractTestCase
 
     public function testCreateResource()
     {
-        $api = new Api('http://example.com');
+        $api = new JsonApi('http://example.com');
 
-        $api->resource('users', $adapter = new MockAdapter(), function (Builder $schema) {
+        $api->resource('users', $adapter = new MockAdapter(), function (Type $schema) {
             $schema->creatable();
 
             $schema->attribute('name')->writable();
@@ -110,9 +110,9 @@ class CreateTest extends AbstractTestCase
                 ]
             ]);
 
-        $api = new Api('http://example.com');
+        $api = new JsonApi('http://example.com');
 
-        $api->resource('users', $adapter = new MockAdapter(), function (Builder $schema) use ($adapter, $request) {
+        $api->resource('users', $adapter = new MockAdapter(), function (Type $schema) use ($adapter, $request) {
             $schema->creatable();
 
             $schema->attribute('writable1')->writable();
@@ -148,9 +148,9 @@ class CreateTest extends AbstractTestCase
                 ]
             ]);
 
-        $api = new Api('http://example.com');
+        $api = new JsonApi('http://example.com');
 
-        $api->resource('users', $adapter = new MockAdapter(), function (Builder $schema) use ($adapter, $request) {
+        $api->resource('users', $adapter = new MockAdapter(), function (Type $schema) use ($adapter, $request) {
             $schema->creatable();
 
             $schema->attribute('readonly')->readonly();
@@ -175,9 +175,9 @@ class CreateTest extends AbstractTestCase
                 ]
             ]);
 
-        $api = new Api('http://example.com');
+        $api = new JsonApi('http://example.com');
 
-        $api->resource('users', $adapter = new MockAdapter(), function (Builder $schema) use ($request) {
+        $api->resource('users', $adapter = new MockAdapter(), function (Type $schema) use ($request) {
             $schema->creatable();
 
             $schema->attribute('attribute1')->default('defaultValue');

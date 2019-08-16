@@ -3,9 +3,10 @@
 namespace Tobyz\JsonApiServer\Exception;
 
 use JsonApiPhp\JsonApi\Error;
+use RuntimeException;
 use Tobyz\JsonApiServer\ErrorProviderInterface;
 
-class ResourceNotFoundException extends \RuntimeException implements ErrorProviderInterface
+class ResourceNotFoundException extends RuntimeException implements ErrorProviderInterface
 {
     protected $type;
     protected $id;

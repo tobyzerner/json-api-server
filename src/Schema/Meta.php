@@ -3,26 +3,26 @@
 namespace Tobyz\JsonApiServer\Schema;
 
 use Closure;
+use function Tobyz\JsonApiServer\wrap;
 
-class Meta
+final class Meta
 {
-    public $name;
-    public $value;
+    private $name;
+    private $value;
 
     public function __construct(string $name, $value)
     {
         $this->name = $name;
-        $this->value = $this->wrap($value);
+        $this->value = wrap($value);
     }
 
-    private function wrap($value)
+    public function getName(): string
     {
-        if (! $value instanceof Closure) {
-            $value = function () use ($value) {
-                return $value;
-            };
-        }
+        return $this->name;
+    }
 
-        return $value;
+    public function getValue(): Closure
+    {
+        return $this->value;
     }
 }

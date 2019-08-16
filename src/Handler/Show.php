@@ -2,12 +2,12 @@
 
 namespace Tobyz\JsonApiServer\Handler;
 
-use JsonApiPhp\JsonApi;
+use JsonApiPhp\JsonApi\CompoundDocument;
+use JsonApiPhp\JsonApi\Included;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface;
-use Tobyz\JsonApiServer\Api;
-use Tobyz\JsonApiServer\Exception\ForbiddenException;
+use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\JsonApiResponse;
 use Tobyz\JsonApiServer\ResourceType;
 use Tobyz\JsonApiServer\Serializer;
@@ -20,7 +20,7 @@ class Show implements RequestHandlerInterface
     private $resource;
     private $model;
 
-    public function __construct(Api $api, ResourceType $resource, $model)
+    public function __construct(JsonApi $api, ResourceType $resource, $model)
     {
         $this->api = $api;
         $this->resource = $resource;
@@ -29,12 +29,6 @@ class Show implements RequestHandlerInterface
 
     public function handle(Request $request): Response
     {
-        $schema = $this->resource->getSchema();
-
-        if (! ($schema->isVisible)($request)) {
-            throw new ForbiddenException('You cannot view this resource');
-        }
-
         $include = $this->getInclude($request);
 
         $this->loadRelationships([$this->model], $include, $request);
@@ -44,9 +38,9 @@ class Show implements RequestHandlerInterface
         $serializer->add($this->resource, $this->model, $include);
 
         return new JsonApiResponse(
-            new JsonApi\CompoundDocument(
+            new CompoundDocument(
                 $serializer->primary()[0],
-                new JsonApi\Included(...$serializer->included())
+                new Included(...$serializer->included())
             )
         );
     }

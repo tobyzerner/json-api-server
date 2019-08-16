@@ -3,57 +3,47 @@
 namespace Tobyz\JsonApiServer\Schema;
 
 use Closure;
-use Tobyz\JsonApiServer\Handler\Show;
+use function Tobyz\JsonApiServer\negate;
 
 abstract class Relationship extends Field
 {
-    public $location = 'relationships';
-    public $linkage;
-    public $hasLinks = true;
-    public $loadable = true;
-    public $loader;
-    public $included = false;
-    public $includable = true;
-    public $resource;
+    private $type;
+    private $linkage = false;
+    private $links = true;
+    private $loadable = true;
+    private $includable = false;
 
-    public function __construct(string $name)
+    public function type($type)
     {
-        parent::__construct($name);
-
-        $this->noLinkage();
-    }
-
-    public function resource($resource)
-    {
-        $this->resource = $resource;
+        $this->type = $type;
 
         return $this;
     }
 
-    public function linkageIf(Closure $condition)
+    public function polymorphic()
     {
-        $this->linkage = $condition;
+        $this->type = null;
 
         return $this;
     }
 
-    public function linkage()
+    public function linkage(Closure $condition = null)
     {
-        return $this->linkageIf(function () {
-            return true;
-        });
+        $this->linkage = $condition ?: true;
+
+        return $this;
     }
 
-    public function noLinkage()
+    public function noLinkage(Closure $condition = null)
     {
-        return $this->linkageIf(function () {
-            return false;
-        });
+        $this->linkage = $condition ? negate($condition) : false;
+
+        return $this;
     }
 
-    public function loadable()
+    public function loadable(Closure $callback = null)
     {
-        $this->loadable = true;
+        $this->loadable = $callback ?: true;
 
         return $this;
     }
@@ -61,13 +51,6 @@ abstract class Relationship extends Field
     public function notLoadable()
     {
         $this->loadable = false;
-
-        return $this;
-    }
-
-    public function load(Closure $callback)
-    {
-        $this->loader = $callback;
 
         return $this;
     }
@@ -86,10 +69,47 @@ abstract class Relationship extends Field
         return $this;
     }
 
-    public function noLinks()
+    public function getType()
     {
-        $this->hasLinks = false;
+        return $this->type;
+    }
+
+    public function links()
+    {
+        $this->links = true;
 
         return $this;
+    }
+
+    public function noLinks()
+    {
+        $this->links = false;
+
+        return $this;
+    }
+
+    public function getLinkage()
+    {
+        return $this->linkage;
+    }
+
+    public function hasLinks(): bool
+    {
+        return $this->links;
+    }
+
+    public function getLoadable()
+    {
+        return $this->loadable;
+    }
+
+    public function isIncludable(): bool
+    {
+        return $this->includable;
+    }
+
+    public function getLocation(): string
+    {
+        return 'relationships';
     }
 }

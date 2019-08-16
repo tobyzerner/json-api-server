@@ -3,41 +3,20 @@
 namespace Tobyz\JsonApiServer\Handler\Concerns;
 
 use Psr\Http\Message\ServerRequestInterface as Request;
+use function Tobyz\JsonApiServer\evaluate;
+use function Tobyz\JsonApiServer\get_value;
+use function Tobyz\JsonApiServer\has_value;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
-use Tobyz\JsonApiServer\ResourceType;
-use Tobyz\JsonApiServer\Schema;
+use function Tobyz\JsonApiServer\run_callbacks;
+use Tobyz\JsonApiServer\Schema\Attribute;
+use Tobyz\JsonApiServer\Schema\HasMany;
+use Tobyz\JsonApiServer\Schema\HasOne;
+use Tobyz\JsonApiServer\Schema\Relationship;
 
 trait SavesData
 {
     use FindsResources;
-
-    private function save($model, Request $request, bool $creating = false): void
-    {
-        $data = $this->parseData($request->getParsedBody());
-
-        $adapter = $this->resource->getAdapter();
-
-        $this->assertFieldsExist($data);
-
-        $this->assertFieldsWritable($data, $model, $request);
-
-        if ($creating) {
-            $this->fillDefaultValues($data, $request);
-        }
-
-        $this->loadRelatedResources($data, $request);
-
-        $this->assertDataValid($data, $model, $request, $creating);
-
-        $this->applyValues($data, $model, $request);
-
-        $this->saveModel($model, $request);
-
-        $this->saveFields($data, $model, $request);
-
-        $this->runSavedCallbacks($data, $model, $request);
-    }
 
     private function parseData($body): array
     {
@@ -80,15 +59,19 @@ trait SavesData
         return $this->findResource($request, $resource, $identifier['id']);
     }
 
+    private function validateFields(array $data, $model, Request $request)
+    {
+        $this->assertFieldsExist($data);
+        $this->assertFieldsWritable($data, $model, $request);
+    }
+
     private function assertFieldsExist(array $data)
     {
-        $schema = $this->resource->getSchema();
+        $fields = $this->resource->getSchema()->getFields();
 
         foreach (['attributes', 'relationships'] as $location) {
             foreach ($data[$location] as $name => $value) {
-                if (! isset($schema->fields[$name])
-                    || $location !== $schema->fields[$name]->location
-                ) {
+                if (! isset($fields[$name]) || $location !== $fields[$name]->getLocation()) {
                     throw new BadRequestException("Unknown field [$name]");
                 }
             }
@@ -97,52 +80,29 @@ trait SavesData
 
     private function assertFieldsWritable(array $data, $model, Request $request)
     {
-        $schema = $this->resource->getSchema();
-
-        foreach ($schema->fields as $name => $field) {
-            $valueProvided = isset($data[$field->location][$name]);
-
-            if ($valueProvided && ! ($field->isWritable)($request, $model)) {
-                throw new BadRequestException("Field [$name] is not writable");
-            }
-        }
-    }
-
-    private function fillDefaultValues(array &$data, Request $request)
-    {
-        $schema = $this->resource->getSchema();
-
-        foreach ($schema->fields as $name => $field) {
-            $valueProvided = isset($data[$field->location][$name]);
-
-            if (! $valueProvided && $field->default) {
-                $data[$field->location][$name] = ($field->default)($request);
+        foreach ($this->resource->getSchema()->getFields() as $field) {
+            if (has_value($data, $field) && ! evaluate($field->getWritable(), [$model, $request])) {
+                throw new BadRequestException("Field [{$field->getName()}] is not writable");
             }
         }
     }
 
     private function loadRelatedResources(array &$data, Request $request)
     {
-        $schema = $this->resource->getSchema();
-
-        foreach ($schema->fields as $name => $field) {
-            if (! isset($data[$field->location][$name])) {
+        foreach ($this->resource->getSchema()->getFields() as $field) {
+            if (! $field instanceof Relationship || ! has_value($data, $field)) {
                 continue;
             }
 
-            $value = &$data[$field->location][$name];
+            $value = &get_value($data, $field);
 
-            if ($field instanceof Schema\Relationship) {
-                $value = $value['data'];
-
-                if ($value) {
-                    if ($field instanceof Schema\HasOne) {
-                        $value = $this->getModelForIdentifier($request, $value);
-                    } elseif ($field instanceof Schema\HasMany) {
-                        $value = array_map(function ($identifier) use ($request) {
-                            return $this->getModelForIdentifier($request, $identifier);
-                        }, $value);
-                    }
+            if (isset($value['data'])) {
+                if ($field instanceof HasOne) {
+                    $value = $this->getModelForIdentifier($request, $value['data']);
+                } elseif ($field instanceof HasMany) {
+                    $value = array_map(function ($identifier) use ($request) {
+                        return $this->getModelForIdentifier($request, $identifier);
+                    }, $value['data']);
                 }
             }
         }
@@ -150,22 +110,21 @@ trait SavesData
 
     private function assertDataValid(array $data, $model, Request $request, bool $all): void
     {
-        $schema = $this->resource->getSchema();
-
         $failures = [];
 
-        foreach ($schema->fields as $name => $field) {
-            if (! $all && ! isset($data[$field->location][$name])) {
+        foreach ($this->resource->getSchema()->getFields() as $field) {
+            if (! $all && ! has_value($data, $field)) {
                 continue;
             }
 
-            $fail = function ($message) use (&$failures, $field) {
+            $fail = function ($message = null) use (&$failures, $field) {
                 $failures[] = compact('field', 'message');
             };
 
-            foreach ($field->validators as $validator) {
-                $validator($fail, $data[$field->location][$name] ?? null, $model, $request, $field);
-            }
+            run_callbacks(
+                $field->getListeners('validate'),
+                [$fail, get_value($data, $field), $model, $request, $field]
+            );
         }
 
         if (count($failures)) {
@@ -173,78 +132,81 @@ trait SavesData
         }
     }
 
-    private function applyValues(array $data, $model, Request $request)
+    private function setValues(array $data, $model, Request $request)
     {
-        $schema = $this->resource->getSchema();
         $adapter = $this->resource->getAdapter();
 
-        foreach ($schema->fields as $name => $field) {
-            if (! isset($data[$field->location][$name])) {
+        foreach ($this->resource->getSchema()->getFields() as $field) {
+            if (! has_value($data, $field)) {
                 continue;
             }
 
-            $value = $data[$field->location][$name];
+            $value = get_value($data, $field);
 
-            if ($field->setter || $field->saver) {
-                if ($field->setter) {
-                    ($field->setter)($request, $model, $value);
-                }
-
+            if ($setter = $field->getSetter()) {
+                $setter($model, $value, $request);
                 continue;
             }
 
-            if ($field instanceof Schema\Attribute) {
-                $adapter->applyAttribute($model, $field, $value);
-            } elseif ($field instanceof Schema\HasOne) {
-                $adapter->applyHasOne($model, $field, $value);
+            if ($field->getSaver()) {
+                continue;
+            }
+
+            if ($field instanceof Attribute) {
+                $adapter->setAttribute($model, $field, $value);
+            } elseif ($field instanceof HasOne) {
+                $adapter->setHasOne($model, $field, $value);
             }
         }
     }
 
+    private function save(array $data, $model, Request $request)
+    {
+        $this->saveModel($model, $request);
+        $this->saveFields($data, $model, $request);
+    }
+
     private function saveModel($model, Request $request)
     {
-        $adapter = $this->resource->getAdapter();
-        $schema = $this->resource->getSchema();
-
-        if ($schema->saver) {
-            ($schema->saver)($request, $model);
+        if ($saver = $this->resource->getSchema()->getSaver()) {
+            $saver($model, $request);
         } else {
-            $adapter->save($model);
+            $this->resource->getAdapter()->save($model);
         }
     }
 
     private function saveFields(array $data, $model, Request $request)
     {
-        $schema = $this->resource->getSchema();
         $adapter = $this->resource->getAdapter();
 
-        foreach ($schema->fields as $name => $field) {
-            if (! isset($data[$field->location][$name])) {
+        foreach ($this->resource->getSchema()->getFields() as $field) {
+            if (! has_value($data, $field)) {
                 continue;
             }
 
-            $value = $data[$field->location][$name];
+            $value = get_value($data, $field);
 
-            if ($field->saver) {
-                ($field->saver)($request, $model, $value);
-            } elseif ($field instanceof Schema\HasMany) {
+            if ($saver = $field->getSaver()) {
+                $saver($model, $value, $request);
+            } elseif ($field instanceof HasMany) {
                 $adapter->saveHasMany($model, $field, $value);
             }
         }
+
+        $this->runSavedCallbacks($data, $model, $request);
     }
 
     private function runSavedCallbacks(array $data, $model, Request $request)
     {
-        $schema = $this->resource->getSchema();
-
-        foreach ($schema->fields as $name => $field) {
-            if (! isset($data[$field->location][$name])) {
+        foreach ($this->resource->getSchema()->getFields() as $field) {
+            if (! has_value($data, $field)) {
                 continue;
             }
 
-            foreach ($field->savedCallbacks as $callback) {
-                $callback($request, $model, $data[$field->location][$name]);
-            }
+            run_callbacks(
+                $field->getListeners('saved'),
+                [$model, get_value($data, $field), $request]
+            );
         }
     }
 }

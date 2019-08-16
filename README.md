@@ -12,27 +12,27 @@ composer require tobyz/json-api-server
 ```
 
 ```php
-use Tobyz\JsonApiServer\Api;
 use Tobyz\JsonApiServer\Adapter\EloquentAdapter;
-use Tobyz\JsonApiServer\Schema\Builder;
+use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\Schema\Type;
 
-$api = new Api('http://example.com/api');
+$api = new JsonApi('http://example.com/api');
 
-$api->resource('articles', new EloquentAdapter(new Article), function (Builder $schema) {
-    $schema->attribute('title');
-    $schema->hasOne('author', 'people');
-    $schema->hasMany('comments');
+$api->resource('articles', new EloquentAdapter(Article::class), function (Type $type) {
+    $type->attribute('title');
+    $type->hasOne('author')->type('people');
+    $type->hasMany('comments');
 });
 
-$api->resource('people', new EloquentAdapter(new User), function (Builder $schema) {
-    $schema->attribute('firstName');
-    $schema->attribute('lastName');
-    $schema->attribute('twitter');
+$api->resource('people', new EloquentAdapter(User::class), function (Type $type) {
+    $type->attribute('firstName');
+    $type->attribute('lastName');
+    $type->attribute('twitter');
 });
 
-$api->resource('comments', new EloquentAdapter(new Comment), function (Builder $schema) {
-    $schema->attribute('body');
-    $schema->hasOne('author', 'people');
+$api->resource('comments', new EloquentAdapter(Comment::class), function (Type $type) {
+    $type->attribute('body');
+    $type->hasOne('author')->type('people');
 });
 
 /** @var Psr\Http\Message\ServerRequestInterface $request */
@@ -60,9 +60,9 @@ The schema definition is extremely powerful and lets you easily apply [permissio
 ### Handling Requests
 
 ```php
-use Tobyz\JsonApiServer\Api;
+use Tobyz\JsonApiServer\JsonApi;
 
-$api = new Api('http://example.com/api');
+$api = new JsonApi('http://example.com/api');
 
 try {
     $response = $api->handle($request);
@@ -71,26 +71,26 @@ try {
 }
 ```
 
-`Tobyz\JsonApiServer\Api` is a [PSR-15 Request Handler](https://www.php-fig.org/psr/psr-15/). Instantiate it with your API's base URL. Convert your framework's request object into a [PSR-7 Request](https://www.php-fig.org/psr/psr-7/#321-psrhttpmessageserverrequestinterface) implementation, then let the `Api` handler take it from there. Catch any exceptions and give them back to `Api` if you want a JSON:API error response.
+`Tobyz\JsonApiServer\JsonApi` is a [PSR-15 Request Handler](https://www.php-fig.org/psr/psr-15/). Instantiate it with your API's base URL. Convert your framework's request object into a [PSR-7 Request](https://www.php-fig.org/psr/psr-7/#321-psrhttpmessageserverrequestinterface) implementation, then let the `JsonApi` handler take it from there. Catch any exceptions and give them back to `JsonApi` if you want a JSON:API error response.
 
 ### Defining Resources
 
 Define your API's resources using the `resource` method. The first argument is the [resource type](https://jsonapi.org/format/#document-resource-object-identification). The second is an instance of `Tobyz\JsonApiServer\Adapter\AdapterInterface` which will allow the handler to interact with your models. The third is a closure in which you'll build the schema for your resource.
 
 ```php
-use Tobyz\JsonApiServer\Schema\Builder;
+use Tobyz\JsonApiServer\Schema\Type;
 
-$api->resource('comments', $adapter, function (Builder $schema) {
+$api->resource('comments', $adapter, function (Schema $schema) {
     // define your schema
 });
 ```
 
-We provide an `EloquentAdapter` to hook your resources up with Laravel [Eloquent](https://laravel.com/docs/5.8/eloquent) models. Set it up with an instance of the model that your resource represents. You can [implement your own adapter](https://github.com/tobyz/json-api-server/blob/master/src/Adapter/AdapterInterface.php) if you use a different ORM.
+We provide an `EloquentAdapter` to hook your resources up with Laravel [Eloquent](https://laravel.com/docs/5.8/eloquent) models. Set it up with the name of the model that your resource represents. You can [implement your own adapter](https://github.com/tobyz/json-api-server/blob/master/src/Adapter/AdapterInterface.php) if you use a different ORM.
 
 ```php
 use Tobyz\JsonApiServer\Adapter\EloquentAdapter;
 
-$adapter = new EloquentAdapter(new User);
+$adapter = new EloquentAdapter(User::class);
 ```
 
 ### Attributes
@@ -116,10 +116,10 @@ $schema->hasOne('user');
 $schema->hasMany('comments');
 ```
 
-By default the [resource type](https://jsonapi.org/format/#document-resource-object-identification) that the relationship corresponds to will be derived from the relationship name. In the example above, the `user` relationship would correspond to the `users` resource type, while `comments` would correspond to `comments`. If you'd like to use a different resource type, provide it as a second argument:
+By default the [resource type](https://jsonapi.org/format/#document-resource-object-identification) that the relationship corresponds to will be derived from the relationship name. In the example above, the `user` relationship would correspond to the `users` resource type, while `comments` would correspond to `comments`. If you'd like to use a different resource type, call the `type` method:
 
 ```php
-$schema->hasOne('author', 'people');
+$schema->hasOne('author')->type('people');
 ```
 
 Like attributes, the relationship will automatically read and write to the relation on your model with the same name. If you'd like it to correspond to a different relation, provide it as a third argument.
@@ -173,14 +173,14 @@ $schema->hasOne('user')
 
 #### Polymorphic Relationships
 
-Define polymorphic relationships on your resource using the `morphOne` and `morphMany` methods:
+Define a relationship as polymorphic using the `polymorphic` method:
 
 ```php
-$schema->morphOne('commentable');
-$schema->morphMany('taggable');
+$schema->hasOne('commentable')->polymorphic();
+$schema->hasMany('taggable')->polymorphic();
 ```
 
-Polymorphic relationships do not accept a second argument for the resource type, because it will be automatically derived from each related resource. Nested includes cannot be requested on these relationships.
+This will mean that the resource type associated with the relationship will be derived from the model of each related resource. Consequently, nested includes cannot be requested on these relationships.
 
 ### Getters
 
@@ -257,7 +257,6 @@ $schema->attribute('email')
 
 You can provide a default value for a field to be used when creating a new resource if there is no value provided by the consumer. Pass a value or a closure to the `default` method:
 
-
 ```php
 $schema->attribute('joinedAt')
     ->default(new DateTime);
@@ -299,7 +298,7 @@ $schema->hasMany('groups')
 You can easily use Laravel's [Validation](https://laravel.com/docs/5.8/validation) component for field validation with the `rules` function:
 
 ```php
-use Tobyz\JsonApi\Server\Laravel\rules;
+use Tobyz\JsonApiServer\Laravel\rules;
 
 $schema->attribute('username')
     ->validate(rules('required', 'min:3', 'max:30'));
@@ -312,7 +311,7 @@ Use the `set` method to define custom mutation logic for your field, instead of 
 ```php
 $schema->attribute('firstName')
     ->set(function ($model, $value, $request) {
-        return $model->first_name = strtolower($value);
+        $model->first_name = strtolower($value);
     });
 ```
 
@@ -396,6 +395,14 @@ You can set a default sort string to be used when the consumer has not supplied 
 $schema->defaultSort('-updatedAt,-createdAt');
 ```
 
+To define sortable criteria that does not correspond to an attribute, use the `sort` method:
+
+```php
+$schema->sort('relevance', function ($query, $direction, $request) {
+    $query->orderBy('relevance', $direction);
+});
+```
+
 ### Pagination
 
 By default, resource listings are automatically [paginated](https://jsonapi.org/format/#fetching-pagination) with 20 records per page. You can change this limit using the `paginate` method on the schema builder, or you can remove it by passing `null`:
@@ -434,9 +441,11 @@ $schema->meta('requestTime', function ($request) {
 
 ### Creating Resources
 
-By default, resources are not [creatable](https://jsonapi.org/format/#crud-creating) (i.e. `POST` requests will return `403 Forbidden`). You can allow them to be created using the `creatable` and `notCreatable` methods on the schema builder:
+By default, resources are not [creatable](https://jsonapi.org/format/#crud-creating) (i.e. `POST` requests will return `403 Forbidden`). You can allow them to be created using the `creatable` and `notCreatable` methods on the schema builder. Pass a closure that returns `true` if the resource should be creatable, or no value to have it always creatable.
 
 ```php
+$schema->creatable();
+
 $schema->creatable(function ($request) {
     return $request->getAttribute('isAdmin');
 });
@@ -444,7 +453,7 @@ $schema->creatable(function ($request) {
 
 #### Customizing the Model
 
-When creating a resource, an empty model is supplied by the adapter. You may wish to provide a custom model in special circumstances. You can do so using the `create` method:
+When creating a resource, an empty model is supplied by the adapter. You may wish to override this and provide a custom model in special circumstances. You can do so using the `create` method:
 
 ```php
 $schema->create(function ($request) {
@@ -457,6 +466,8 @@ $schema->create(function ($request) {
 By default, resources are not [updatable](https://jsonapi.org/format/#crud-updating) (i.e. `PATCH` requests will return `403 Forbidden`). You can allow them to be updated using the `updatable` and `notUpdatable` methods on the schema builder:
 
 ```php
+$schema->updatable();
+
 $schema->updatable(function ($request) {
     return $request->getAttribute('isAdmin');
 });
@@ -467,6 +478,8 @@ $schema->updatable(function ($request) {
 By default, resources are not [deletable](https://jsonapi.org/format/#crud-deleting) (i.e. `DELETE` requests will return `403 Forbidden`). You can allow them to be deleted using the `deletable` and `notDeletable` methods on the schema builder:
 
 ```php
+$schema->deletable();
+
 $schema->deletable(function ($request) {
     return $request->getAttribute('isAdmin');
 });

@@ -2,18 +2,24 @@
 
 namespace Tobyz\JsonApiServer\Handler;
 
-use JsonApiPhp\JsonApi;
-use JsonApiPhp\JsonApi\Link;
+use Closure;
+use JsonApiPhp\JsonApi as Structure;
+use JsonApiPhp\JsonApi\Link\LastLink;
+use JsonApiPhp\JsonApi\Link\NextLink;
+use JsonApiPhp\JsonApi\Link\PrevLink;
 use JsonApiPhp\JsonApi\Meta;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface;
-use Tobyz\JsonApiServer\Api;
+use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\JsonApiResponse;
 use Tobyz\JsonApiServer\ResourceType;
-use Tobyz\JsonApiServer\Schema;
+use Tobyz\JsonApiServer\Schema\Attribute;
+use Tobyz\JsonApiServer\Schema\HasMany;
+use Tobyz\JsonApiServer\Schema\HasOne;
+use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\JsonApiServer\Serializer;
 
 class Index implements RequestHandlerInterface
@@ -23,7 +29,7 @@ class Index implements RequestHandlerInterface
     private $api;
     private $resource;
 
-    public function __construct(Api $api, ResourceType $resource)
+    public function __construct(JsonApi $api, ResourceType $resource)
     {
         $this->api = $api;
         $this->resource = $resource;
@@ -38,13 +44,9 @@ class Index implements RequestHandlerInterface
         $adapter = $this->resource->getAdapter();
         $schema = $this->resource->getSchema();
 
-        if (! ($schema->isVisible)($request)) {
-            throw new ForbiddenException('You cannot view this resource');
-        }
-
         $query = $adapter->query();
 
-        foreach ($schema->scopes as $scope) {
+        foreach ($schema->getScopes() as $scope) {
             $request = $scope($request, $query) ?: $request;
         }
 
@@ -58,13 +60,13 @@ class Index implements RequestHandlerInterface
 
         $paginationLinks = [];
         $members = [
-            new Link\SelfLink($this->buildUrl($request)),
-            new Meta('offset', $offset),
-            new Meta('limit', $limit),
+            new Structure\Link\SelfLink($this->buildUrl($request)),
+            new Structure\Meta('offset', $offset),
+            new Structure\Meta('limit', $limit),
         ];
 
         if ($offset > 0) {
-            $paginationLinks[] = new Link\FirstLink($this->buildUrl($request, ['page' => ['offset' => 0]]));
+            $paginationLinks[] = new Structure\Link\FirstLink($this->buildUrl($request, ['page' => ['offset' => 0]]));
 
             $prevOffset = $offset - $limit;
 
@@ -74,16 +76,16 @@ class Index implements RequestHandlerInterface
                 $params = ['page' => ['offset' => max(0, $prevOffset)]];
             }
 
-            $paginationLinks[] = new Link\PrevLink($this->buildUrl($request, $params));
+            $paginationLinks[] = new PrevLink($this->buildUrl($request, $params));
         }
 
-        if ($schema->countable && $schema->paginate) {
+        if ($schema->isCountable() && $schema->getPaginate()) {
             $total = $adapter->count($query);
 
             $members[] = new Meta('total', $total);
 
             if ($offset + $limit < $total) {
-                $paginationLinks[] = new Link\LastLink($this->buildUrl($request, ['page' => ['offset' => floor(($total - 1) / $limit) * $limit]]));
+                $paginationLinks[] = new LastLink($this->buildUrl($request, ['page' => ['offset' => floor(($total - 1) / $limit) * $limit]]));
             }
         }
 
@@ -96,7 +98,7 @@ class Index implements RequestHandlerInterface
         $models = $adapter->get($query);
 
         if ((count($models) && $total === null) || $offset + $limit < $total) {
-            $paginationLinks[] = new Link\NextLink($this->buildUrl($request, ['page' => ['offset' => $offset + $limit]]));
+            $paginationLinks[] = new NextLink($this->buildUrl($request, ['page' => ['offset' => $offset + $limit]]));
         }
 
         $this->loadRelationships($models, $include, $request);
@@ -108,12 +110,12 @@ class Index implements RequestHandlerInterface
         }
 
         return new JsonApiResponse(
-            new JsonApi\CompoundDocument(
-                new JsonApi\PaginatedCollection(
-                    new JsonApi\Pagination(...$paginationLinks),
-                    new JsonApi\ResourceCollection(...$serializer->primary())
+            new Structure\CompoundDocument(
+                new Structure\PaginatedCollection(
+                    new Structure\Pagination(...$paginationLinks),
+                    new Structure\ResourceCollection(...$serializer->primary())
                 ),
-                new JsonApi\Included(...$serializer->included()),
+                new Structure\Included(...$serializer->included()),
                 ...$members
             )
         );
@@ -149,7 +151,7 @@ class Index implements RequestHandlerInterface
 
         $queryParams = $request->getQueryParams();
 
-        $limit = $this->resource->getSchema()->paginate;
+        $limit = $this->resource->getSchema()->getPaginate();
 
         if (isset($queryParams['page']['limit'])) {
             $limit = $queryParams['page']['limit'];
@@ -158,7 +160,7 @@ class Index implements RequestHandlerInterface
                 throw new BadRequestException('page[limit] must be a positive integer', 'page[limit]');
             }
 
-            $limit = min($this->resource->getSchema()->limit, $limit);
+            $limit = min($this->resource->getSchema()->getLimit(), $limit);
         }
 
         $offset = 0;
@@ -175,15 +177,16 @@ class Index implements RequestHandlerInterface
             ->withAttribute('jsonApiLimit', $limit)
             ->withAttribute('jsonApiOffset', $offset);
 
-        $sort = $queryParams['sort'] ?? $this->resource->getSchema()->defaultSort;
+        $sort = $queryParams['sort'] ?? $this->resource->getSchema()->getDefaultSort();
 
         if ($sort) {
             $sort = $this->parseSort($sort);
+            $fields = $schema->getFields();
 
             foreach ($sort as $name => $direction) {
-                if (! isset($schema->fields[$name])
-                    || ! $schema->fields[$name] instanceof Schema\Attribute
-                    || ! $schema->fields[$name]->sortable
+                if (! isset($fields[$name])
+                    || ! $fields[$name] instanceof Attribute
+                    || ! $fields[$name]->getSortable()
                 ) {
                     throw new BadRequestException("Invalid sort field [$name]", 'sort');
                 }
@@ -199,8 +202,10 @@ class Index implements RequestHandlerInterface
                 throw new BadRequestException('filter must be an array', 'filter');
             }
 
+            $fields = $schema->getFields();
+
             foreach ($filter as $name => $value) {
-                if ($name !== 'id' && (! isset($schema->fields[$name]) || ! $schema->fields[$name]->filterable)) {
+                if ($name !== 'id' && (! isset($fields[$name]) || ! $fields[$name]->getFilterable())) {
                     throw new BadRequestException("Invalid filter [$name]", "filter[$name]");
                 }
             }
@@ -217,10 +222,10 @@ class Index implements RequestHandlerInterface
         $adapter = $this->resource->getAdapter();
 
         foreach ($sort as $name => $direction) {
-            $attribute = $schema->fields[$name];
+            $attribute = $schema->getFields()[$name];
 
-            if ($attribute->sorter) {
-                ($attribute->sorter)($request, $query, $direction);
+            if (($sorter = $attribute->getSortable()) instanceof Closure) {
+                $sorter($query, $direction, $request);
             } else {
                 $adapter->sortByAttribute($query, $attribute, $direction);
             }
@@ -267,16 +272,16 @@ class Index implements RequestHandlerInterface
                 continue;
             }
 
-            $field = $schema->fields[$name];
+            $field = $schema->getFields()[$name];
 
-            if ($field->filter) {
-                ($field->filter)($query, $value, $request);
-            } elseif ($field instanceof Schema\Attribute) {
+            if (($filter = $field->getFilterable()) instanceof Closure) {
+                $filter($query, $value, $request);
+            } elseif ($field instanceof Attribute) {
                 $adapter->filterByAttribute($query, $field, $value);
-            } elseif ($field instanceof Schema\HasOne) {
+            } elseif ($field instanceof HasOne) {
                 $value = explode(',', $value);
                 $adapter->filterByHasOne($query, $field, $value);
-            } elseif ($field instanceof Schema\HasMany) {
+            } elseif ($field instanceof HasMany) {
                 $value = explode(',', $value);
                 $adapter->filterByHasMany($query, $field, $value);
             }

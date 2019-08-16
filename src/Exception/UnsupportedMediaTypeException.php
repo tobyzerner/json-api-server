@@ -2,17 +2,17 @@
 
 namespace Tobyz\JsonApiServer\Exception;
 
-use DomainException;
 use JsonApiPhp\JsonApi\Error;
+use RuntimeException;
 use Tobyz\JsonApiServer\ErrorProviderInterface;
 
-class NotImplementedException extends DomainException implements ErrorProviderInterface
+class UnsupportedMediaTypeException extends RuntimeException implements ErrorProviderInterface
 {
     public function getJsonApiErrors(): array
     {
         return [
             new Error(
-                new Error\Title('Not Implemented'),
+                new Error\Title('Unsupported Media Type'),
                 new Error\Status($this->getJsonApiStatus())
             )
         ];
@@ -20,6 +20,6 @@ class NotImplementedException extends DomainException implements ErrorProviderIn
 
     public function getJsonApiStatus(): string
     {
-        return '501';
+        return '415';
     }
 }
