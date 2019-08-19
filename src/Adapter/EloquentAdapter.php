@@ -74,7 +74,8 @@ class EloquentAdapter implements AdapterInterface
         $relation = $this->getRelation($model, $relationship);
 
         // If this is a belongs-to relation, we can simply return the value of
-        // the foreign key on the model.
+        // the foreign key on the model. Otherwise we will have to fetch the
+        // full related model and return its key.
         if ($relation instanceof BelongsTo) {
             return $model->{$relation->getForeignKeyName()};
         }

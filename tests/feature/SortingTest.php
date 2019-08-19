@@ -18,7 +18,7 @@ use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockAdapter;
 
-class AttributeFilterableTest extends AbstractTestCase
+class SortingTest extends AbstractTestCase
 {
     /**
      * @var JsonApi
@@ -37,45 +37,45 @@ class AttributeFilterableTest extends AbstractTestCase
         $this->adapter = new MockAdapter();
     }
 
-    public function test_attributes_are_not_filterable_by_default()
+    public function test_attributes_are_not_sortable_by_default()
     {
         $this->api->resource('users', $this->adapter, function (Type $type) {
-            $type->attribute('field');
+            $type->attribute('name');
         });
 
         $this->expectException(BadRequestException::class);
 
         $this->api->handle(
             $this->buildRequest('GET', '/users')
-                ->withQueryParams(['filter' => ['field' => 'Toby']])
+                ->withQueryParams(['sort' => 'name'])
         );
     }
 
-    public function test_attributes_can_be_filterable()
+    public function test_attributes_can_be_sortable_by_their_value()
     {
         $attribute = null;
 
         $this->api->resource('users', $this->adapter, function (Type $type) use (&$attribute) {
-            $attribute = $type->attribute('name')->filterable();
+            $attribute = $type->attribute('name')->sortable();
         });
 
         $this->api->handle(
             $this->buildRequest('GET', '/users')
-                ->withQueryParams(['filter' => ['name' => 'Toby']])
+                ->withQueryParams(['sort' => 'name'])
         );
 
-        $this->assertContains([$attribute, 'Toby'], $this->adapter->query->filter);
+        $this->assertContains([$attribute, 'asc'], $this->adapter->query->sort);
     }
 
-    public function test_attributes_can_be_filterable_with_custom_logic()
+    public function test_attributes_can_be_sortable_with_custom_logic()
     {
         $called = false;
 
         $this->api->resource('users', $this->adapter, function (Type $type) use (&$called) {
             $type->attribute('name')
-                ->filterable(function ($query, $value, $request) use (&$called) {
+                ->sortable(function ($query, $direction, $request) use (&$called) {
                     $this->assertSame($this->adapter->query, $query);
-                    $this->assertEquals('Toby', $value);
+                    $this->assertEquals('asc', $direction);
                     $this->assertInstanceOf(ServerRequestInterface::class, $request);
 
                     $called = true;
@@ -84,24 +84,49 @@ class AttributeFilterableTest extends AbstractTestCase
 
         $this->api->handle(
             $this->buildRequest('GET', '/users')
-                ->withQueryParams(['filter' => ['name' => 'Toby']])
+                ->withQueryParams(['sort' => 'name'])
         );
 
         $this->assertTrue($called);
-        $this->assertTrue(empty($this->adapter->query->filter));
+        $this->assertTrue(empty($this->adapter->query->sort));
     }
 
-    public function test_attributes_can_be_explicitly_not_filterable()
+    public function test_attribute_sortable_callback_receives_correct_parameters()
+    {
+        $this->markTestIncomplete();
+    }
+
+    public function test_attributes_can_be_explicitly_not_sortable()
     {
         $this->api->resource('users', $this->adapter, function (Type $type) {
-            $type->attribute('name')->notFilterable();
+            $type->attribute('name')->notSortable();
         });
 
         $this->expectException(BadRequestException::class);
 
         $this->api->handle(
             $this->buildRequest('GET', '/users')
-                ->withQueryParams(['filter' => ['name' => 'Toby']])
+                ->withQueryParams(['sort' => 'name'])
         );
+    }
+
+    public function test_types_can_have_custom_sort_fields()
+    {
+        $this->markTestIncomplete();
+    }
+
+    public function test_types_can_have_a_default_sort()
+    {
+        $this->markTestIncomplete();
+    }
+
+    public function test_multiple_sort_fields_can_be_requested()
+    {
+        $this->markTestIncomplete();
+    }
+
+    public function test_sort_fields_can_be_descending_with_minus_prefix()
+    {
+        $this->markTestIncomplete();
     }
 }

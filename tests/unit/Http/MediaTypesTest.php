@@ -16,7 +16,7 @@ use Tobyz\JsonApiServer\Http\MediaTypes;
 
 class MediaTypesTest extends TestCase
 {
-    public function testContainsOnExactMatch()
+    public function test_contains_on_exact_match()
     {
         $header = new MediaTypes('application/json');
 
@@ -25,7 +25,7 @@ class MediaTypesTest extends TestCase
         );
     }
 
-    public function testContainsDoesNotMatchWithExtraParameters()
+    public function test_contains_does_not_match_with_extra_parameters()
     {
         $header = new MediaTypes('application/json; profile=foo');
 
@@ -34,7 +34,7 @@ class MediaTypesTest extends TestCase
         );
     }
 
-    public function testContainsMatchesWhenOnlyWeightIsProvided()
+    public function test_contains_matches_when_only_weight_is_provided()
     {
         $header = new MediaTypes('application/json; q=0.8');
 
@@ -43,7 +43,7 @@ class MediaTypesTest extends TestCase
         );
     }
 
-    public function testContainsDoesNotMatchWithExtraParametersBeforeWeight()
+    public function test_contains_does_not_match_with_extra_parameters_before_weight()
     {
         $header = new MediaTypes('application/json; profile=foo; q=0.8');
 
@@ -52,7 +52,7 @@ class MediaTypesTest extends TestCase
         );
     }
 
-    public function testContainsMatchesWithExtraParametersAfterWeight()
+    public function test_contains_matches_with_extra_parameters_after_weight()
     {
         $header = new MediaTypes('application/json; q=0.8; profile=foo');
 
@@ -61,7 +61,7 @@ class MediaTypesTest extends TestCase
         );
     }
 
-    public function testContainsMatchesWhenOneOfMultipleMediaTypesIsValid()
+    public function test_contains_matches_when_one_of_multiple_media_types_is_valid()
     {
         $header = new MediaTypes('application/json; profile=foo, application/json; q=0.6');
 

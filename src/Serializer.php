@@ -17,7 +17,7 @@ use Tobyz\JsonApiServer\Adapter\AdapterInterface;
 use Tobyz\JsonApiServer\Schema\Attribute;
 use Tobyz\JsonApiServer\Schema\Relationship;
 
-class Serializer
+final class Serializer
 {
     protected $api;
     protected $request;

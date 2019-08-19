@@ -48,12 +48,12 @@ abstract class Relationship extends Field
         return $this;
     }
 
-    public function notLoadable()
-    {
-        $this->loadable = false;
-
-        return $this;
-    }
+    // public function notLoadable()
+    // {
+    //     $this->loadable = false;
+    //
+    //     return $this;
+    // }
 
     public function includable()
     {

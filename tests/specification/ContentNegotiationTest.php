@@ -18,6 +18,9 @@ use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockAdapter;
 
+/**
+ * @see https://jsonapi.org/format/#content-negotiation
+ */
 class ContentNegotiationTest extends AbstractTestCase
 {
     /**
@@ -33,7 +36,7 @@ class ContentNegotiationTest extends AbstractTestCase
         });
     }
 
-    public function testJsonApiContentTypeIsReturned()
+    public function test_json_api_content_type_is_returned()
     {
         $response = $this->api->handle(
             $this->buildRequest('GET', '/users/1')
@@ -45,7 +48,7 @@ class ContentNegotiationTest extends AbstractTestCase
         );
     }
 
-    public function testErrorWhenValidRequestContentTypeHasParameters()
+    public function test_error_when_valid_request_content_type_has_parameters()
     {
         $request = $this->buildRequest('PATCH', '/users/1')
             ->withHeader('Content-Type', 'application/vnd.api+json;profile="http://example.com/last-modified"');
@@ -55,7 +58,7 @@ class ContentNegotiationTest extends AbstractTestCase
         $this->api->handle($request);
     }
 
-    public function testErrorWhenAllValidAcceptsHaveParameters()
+    public function test_error_when_all_valid_accepts_have_parameters()
     {
         $request = $this->buildRequest('GET', '/users/1')
             ->withHeader('Accept', 'application/vnd.api+json;profile="http://example.com/last-modified", application/vnd.api+json;profile="http://example.com/versioning"');
@@ -65,7 +68,7 @@ class ContentNegotiationTest extends AbstractTestCase
         $this->api->handle($request);
     }
 
-    public function testSuccessWhenOnlySomeAcceptsHaveParameters()
+    public function test_success_when_only_some_accepts_have_parameters()
     {
         $response = $this->api->handle(
             $this->buildRequest('GET', '/users/1')

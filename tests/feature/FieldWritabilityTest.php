@@ -19,7 +19,7 @@ use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockAdapter;
 
-class AttributeWritableTest extends AbstractTestCase
+class FieldWritabilityTest extends AbstractTestCase
 {
     /**
      * @var JsonApi
@@ -110,30 +110,6 @@ class AttributeWritableTest extends AbstractTestCase
 
         $this->assertEquals(200, $response->getStatusCode());
         $this->assertEquals('value', $this->adapter->models['1']->writable);
-    }
-
-    public function test_attributes_can_be_conditionally_not_writable()
-    {
-        $this->api->resource('users', $this->adapter, function (Type $type) {
-            $type->updatable();
-            $type->attribute('writable')
-                ->writable(function () { return false; });
-        });
-
-        $this->expectException(BadRequestException::class);
-
-        $this->api->handle(
-            $this->buildRequest('PATCH', '/users/1')
-                ->withParsedBody([
-                    'data' => [
-                        'type' => 'users',
-                        'id' => '1',
-                        'attributes' => [
-                            'writable' => 'value',
-                        ]
-                    ]
-                ])
-        );
     }
 
     public function test_attribute_writable_callback_receives_correct_parameters()
@@ -247,28 +223,5 @@ class AttributeWritableTest extends AbstractTestCase
         $this->assertTrue($called);
     }
 
-    public function test_attributes_can_be_conditionally_not_readonly()
-    {
-        $this->api->resource('users', $this->adapter, function (Type $type) {
-            $type->updatable();
-            $type->attribute('writable')
-                ->readonly(function () { return false; });
-        });
-
-        $response = $this->api->handle(
-            $this->buildRequest('PATCH', '/users/1')
-                ->withParsedBody([
-                    'data' => [
-                        'type' => 'users',
-                        'id' => '1',
-                        'attributes' => [
-                            'writable' => 'value',
-                        ]
-                    ]
-                ])
-        );
-
-        $this->assertEquals(200, $response->getStatusCode());
-        $this->assertEquals('value', $this->adapter->models['1']->writable);
-    }
+    // to_one, to_many...
 }

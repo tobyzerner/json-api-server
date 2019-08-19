@@ -166,6 +166,4 @@ abstract class Field
     {
         return $this->filterable;
     }
-
-
 }

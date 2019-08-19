@@ -12,6 +12,7 @@
 namespace Tobyz\Tests\JsonApiServer\feature;
 
 use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
@@ -38,12 +39,10 @@ class FieldVisibilityTest extends AbstractTestCase
         ]);
     }
 
-    public function test_fields_are_visible_by_default()
+    public function test_attributes_are_visible_by_default()
     {
         $this->api->resource('users', new MockAdapter, function (Type $type) {
-            $type->attribute('visibleAttribute');
-            $type->hasOne('visibleHasOne');
-            $type->hasMany('visibleHasMany');
+            $type->attribute('visible');
         });
 
         $response = $this->api->handle(
@@ -52,15 +51,14 @@ class FieldVisibilityTest extends AbstractTestCase
 
         $document = json_decode($response->getBody(), true);
         $attributes = $document['data']['attributes'] ?? [];
-        $relationships = $document['data']['relationships'] ?? [];
 
-        $this->assertArrayHasKey('visibleAttribute', $attributes);
-        $this->assertArrayHasKey('visibleHasOne', $relationships);
-        $this->assertArrayHasKey('visibleHasMany', $relationships);
+        $this->assertArrayHasKey('visible', $attributes);
     }
 
-    public function test_fields_can_be_explicitly_visible()
+    public function test_attributes_can_be_explicitly_visible()
     {
+        $this->markTestIncomplete();
+
         $this->api->resource('users', new MockAdapter, function (Type $type) {
             $type->attribute('visibleAttribute')->visible();
             $type->hasOne('visibleHasOne')->visible();
@@ -80,8 +78,10 @@ class FieldVisibilityTest extends AbstractTestCase
         $this->assertArrayHasKey('visibleHasMany', $relationships);
     }
 
-    public function test_fields_can_be_conditionally_visible()
+    public function test_attributes_can_be_conditionally_visible()
     {
+        $this->markTestIncomplete();
+
         $this->api->resource('users', new MockAdapter, function (Type $type) {
             $type->attribute('visibleAttribute')
                 ->visible(function () { return true; });
@@ -119,8 +119,10 @@ class FieldVisibilityTest extends AbstractTestCase
         $this->assertArrayNotHasKey('hiddenHasMany', $relationships);
     }
 
-    public function test_visible_callback_receives_correct_parameters()
+    public function test_attribute_visible_callback_receives_correct_parameters()
     {
+        $this->markTestIncomplete();
+
         $called = 0;
 
         $this->api->resource('users', $this->adapter, function (Type $type) use (&$called) {
@@ -147,8 +149,10 @@ class FieldVisibilityTest extends AbstractTestCase
         $this->assertEquals(3, $called);
     }
 
-    public function test_fields_can_be_explicitly_hidden()
+    public function test_attributes_can_be_explicitly_hidden()
     {
+        $this->markTestIncomplete();
+
         $this->api->resource('users', new MockAdapter, function (Type $type) {
             $type->attribute('hiddenAttribute')->hidden();
             $type->hasOne('hiddenHasOne')->hidden();
@@ -168,8 +172,10 @@ class FieldVisibilityTest extends AbstractTestCase
         $this->assertArrayNotHasKey('hiddenHasMany', $relationships);
     }
 
-    public function test_fields_can_be_conditionally_hidden()
+    public function test_attributes_can_be_conditionally_hidden()
     {
+        $this->markTestIncomplete();
+
         $this->api->resource('users', new MockAdapter, function (Type $type) {
             $type->attribute('visibleAttribute')
                 ->hidden(function () { return false; });
@@ -207,8 +213,10 @@ class FieldVisibilityTest extends AbstractTestCase
         $this->assertArrayNotHasKey('hiddenHasMany', $relationships);
     }
 
-    public function test_hidden_callback_receives_correct_parameters()
+    public function test_attribute_hidden_callback_receives_correct_parameters()
     {
+        $this->markTestIncomplete();
+
         $called = 0;
 
         $this->api->resource('users', $this->adapter, function (Type $type) use (&$called) {
@@ -234,4 +242,6 @@ class FieldVisibilityTest extends AbstractTestCase
 
         $this->assertEquals(3, $called);
     }
+
+    // to_one, to_many...
 }

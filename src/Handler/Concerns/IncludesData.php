@@ -7,7 +7,6 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use function Tobyz\JsonApiServer\evaluate;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\ResourceType;
-use Tobyz\JsonApiServer\Schema\HasMany;
 use Tobyz\JsonApiServer\Schema\Relationship;
 
 trait IncludesData

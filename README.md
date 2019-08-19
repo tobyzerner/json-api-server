@@ -101,10 +101,10 @@ Define an [attribute field](https://jsonapi.org/format/#document-resource-object
 $schema->attribute('firstName');
 ```
 
-By default the attribute will correspond to the property on your model with the same name. (`EloquentAdapter` will `snake_case` it automatically for you.) If you'd like it to correspond to a different property, provide it as a second argument:
+By default the attribute will correspond to the property on your model with the same name. (`EloquentAdapter` will `snake_case` it automatically for you.) If you'd like it to correspond to a different property, use the `property` method:
 
 ```php
-$schema->attribute('firstName', 'fname');
+$schema->attribute('firstName')->property('fname');
 ```
 
 ### Relationships
@@ -122,7 +122,7 @@ By default the [resource type](https://jsonapi.org/format/#document-resource-obj
 $schema->hasOne('author')->type('people');
 ```
 
-Like attributes, the relationship will automatically read and write to the relation on your model with the same name. If you'd like it to correspond to a different relation, provide it as a third argument.
+Like attributes, the relationship will automatically read and write to the relation on your model with the same name. If you'd like it to correspond to a different relation, use the `property` method.
 
 #### Relationship Links
 
@@ -315,7 +315,7 @@ $schema->attribute('firstName')
     });
 ```
 
-If your attribute corresponds to some other form of data storage rather than a simple property on your model, you can use the `save` method to provide a closure to be run _after_ your model is saved:
+If your field corresponds to some other form of data storage rather than a simple property on your model, you can use the `save` method to provide a closure to be run _after_ your model is saved:
 
 ```php
 $schema->attribute('locale')
