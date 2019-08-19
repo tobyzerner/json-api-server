@@ -16,6 +16,7 @@ final class Type
     private $limit = 50;
     private $countable = true;
     private $defaultSort;
+    private $defaultFilter;
     private $scopes = [];
     private $saver;
     private $creatable = false;
@@ -80,6 +81,15 @@ final class Type
         return $this->meta;
     }
 
+    public function filter(string $name, Closure $callback)
+    {
+        $this->attribute($name)
+            ->hidden()
+            ->filterable($callback);
+
+        return $this;
+    }
+
     public function paginate(int $perPage)
     {
         $this->paginate = $perPage;
@@ -90,7 +100,7 @@ final class Type
         $this->paginate = null;
     }
 
-    public function getPaginate(): int
+    public function getPaginate(): ?int
     {
         return $this->paginate;
     }
@@ -278,5 +288,17 @@ final class Type
     public function getDefaultSort()
     {
         return $this->defaultSort;
+    }
+
+    public function defaultFilter(?array $filter)
+    {
+        $this->defaultFilter = $filter;
+
+        return $this;
+    }
+
+    public function getDefaultFilter()
+    {
+        return $this->defaultFilter;
     }
 }

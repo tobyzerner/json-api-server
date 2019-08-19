@@ -45,6 +45,11 @@ class RelationshipInclusionTest extends AbstractTestCase
         $this->markTestIncomplete();
     }
 
+    public function test_to_one_relationships_can_be_not_loadable()
+    {
+        $this->markTestIncomplete();
+    }
+
     // to_many...
 
     public function test_multiple_relationships_can_be_included()

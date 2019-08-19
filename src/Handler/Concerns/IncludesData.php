@@ -103,6 +103,7 @@ trait IncludesData
         $adapter = $this->resource->getAdapter();
         $fields = $this->resource->getSchema()->getFields();
 
+        // TODO: don't load IDs for relationships which are included below
         foreach ($fields as $name => $field) {
             if (! $field instanceof Relationship || ! evaluate($field->getLinkage(), [$request]) || ! $field->getLoadable()) {
                 continue;

@@ -162,6 +162,9 @@ abstract class Field
         return $this->default;
     }
 
+    /**
+     * @return bool|Closure
+     */
     public function getFilterable()
     {
         return $this->filterable;

@@ -98,7 +98,7 @@ final class Serializer
         ksort($metas);
 
         foreach ($metas as $name => $meta) {
-            $data['meta'][$name] = new Structure\Meta($meta->name, ($meta->value)($this->request, $model));
+            $data['meta'][$name] = new Structure\Meta($meta->getName(), ($meta->getValue())($model, $this->request));
         }
 
         $this->merge($data);
@@ -270,11 +270,11 @@ final class Serializer
 
     private function relatedResourceIdentifier(Schema\Relationship $field, $model)
     {
-        $relatedResource = $this->api->getResource($field->resource);
+        $relatedResource = $this->api->getResource($type = $field->getType());
 
         return $this->resourceIdentifier([
-            'type' => $field->resource,
-            'id' => $relatedResource->getAdapter()->getId($model)
+            'type' => $type,
+            'id' => is_string($model) ? $model : $relatedResource->getAdapter()->getId($model)
         ]);
     }
 }

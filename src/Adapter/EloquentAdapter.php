@@ -138,15 +138,15 @@ class EloquentAdapter implements AdapterInterface
 
     public function filterByAttribute($query, Attribute $attribute, $value): void
     {
-        $property = $this->getAttributeProperty($attribute);
+        $column = $this->getAttributeColumn($attribute);
 
         // TODO: extract this into non-adapter territory
         if (preg_match('/(.+)\.\.(.+)/', $value, $matches)) {
             if ($matches[1] !== '*') {
-                $query->where($property, '>=', $matches[1]);
+                $query->where($column, '>=', $matches[1]);
             }
             if ($matches[2] !== '*') {
-                $query->where($property, '<=', $matches[2]);
+                $query->where($column, '<=', $matches[2]);
             }
 
             return;
@@ -154,13 +154,13 @@ class EloquentAdapter implements AdapterInterface
 
         foreach (['>=', '>', '<=', '<'] as $operator) {
             if (strpos($value, $operator) === 0) {
-                $query->where($property, $operator, substr($value, strlen($operator)));
+                $query->where($column, $operator, substr($value, strlen($operator)));
 
                 return;
             }
         }
 
-        $query->where($property, $value);
+        $query->where($column, $value);
     }
 
     public function filterByHasOne($query, HasOne $relationship, array $ids): void
@@ -181,9 +181,9 @@ class EloquentAdapter implements AdapterInterface
         });
     }
 
-    public function sortByAttribute($query, Attribute $field, string $direction): void
+    public function sortByAttribute($query, Attribute $attribute, string $direction): void
     {
-        $query->orderBy($this->getAttributeProperty($field), $direction);
+        $query->orderBy($this->getAttributeColumn($attribute), $direction);
     }
 
     public function paginate($query, int $limit, int $offset): void
@@ -222,6 +222,11 @@ class EloquentAdapter implements AdapterInterface
     private function getAttributeProperty(Attribute $attribute): string
     {
         return $attribute->getProperty() ?: strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $attribute->getName()));
+    }
+
+    private function getAttributeColumn(Attribute $attribute): string
+    {
+        return $this->model->getTable().'.'.$this->getAttributeProperty($attribute);
     }
 
     private function getRelationshipProperty(Relationship $relationship): string

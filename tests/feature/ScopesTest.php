@@ -30,30 +30,64 @@ class ScopesTest extends AbstractTestCase
      */
     private $adapter;
 
+    private $scopeWasCalled = false;
+
     public function setUp(): void
     {
-        $this->api = new JsonApi('http://example.com');
-
         $this->adapter = new MockAdapter();
+        $this->scopeWasCalled = false;
+
+        $this->api = new JsonApi('http://example.com');
+        $this->api->resource('users', $this->adapter, function (Type $type) {
+            $type->updatable();
+            $type->deletable();
+            $type->scope(function (...$args) {
+                $this->assertSame($this->adapter->query, $args[0]);
+                $this->assertInstanceOf(ServerRequestInterface::class, $args[1]);
+                $this->scopeWasCalled = true;
+            });
+        });
     }
 
     public function test_scopes_are_applied_to_the_resource_listing_query()
     {
-        $this->markTestIncomplete();
+        $this->api->handle(
+            $this->buildRequest('GET', '/users')
+        );
+
+        $this->assertTrue($this->scopeWasCalled);
     }
 
     public function test_scopes_are_applied_to_the_show_resource_query()
     {
-        $this->markTestIncomplete();
+        $this->api->handle(
+            $this->buildRequest('GET', '/users/1')
+        );
+
+        $this->assertTrue($this->scopeWasCalled);
     }
 
     public function test_scopes_are_applied_to_the_update_resource_query()
     {
-        $this->markTestIncomplete();
+        $this->api->handle(
+            $this->buildRequest('PATCH', '/users/1')
+                ->withParsedBody([
+                    'data' => [
+                        'type' => 'users',
+                        'id' => '1'
+                    ]
+                ])
+        );
+
+        $this->assertTrue($this->scopeWasCalled);
     }
 
     public function test_scopes_are_applied_to_the_delete_resource_query()
     {
-        $this->markTestIncomplete();
+        $this->api->handle(
+            $this->buildRequest('DELETE', '/users/1')
+        );
+
+        $this->assertTrue($this->scopeWasCalled);
     }
 }

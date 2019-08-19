@@ -13,13 +13,11 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
-use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\JsonApiResponse;
 use Tobyz\JsonApiServer\ResourceType;
 use Tobyz\JsonApiServer\Schema\Attribute;
 use Tobyz\JsonApiServer\Schema\HasMany;
 use Tobyz\JsonApiServer\Schema\HasOne;
-use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\JsonApiServer\Serializer;
 
 class Index implements RequestHandlerInterface
@@ -47,7 +45,7 @@ class Index implements RequestHandlerInterface
         $query = $adapter->query();
 
         foreach ($schema->getScopes() as $scope) {
-            $request = $scope($request, $query) ?: $request;
+            $request = $scope($query, $request, null) ?: $request;
         }
 
         if ($filter = $request->getAttribute('jsonApiFilter')) {
