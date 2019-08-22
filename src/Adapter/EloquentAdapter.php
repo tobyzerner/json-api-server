@@ -69,28 +69,25 @@ class EloquentAdapter implements AdapterInterface
         return $model->{$this->getAttributeProperty($attribute)};
     }
 
-    public function getHasOneId($model, HasOne $relationship): ?string
+    public function getHasOne($model, HasOne $relationship, array $fields = null)
     {
-        $relation = $this->getRelation($model, $relationship);
+        $relation = $this->getEloquentRelation($model, $relationship);
 
-        // If this is a belongs-to relation, we can simply return the value of
-        // the foreign key on the model. Otherwise we will have to fetch the
-        // full related model and return its key.
-        if ($relation instanceof BelongsTo) {
-            return $model->{$relation->getForeignKeyName()};
+        // comment
+        if ($fields === ['id'] && $relation instanceof BelongsTo) {
+            if ($key = $model->{$relation->getForeignKeyName()}) {
+                $related = $relation->getRelated();
+
+                return $related->newInstance()->forceFill([$related->getKeyName() => $key]);
+            }
+
+            return null;
         }
 
-        $related = $this->getRelationValue($model, $relationship);
-
-        return $related ? $related->getKey() : null;
-    }
-
-    public function getHasOne($model, HasOne $relationship)
-    {
         return $this->getRelationValue($model, $relationship);
     }
 
-    public function getHasMany($model, HasMany $relationship): array
+    public function getHasMany($model, HasMany $relationship, array $fields = null): array
     {
         $collection = $this->getRelationValue($model, $relationship);
 
@@ -104,7 +101,7 @@ class EloquentAdapter implements AdapterInterface
 
     public function setHasOne($model, HasOne $relationship, $related): void
     {
-        $this->getRelation($model, $relationship)->associate($related);
+        $this->getEloquentRelation($model, $relationship)->associate($related);
     }
 
     public function save($model): void
@@ -114,7 +111,7 @@ class EloquentAdapter implements AdapterInterface
 
     public function saveHasMany($model, HasMany $relationship, array $related): void
     {
-        $this->getRelation($model, $relationship)->sync(new Collection($related));
+        $this->getEloquentRelation($model, $relationship)->sync(new Collection($related));
     }
 
     public function delete($model): void
@@ -165,7 +162,7 @@ class EloquentAdapter implements AdapterInterface
 
     public function filterByHasOne($query, HasOne $relationship, array $ids): void
     {
-        $relation = $this->getRelation($query->getModel(), $relationship);
+        $relation = $this->getEloquentRelation($query->getModel(), $relationship);
 
         $query->whereIn($relation->getQualifiedForeignKeyName(), $ids);
     }
@@ -173,7 +170,7 @@ class EloquentAdapter implements AdapterInterface
     public function filterByHasMany($query, HasMany $relationship, array $ids): void
     {
         $property = $this->getRelationshipProperty($relationship);
-        $relation = $this->getRelation($query->getModel(), $relationship);
+        $relation = $this->getEloquentRelation($query->getModel(), $relationship);
         $relatedKey = $relation->getRelated()->getQualifiedKeyName();
 
         $query->whereHas($property, function ($query) use ($relatedKey, $ids) {
@@ -239,7 +236,7 @@ class EloquentAdapter implements AdapterInterface
         return implode('.', array_map([$this, 'getRelationshipProperty'], $trail));
     }
 
-    private function getRelation($model, Relationship $relationship)
+    private function getEloquentRelation($model, Relationship $relationship)
     {
         return $model->{$this->getRelationshipProperty($relationship)}();
     }

@@ -125,7 +125,7 @@ final class Serializer
     {
         $links = $this->getRelationshipLinks($field, $resourceUrl);
 
-        $value = $isIncluded ? (($getter = $field->getGetter()) ? $getter($model, $this->request) : $adapter->getHasOne($model, $field)) : ($isLinkage && $field->getLoadable() ? $adapter->getHasOneId($model, $field) : null);
+        $value = $isIncluded ? (($getter = $field->getGetter()) ? $getter($model, $this->request) : $adapter->getHasOne($model, $field)) : ($isLinkage && $field->getLoadable() ? $adapter->getHasOne($model, $field, ['id']) : null);
 
         if (! $value) {
             return new Structure\ToNull(
@@ -207,7 +207,7 @@ final class Serializer
     private function resourceForModel($model)
     {
         foreach ($this->api->getResources() as $resource) {
-            if ($resource->getAdapter()->handles($model)) {
+            if ($resource->getAdapter()->represents($model)) {
                 return $resource;
             }
         }
@@ -270,11 +270,13 @@ final class Serializer
 
     private function relatedResourceIdentifier(Schema\Relationship $field, $model)
     {
-        $relatedResource = $this->api->getResource($type = $field->getType());
+        $type = $field->getType();
+
+        $relatedResource = $type ? $this->api->getResource($type) : $this->resourceForModel($model);
 
         return $this->resourceIdentifier([
-            'type' => $type,
-            'id' => is_string($model) ? $model : $relatedResource->getAdapter()->getId($model)
+            'type' => $relatedResource->getType(),
+            'id' => $relatedResource->getAdapter()->getId($model)
         ]);
     }
 }

@@ -40,5 +40,10 @@ class RelationshipTypesTest extends AbstractTestCase
         $this->markTestIncomplete();
     }
 
+    public function test_polymorphic_create_update()
+    {
+        $this->markTestIncomplete();
+    }
+
     // to_many...
 }

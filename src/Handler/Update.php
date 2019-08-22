@@ -30,7 +30,7 @@ class Update implements RequestHandlerInterface
     {
         $schema = $this->resource->getSchema();
 
-        if (! evaluate($schema->getUpdatable(), [$request, $this->model])) {
+        if (! evaluate($schema->getUpdatable(), [$this->model, $request])) {
             throw new ForbiddenException;
         }
 
@@ -41,11 +41,11 @@ class Update implements RequestHandlerInterface
         $this->assertDataValid($data, $this->model, $request, false);
         $this->setValues($data, $this->model, $request);
 
-        run_callbacks($schema->getListeners('updating'), [$request, $this->model]);
+        run_callbacks($schema->getListeners('updating'), [$this->model, $request]);
 
         $this->save($data, $this->model, $request);
 
-        run_callbacks($schema->getListeners('updated'), [$request, $this->model]);
+        run_callbacks($schema->getListeners('updated'), [$this->model, $request]);
 
         return (new Show($this->api, $this->resource, $this->model))->handle($request);
     }

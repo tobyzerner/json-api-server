@@ -40,9 +40,9 @@ function has_value(array $data, Field $field)
     return isset($data[$field->getLocation()][$field->getName()]);
 }
 
-function &get_value(array $data, Field $field)
+function get_value(array $data, Field $field)
 {
-    return $data[$field->getLocation()][$field->getName()];
+    return $data[$field->getLocation()][$field->getName()] ?? null;
 }
 
 function set_value(array &$data, Field $field, $value)

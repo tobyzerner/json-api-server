@@ -8,6 +8,7 @@ use function Tobyz\JsonApiServer\negate;
 abstract class Relationship extends Field
 {
     private $type;
+    private $allowedTypes;
     private $linkage = false;
     private $links = true;
     private $loadable = true;
@@ -20,9 +21,10 @@ abstract class Relationship extends Field
         return $this;
     }
 
-    public function polymorphic()
+    public function polymorphic(array $types = null)
     {
         $this->type = null;
+        $this->allowedTypes = $types;
 
         return $this;
     }
@@ -69,9 +71,14 @@ abstract class Relationship extends Field
         return $this;
     }
 
-    public function getType()
+    public function getType(): ?string
     {
         return $this->type;
+    }
+
+    public function getAllowedTypes(): ?array
+    {
+        return $this->allowedTypes;
     }
 
     public function links()

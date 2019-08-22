@@ -507,10 +507,6 @@ You should indicate to the server if the consumer is authenticated using the `au
 $api->authenticated();
 ```
 
-## Examples
-
-- [Forust](https://github.com/forust/core/tree/master/schema) is forum software that uses tobyz/json-api-server to power its API.
-
 ## Contributing
 
 Feel free to send pull requests or create issues if you come across problems or have great ideas. See the [Contributing Guide](https://github.com/tobyz/json-api-server/blob/master/CONTRIBUTING.md) for more information.

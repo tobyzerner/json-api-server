@@ -43,11 +43,11 @@ class Create implements RequestHandlerInterface
         $this->assertDataValid($data, $model, $request, true);
         $this->setValues($data, $model, $request);
 
-        run_callbacks($schema->getListeners('creating'), [$request, $model]);
+        run_callbacks($schema->getListeners('creating'), [$model, $request]);
 
         $this->save($data, $model, $request);
 
-        run_callbacks($schema->getListeners('created'), [$request, $model]);
+        run_callbacks($schema->getListeners('created'), [$model, $request]);
 
         return (new Show($this->api, $this->resource, $model))
             ->handle($request)

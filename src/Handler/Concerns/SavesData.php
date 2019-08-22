@@ -6,6 +6,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use function Tobyz\JsonApiServer\evaluate;
 use function Tobyz\JsonApiServer\get_value;
 use function Tobyz\JsonApiServer\has_value;
+use function Tobyz\JsonApiServer\set_value;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
 use function Tobyz\JsonApiServer\run_callbacks;
@@ -44,7 +45,7 @@ trait SavesData
         );
     }
 
-    private function getModelForIdentifier(Request $request, $identifier)
+    private function getModelForIdentifier(Request $request, $identifier, array $validTypes = null)
     {
         if (! isset($identifier['type'])) {
             throw new BadRequestException('type not specified');
@@ -52,6 +53,10 @@ trait SavesData
 
         if (! isset($identifier['id'])) {
             throw new BadRequestException('id not specified');
+        }
+
+        if ($validTypes !== null && ! in_array($identifier['type'], $validTypes)) {
+            throw new BadRequestException("type [{$identifier['type']}] not allowed");
         }
 
         $resource = $this->api->getResource($identifier['type']);
@@ -94,16 +99,20 @@ trait SavesData
                 continue;
             }
 
-            $value = &get_value($data, $field);
+            $value = get_value($data, $field);
 
             if (isset($value['data'])) {
+                $allowedTypes = $field->getAllowedTypes();
+
                 if ($field instanceof HasOne) {
-                    $value = $this->getModelForIdentifier($request, $value['data']);
+                    set_value($data, $field, $this->getModelForIdentifier($request, $value['data'], $allowedTypes));
                 } elseif ($field instanceof HasMany) {
-                    $value = array_map(function ($identifier) use ($request) {
-                        return $this->getModelForIdentifier($request, $identifier);
-                    }, $value['data']);
+                    set_value($data, $field, array_map(function ($identifier) use ($request, $allowedTypes) {
+                        return $this->getModelForIdentifier($request, $identifier, $allowedTypes);
+                    }, $value['data']));
                 }
+            } else {
+                set_value($data, $field, null);
             }
         }
     }

@@ -150,27 +150,20 @@ interface AdapterInterface
      *
      * @param $model
      * @param HasOne $relationship
+     * @param array $fields
      * @return mixed|null
      */
-    public function getHasOne($model, HasOne $relationship);
-
-    /**
-     * Get the ID of the related resource for a has-one relationship.
-     *
-     * @param $model
-     * @param HasOne $relationship
-     * @return mixed|null
-     */
-    public function getHasOneId($model, HasOne $relationship): ?string;
+    public function getHasOne($model, HasOne $relationship, array $fields = null);
 
     /**
      * Get a list of models for a has-many relationship for the model.
      *
      * @param $model
      * @param HasMany $relationship
+     * @param array $fields
      * @return array
      */
-    public function getHasMany($model, HasMany $relationship): array;
+    public function getHasMany($model, HasMany $relationship, array $fields = null): array;
 
     /**
      * Apply an attribute value to the model.

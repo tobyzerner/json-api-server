@@ -26,15 +26,15 @@ class Delete implements RequestHandlerInterface
     {
         $schema = $this->resource->getSchema();
 
-        if (! evaluate($schema->getDeletable(), [$request, $this->model])) {
+        if (! evaluate($schema->getDeletable(), [$this->model, $request])) {
             throw new ForbiddenException;
         }
 
-        run_callbacks($schema->getListeners('deleting'), [$request, $this->model]);
+        run_callbacks($schema->getListeners('deleting'), [$this->model, $request]);
 
         $this->resource->getAdapter()->delete($this->model);
 
-        run_callbacks($schema->getListeners('deleted'), [$request, $this->model]);
+        run_callbacks($schema->getListeners('deleted'), [$this->model, $request]);
 
         return new EmptyResponse;
     }
