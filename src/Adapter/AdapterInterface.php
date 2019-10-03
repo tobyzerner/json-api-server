@@ -2,6 +2,7 @@
 
 namespace Tobyz\JsonApiServer\Adapter;
 
+use Closure;
 use Tobyz\JsonApiServer\Schema\Attribute;
 use Tobyz\JsonApiServer\Schema\HasMany;
 use Tobyz\JsonApiServer\Schema\HasOne;
@@ -216,9 +217,11 @@ interface AdapterInterface
      *
      * @param array $models
      * @param array $relationships
+     * @param Closure $scope Should be called to give the deepest relationship
+     *   an opportunity to scope the query that will fetch related resources
      * @return mixed
      */
-    public function load(array $models, array $relationships): void;
+    public function load(array $models, array $relationships, Closure $scope): void;
 
     /**
      * Load information about the IDs of related resources onto a collection

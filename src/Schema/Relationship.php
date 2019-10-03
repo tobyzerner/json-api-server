@@ -13,6 +13,7 @@ abstract class Relationship extends Field
     private $links = true;
     private $loadable = true;
     private $includable = false;
+    private $scopes = [];
 
     public function type($type)
     {
@@ -121,5 +122,15 @@ abstract class Relationship extends Field
     public function getLocation(): string
     {
         return 'relationships';
+    }
+
+    public function scope(Closure $callback)
+    {
+        $this->scopes[] = $callback;
+    }
+
+    public function getScopes(): array
+    {
+        return $this->scopes;
     }
 }

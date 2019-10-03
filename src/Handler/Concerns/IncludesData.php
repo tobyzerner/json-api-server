@@ -8,6 +8,7 @@ use function Tobyz\JsonApiServer\evaluate;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\ResourceType;
 use Tobyz\JsonApiServer\Schema\Relationship;
+use function Tobyz\JsonApiServer\run_callbacks;
 
 trait IncludesData
 {
@@ -103,9 +104,27 @@ trait IncludesData
         $adapter = $this->resource->getAdapter();
         $fields = $this->resource->getSchema()->getFields();
 
-        // TODO: don't load IDs for relationships which are included below
+        $trails = $this->buildRelationshipTrails($this->resource, $include);
+        $loaded = [];
+
+        foreach ($trails as $relationships) {
+            $relationship = end($relationships);
+
+            if (($load = $relationship->getLoadable()) instanceof Closure) {
+                $load($models, $relationships, false, $request);
+            } else {
+                $scope = function ($query) use ($request, $relationship) {
+                    run_callbacks($relationship->getScopes(), [$query, $request]);
+                };
+
+                $adapter->load($models, $relationships, $scope);
+            }
+
+            $loaded[] = $relationships[0];
+        }
+
         foreach ($fields as $name => $field) {
-            if (! $field instanceof Relationship || ! evaluate($field->getLinkage(), [$request]) || ! $field->getLoadable()) {
+            if (! $field instanceof Relationship || ! evaluate($field->getLinkage(), [$request]) || ! $field->getLoadable() || in_array($field, $loaded)) {
                 continue;
             }
 
@@ -113,17 +132,6 @@ trait IncludesData
                 $load($models, true);
             } else {
                 $adapter->loadIds($models, $field);
-            }
-        }
-
-        $trails = $this->buildRelationshipTrails($this->resource, $include);
-
-        foreach ($trails as $relationships) {
-            if (($load = end($relationships)->getLoadable()) instanceof Closure) {
-                // TODO: probably need to loop through relationships here
-                $load($models, false);
-            } else {
-                $adapter->load($models, $relationships);
             }
         }
     }

@@ -2,6 +2,7 @@
 
 namespace Tobyz\JsonApiServer\Adapter;
 
+use Closure;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -188,9 +189,13 @@ class EloquentAdapter implements AdapterInterface
         $query->take($limit)->skip($offset);
     }
 
-    public function load(array $models, array $relationships): void
+    public function load(array $models, array $relationships, Closure $scope): void
     {
-        (new Collection($models))->loadMissing($this->getRelationshipPath($relationships));
+        $relationship = end($relationships);
+
+        (new Collection($models))->loadMissing([
+            $this->getRelationshipPath($relationships) => $scope
+        ]);
     }
 
     public function loadIds(array $models, Relationship $relationship): void
