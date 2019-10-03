@@ -14,6 +14,7 @@ abstract class Field
     private $name;
     private $property;
     private $visible = true;
+    private $single = false;
     private $writable = false;
     private $getter;
     private $setter;
@@ -45,6 +46,18 @@ abstract class Field
     public function hidden(Closure $condition = null)
     {
         $this->visible = $condition ? negate($condition) : false;
+
+        return $this;
+    }
+
+    /**
+     * Indicates that the field should only be visible on single root resources
+     *
+     * @return $this
+     */
+    public function single()
+    {
+        $this->single = true;
 
         return $this;
     }
@@ -135,6 +148,11 @@ abstract class Field
     public function getVisible()
     {
         return $this->visible;
+    }
+
+    public function getSingle()
+    {
+        return $this->single;
     }
 
     public function getWritable()

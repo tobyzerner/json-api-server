@@ -35,7 +35,7 @@ class Show implements RequestHandlerInterface
 
         $serializer = new Serializer($this->api, $request);
 
-        $serializer->add($this->resource, $this->model, $include);
+        $serializer->add($this->resource, $this->model, $include, true);
 
         return new JsonApiResponse(
             new CompoundDocument(

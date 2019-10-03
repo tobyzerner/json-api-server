@@ -30,14 +30,14 @@ final class Serializer
         $this->request = $request;
     }
 
-    public function add(ResourceType $resource, $model, array $include)
+    public function add(ResourceType $resource, $model, array $include, bool $single = false)
     {
-        $data = $this->addToMap($resource, $model, $include);
+        $data = $this->addToMap($resource, $model, $include, $single);
 
         $this->primary[] = $data['type'].':'.$data['id'];
     }
 
-    private function addToMap(ResourceType $resource, $model, array $include)
+    private function addToMap(ResourceType $resource, $model, array $include, bool $single = false)
     {
         $adapter = $resource->getAdapter();
         $schema = $resource->getSchema();
@@ -66,6 +66,10 @@ final class Serializer
 
         foreach ($fields as $name => $field) {
             if (isset($this->map[$key]['fields'][$name])) {
+                continue;
+            }
+
+            if ($field->getSingle() && ! $single) {
                 continue;
             }
 
