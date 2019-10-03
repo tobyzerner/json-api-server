@@ -88,7 +88,9 @@ final class Serializer
                 }
             }
 
-            $data['fields'][$name] = $value;
+            if (!empty($value)) {
+                $data['fields'][$name] = $value;
+            }
         }
 
         $data['links']['self'] = new SelfLink($resourceUrl);
@@ -175,11 +177,17 @@ final class Serializer
         );
     }
 
-    private function emptyRelationship(Relationship $field, string $resourceUrl): EmptyRelationship
+    private function emptyRelationship(Relationship $field, string $resourceUrl): ?EmptyRelationship
     {
+        $links = $this->getRelationshipLinks($field, $resourceUrl);
+
+        if (! $links) {
+            return null;
+        }
+
         return new EmptyRelationship(
             $field->getName(),
-            ...$this->getRelationshipLinks($field, $resourceUrl)
+            ...$links
         );
     }
 
