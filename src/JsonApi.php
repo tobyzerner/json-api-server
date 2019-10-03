@@ -112,7 +112,7 @@ final class JsonApi implements RequestHandlerInterface
     {
         $header = $request->getHeaderLine('Accept');
 
-        if (empty($header)) {
+        if (empty($header) || $header === '*/*') {
             return;
         }
 
