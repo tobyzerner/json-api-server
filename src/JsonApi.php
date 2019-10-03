@@ -62,16 +62,10 @@ final class JsonApi implements RequestHandlerInterface
 
         switch (count($segments)) {
             case 1:
-                return $this->handleWithHandler(
-                    $request,
-                    $this->getCollectionHandler($request, $segments)
-                );
+                return $this->handleCollection($request, $segments);
 
             case 2:
-                return $this->handleWithHandler(
-                    $request,
-                    $this->getMemberHandler($request, $segments)
-                );
+                return $this->handleResource($request, $segments);
 
             case 3:
                 // return $this->handleRelated($request, $resource, $model, $segments[2]);
@@ -136,47 +130,40 @@ final class JsonApi implements RequestHandlerInterface
         return $path;
     }
 
-    private function getCollectionHandler(Request $request, array $segments): RequestHandlerInterface
+    private function handleCollection(Request $request, array $segments): Response
     {
         $resource = $this->getResource($segments[0]);
 
         switch ($request->getMethod()) {
             case 'GET':
-                return new Handler\Index($this, $resource);
+                return (new Handler\Index($this, $resource))->handle($request);
 
             case 'POST':
-                return new Handler\Create($this, $resource);
+                return (new Handler\Create($this, $resource))->handle($request);
 
             default:
                 throw new MethodNotAllowedException;
         }
     }
 
-    private function getMemberHandler(Request $request, array $segments): RequestHandlerInterface
+    private function handleResource(Request $request, array $segments): Response
     {
         $resource = $this->getResource($segments[0]);
         $model = $this->findResource($request, $resource, $segments[1]);
 
         switch ($request->getMethod()) {
             case 'PATCH':
-                return new Handler\Update($this, $resource, $model);
+                return (new Handler\Update($this, $resource, $model))->handle($request);
 
             case 'GET':
-                return new Handler\Show($this, $resource, $model);
+                return (new Handler\Show($this, $resource, $model))->handle($request);
 
             case 'DELETE':
-                return new Handler\Delete($resource, $model);
+                return (new Handler\Delete($resource, $model))->handle($request);
 
             default:
                 throw new MethodNotAllowedException;
         }
-    }
-
-    private function handleWithHandler(Request $request, RequestHandlerInterface $handler)
-    {
-        $request = $request->withAttribute('jsonApiHandler', $handler);
-
-        return $handler->handle($request);
     }
 
     public function error($e)
