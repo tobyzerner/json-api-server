@@ -95,7 +95,7 @@ class Index implements RequestHandlerInterface
 
         $models = $adapter->get($query);
 
-        if ((count($models) && $total === null) || $offset + $limit < $total) {
+        if ((count($models) === $limit && $total === null) || $offset + $limit < $total) {
             $paginationLinks[] = new NextLink($this->buildUrl($request, ['page' => ['offset' => $offset + $limit]]));
         }
 
