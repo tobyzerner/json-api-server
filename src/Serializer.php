@@ -242,7 +242,9 @@ final class Serializer
 
     public function primary(): array
     {
-        $primary = array_values(array_intersect_key($this->map, array_flip($this->primary)));
+        $primary = array_map(function ($key) {
+            return $this->map[$key];
+        }, $this->primary);
 
         return $this->resourceObjects($primary);
     }
