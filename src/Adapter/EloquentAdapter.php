@@ -202,16 +202,19 @@ class EloquentAdapter implements AdapterInterface
         $property = $this->getRelationshipProperty($relationship);
         $relation = $models[0]->$property();
 
-        if ($relation instanceof BelongsTo || $relation instanceof BelongsToMany) {
+        // If it's a belongs-to relationship, then the ID is stored on the model
+        // itself, so we don't need to load anything in advance.
+        if ($relation instanceof BelongsTo) {
             return;
         }
 
         (new Collection($models))->loadMissing([
             $property => function ($query) use ($relation) {
-                $query->select([
-                    $relation->getRelated()->getKeyName(),
-                    $relation->getForeignKeyName()
-                ]);
+                $query->select($relation->getRelated()->getKeyName());
+
+                if (! $relation instanceof BelongsToMany) {
+                    $query->addSelect($relation->getForeignKeyName());
+                }
             }
         ]);
     }
