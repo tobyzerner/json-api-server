@@ -236,7 +236,7 @@ class Index implements RequestHandlerInterface
         $fields = explode(',', $string);
 
         foreach ($fields as $field) {
-            if (substr($field, 0, 1) === '-') {
+            if ($field[0] === '-') {
                 $field = substr($field, 1);
                 $direction = 'desc';
             } else {
