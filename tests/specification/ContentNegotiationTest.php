@@ -48,7 +48,7 @@ class ContentNegotiationTest extends AbstractTestCase
         );
     }
 
-    public function test_error_when_valid_request_content_type_has_parameters()
+    public function test_error_when_request_content_type_has_parameters()
     {
         $request = $this->buildRequest('PATCH', '/users/1')
             ->withHeader('Content-Type', 'application/vnd.api+json;profile="http://example.com/last-modified"');
@@ -58,7 +58,7 @@ class ContentNegotiationTest extends AbstractTestCase
         $this->api->handle($request);
     }
 
-    public function test_error_when_all_valid_accepts_have_parameters()
+    public function test_error_when_all_accepts_have_parameters()
     {
         $request = $this->buildRequest('GET', '/users/1')
             ->withHeader('Accept', 'application/vnd.api+json;profile="http://example.com/last-modified", application/vnd.api+json;profile="http://example.com/versioning"');
@@ -73,6 +73,16 @@ class ContentNegotiationTest extends AbstractTestCase
         $response = $this->api->handle(
             $this->buildRequest('GET', '/users/1')
                 ->withHeader('Accept', 'application/vnd.api+json;profile="http://example.com/last-modified", application/vnd.api+json')
+        );
+
+        $this->assertEquals(200, $response->getStatusCode());
+    }
+
+    public function test_success_when_accepts_wildcard()
+    {
+        $response = $this->api->handle(
+            $this->buildRequest('GET', '/users/1')
+                ->withHeader('Accept', '*/*')
         );
 
         $this->assertEquals(200, $response->getStatusCode());

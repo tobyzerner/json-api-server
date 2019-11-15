@@ -110,11 +110,17 @@ final class JsonApi implements RequestHandlerInterface
     {
         $header = $request->getHeaderLine('Accept');
 
-        if (empty($header) || $header === '*/*') {
+        if (empty($header)) {
             return;
         }
 
-        if ((new MediaTypes($header))->containsExactly(self::CONTENT_TYPE)) {
+        $mediaTypes = new MediaTypes($header);
+
+        if ($mediaTypes->containsExactly('*/*')) {
+            return;
+        }
+
+        if ($mediaTypes->containsExactly(self::CONTENT_TYPE)) {
             return;
         }
 
