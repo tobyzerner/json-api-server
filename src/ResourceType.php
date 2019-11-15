@@ -2,6 +2,7 @@
 
 namespace Tobyz\JsonApiServer;
 
+use Closure;
 use Tobyz\JsonApiServer\Adapter\AdapterInterface;
 use Tobyz\JsonApiServer\Schema\Type;
 
@@ -9,12 +10,14 @@ final class ResourceType
 {
     private $type;
     private $adapter;
-    private $schemaCallbacks = [];
+    private $buildSchema;
     private $schema;
 
-    public function __construct(string $type)
+    public function __construct(string $type, AdapterInterface $adapter, Closure $buildSchema = null)
     {
         $this->type = $type;
+        $this->adapter = $adapter;
+        $this->buildSchema = $buildSchema;
     }
 
     public function getType(): string
@@ -22,23 +25,9 @@ final class ResourceType
         return $this->type;
     }
 
-    public function adapter(AdapterInterface $adapter)
-    {
-        $this->adapter = $adapter;
-
-        return $this;
-    }
-
     public function getAdapter(): AdapterInterface
     {
         return $this->adapter;
-    }
-
-    public function schema(callable $callback)
-    {
-        $this->schemaCallbacks[] = $callback;
-
-        return $this;
     }
 
     public function getSchema(): Type
@@ -46,7 +35,9 @@ final class ResourceType
         if (! $this->schema) {
             $this->schema = new Type;
 
-            run_callbacks($this->schemaCallbacks, [$this->schema]);
+            if ($this->buildSchema) {
+                ($this->buildSchema)($this->schema);
+            }
         }
 
         return $this->schema;

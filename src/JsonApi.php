@@ -31,13 +31,9 @@ final class JsonApi implements RequestHandlerInterface
         $this->baseUrl = $baseUrl;
     }
 
-    public function resource(string $type): ResourceType
+    public function resource(string $type, $adapter, Closure $buildSchema = null): void
     {
-        if (! isset($this->resources[$type])) {
-            $this->resources[$type] = new ResourceType($type);
-        }
-
-        return $this->resources[$type];
+        $this->resources[$type] = new ResourceType($type, $adapter, $buildSchema);
     }
 
     public function getResources(): array
