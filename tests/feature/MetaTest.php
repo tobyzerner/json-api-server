@@ -11,7 +11,9 @@
 
 namespace Tobyz\Tests\JsonApiServer\feature;
 
+use Psr\Http\Message\ServerRequestInterface;
 use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockAdapter;
 
@@ -22,25 +24,44 @@ class MetaTest extends AbstractTestCase
      */
     private $api;
 
-    /**
-     * @var MockAdapter
-     */
-    private $adapter;
-
     public function setUp(): void
     {
         $this->api = new JsonApi('http://example.com');
-
-        $this->adapter = new MockAdapter();
     }
 
-    public function test_meta_fields_can_be_added_to_the_document_with_a_value()
+    public function test_meta_fields_can_be_added_to_resources_with_a_value()
     {
-        $this->markTestIncomplete();
+        $this->api->resource('users', new MockAdapter(), function (Type $type) {
+            $type->meta('foo', 'bar');
+        });
+
+        $response = $this->api->handle(
+            $this->buildRequest('GET', '/users/1')
+        );
+
+        $document = json_decode($response->getBody(), true);
+
+        $this->assertEquals(['foo' => 'bar'], $document['data']['meta']);
     }
 
-    public function test_meta_fields_can_be_added_to_the_document_with_a_closure()
+    public function test_meta_fields_can_be_added_to_resources_with_a_closure()
     {
-        $this->markTestIncomplete();
+        $adapter = new MockAdapter(['1' => (object) ['id' => '1']]);
+
+        $this->api->resource('users', $adapter, function (Type $type) use ($adapter) {
+            $type->meta('foo', function ($model, $request) use ($adapter) {
+                $this->assertSame($adapter->models['1'], $model);
+                $this->assertInstanceOf(ServerRequestInterface::class, $request);
+                return 'bar';
+            });
+        });
+
+        $response = $this->api->handle(
+            $this->buildRequest('GET', '/users/1')
+        );
+
+        $document = json_decode($response->getBody(), true);
+
+        $this->assertEquals('bar', $document['data']['meta']['foo']);
     }
 }

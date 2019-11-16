@@ -2,6 +2,7 @@
 
 namespace Tobyz\Tests\JsonApiServer;
 
+use Closure;
 use Tobyz\JsonApiServer\Adapter\AdapterInterface;
 use Tobyz\JsonApiServer\Schema\Attribute;
 use Tobyz\JsonApiServer\Schema\Field;
@@ -52,12 +53,12 @@ class MockAdapter implements AdapterInterface
         return $model->{$this->getProperty($attribute)} ?? 'default';
     }
 
-    public function getHasOne($model, HasOne $relationship)
+    public function getHasOne($model, HasOne $relationship, array $fields = null)
     {
         return $model->{$this->getProperty($relationship)} ?? null;
     }
 
-    public function getHasMany($model, HasMany $relationship): array
+    public function getHasMany($model, HasMany $relationship, array $fields = null): array
     {
         return $model->{$this->getProperty($relationship)} ?? [];
     }
@@ -121,7 +122,7 @@ class MockAdapter implements AdapterInterface
         $query->paginate[] = [$limit, $offset];
     }
 
-    public function load(array $models, array $relationships): void
+    public function load(array $models, array $relationships, Closure $scope): void
     {
         foreach ($models as $model) {
             $model->load[] = $relationships;

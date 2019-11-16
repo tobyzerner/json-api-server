@@ -32,7 +32,11 @@ class Delete implements RequestHandlerInterface
 
         run_callbacks($schema->getListeners('deleting'), [$this->model, $request]);
 
-        $this->resource->getAdapter()->delete($this->model);
+        if ($deleter = $this->resource->getSchema()->getDelete()) {
+            $deleter($this->model, $request);
+        } else {
+            $this->resource->getAdapter()->delete($this->model);
+        }
 
         run_callbacks($schema->getListeners('deleted'), [$this->model, $request]);
 

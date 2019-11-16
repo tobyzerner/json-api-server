@@ -11,7 +11,11 @@
 
 namespace Tobyz\Tests\JsonApiServer\feature;
 
+use Psr\Http\Message\ServerRequestInterface;
+use Tobyz\JsonApiServer\Adapter\AdapterInterface;
+use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockAdapter;
 
@@ -22,48 +26,161 @@ class DeleteTest extends AbstractTestCase
      */
     private $api;
 
-    /**
-     * @var MockAdapter
-     */
-    private $adapter;
-
     public function setUp(): void
     {
         $this->api = new JsonApi('http://example.com');
+    }
 
-        $this->adapter = new MockAdapter();
+    protected function deleteResource(array $data = [])
+    {
+        return $this->api->handle(
+            $this->buildRequest('DELETE', '/users/1')
+        );
     }
 
     public function test_resources_are_not_deletable_by_default()
     {
-        $this->markTestIncomplete();
+        $this->api->resource('users', new MockAdapter());
+
+        $this->expectException(ForbiddenException::class);
+
+        $this->deleteResource();
     }
 
     public function test_resource_deletion_can_be_explicitly_enabled()
     {
-        $this->markTestIncomplete();
+        $this->api->resource('users', new MockAdapter(), function (Type $type) {
+            $type->deletable();
+        });
+
+        $response = $this->deleteResource();
+
+        $this->assertEquals(204, $response->getStatusCode());
     }
 
     public function test_resource_deletion_can_be_conditionally_enabled()
     {
-        $this->markTestIncomplete();
+        $this->api->resource('users', new MockAdapter(), function (Type $type) {
+            $type->deletable(function () {
+                return true;
+            });
+        });
+
+        $response = $this->deleteResource();
+
+        $this->assertEquals(204, $response->getStatusCode());
     }
 
     public function test_resource_deletion_can_be_explicitly_disabled()
     {
-        $this->markTestIncomplete();
+        $this->api->resource('users', new MockAdapter(), function (Type $type) {
+            $type->notDeletable();
+        });
+
+        $this->expectException(ForbiddenException::class);
+
+        $this->deleteResource();
     }
 
     public function test_resource_deletion_can_be_conditionally_disabled()
     {
-        $this->markTestIncomplete();
+        $this->api->resource('users', new MockAdapter(), function (Type $type) {
+            $type->deletable(function () {
+                return false;
+            });
+        });
+
+        $this->expectException(ForbiddenException::class);
+
+        $this->deleteResource();
+    }
+
+    public function test_resource_deletable_callback_receives_correct_parameters()
+    {
+        $called = false;
+
+        $adapter = $this->prophesize(AdapterInterface::class);
+        $adapter->query()->willReturn($query = (object) []);
+        $adapter->find($query, '1')->willReturn($deletingModel = (object) []);
+        $adapter->delete($deletingModel);
+
+        $this->api->resource('users', $adapter->reveal(), function (Type $type) use ($deletingModel, &$called) {
+            $type->deletable(function ($model, $request) use ($deletingModel, &$called) {
+                $this->assertSame($deletingModel, $model);
+                $this->assertInstanceOf(ServerRequestInterface::class, $request);
+                return $called = true;
+            });
+        });
+
+        $this->deleteResource();
+
+        $this->assertTrue($called);
     }
 
     public function test_deleting_a_resource_calls_the_delete_adapter_method()
     {
-        $this->markTestIncomplete();
+        $adapter = $this->prophesize(AdapterInterface::class);
+        $adapter->query()->willReturn($query = (object) []);
+        $adapter->find($query, '1')->willReturn($model = (object) []);
+        $adapter->delete($model)->shouldBeCalled();
+
+        $this->api->resource('users', $adapter->reveal(), function (Type $type) {
+            $type->deletable();
+        });
+
+        $this->deleteResource();
     }
 
-    // deleter...
-    // listeners...
+    public function test_resources_can_provide_custom_deleters()
+    {
+        $called = false;
+
+        $adapter = $this->prophesize(AdapterInterface::class);
+        $adapter->query()->willReturn($query = (object) []);
+        $adapter->find($query, '1')->willReturn($deletingModel = (object) []);
+        $adapter->delete($deletingModel)->shouldNotBeCalled();
+
+        $this->api->resource('users', $adapter->reveal(), function (Type $type) use ($deletingModel, &$called) {
+            $type->deletable();
+            $type->delete(function ($model, $request) use ($deletingModel, &$called) {
+                $this->assertSame($deletingModel, $model);
+                $this->assertInstanceOf(ServerRequestInterface::class, $request);
+                return $called = true;
+            });
+        });
+
+        $this->deleteResource();
+
+        $this->assertTrue($called);
+    }
+
+    public function test_resources_can_have_deletion_listeners()
+    {
+        $called = 0;
+
+        $adapter = $this->prophesize(AdapterInterface::class);
+        $adapter->query()->willReturn($query = (object) []);
+        $adapter->find($query, '1')->willReturn($deletingModel = (object) []);
+        $adapter->delete($deletingModel)->shouldBeCalled();
+
+        $this->api->resource('users', $adapter->reveal(), function (Type $type) use ($adapter, $deletingModel, &$called) {
+            $type->deletable();
+            $type->deleting(function ($model, $request) use ($adapter, $deletingModel, &$called) {
+                $this->assertSame($deletingModel, $model);
+                $this->assertInstanceOf(ServerRequestInterface::class, $request);
+                $adapter->delete($deletingModel)->shouldNotHaveBeenCalled();
+                $called++;
+            });
+            $type->deleted(function ($model, $request) use ($adapter, $deletingModel, &$called) {
+                $this->assertSame($deletingModel, $model);
+                $this->assertInstanceOf(ServerRequestInterface::class, $request);
+                $adapter->delete($deletingModel)->shouldHaveBeenCalled();
+                $called++;
+            });
+        });
+
+        $this->deleteResource();
+
+        $this->assertEquals(2, $called);
+    }
 }

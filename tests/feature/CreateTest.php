@@ -11,7 +11,11 @@
 
 namespace Tobyz\Tests\JsonApiServer\feature;
 
+use Psr\Http\Message\ServerRequestInterface;
+use Tobyz\JsonApiServer\Adapter\AdapterInterface;
+use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockAdapter;
 
@@ -22,58 +26,181 @@ class CreateTest extends AbstractTestCase
      */
     private $api;
 
-    /**
-     * @var MockAdapter
-     */
-    private $adapter;
-
     public function setUp(): void
     {
         $this->api = new JsonApi('http://example.com');
+    }
 
-        $this->adapter = new MockAdapter();
+    protected function createResource(array $data = [])
+    {
+        return $this->api->handle(
+            $this->buildRequest('POST', '/users')
+                ->withParsedBody([
+                    'data' => array_merge([
+                        'type' => 'users',
+                        'id' => '1',
+                    ], $data)
+                ])
+        );
     }
 
     public function test_resources_are_not_creatable_by_default()
     {
-        $this->markTestIncomplete();
+        $this->api->resource('users', new MockAdapter());
+
+        $this->expectException(ForbiddenException::class);
+
+        $this->createResource();
     }
 
     public function test_resource_creation_can_be_explicitly_enabled()
     {
-        $this->markTestIncomplete();
+        $this->api->resource('users', new MockAdapter(), function (Type $type) {
+            $type->creatable();
+        });
+
+        $response = $this->createResource();
+
+        $this->assertEquals(201, $response->getStatusCode());
     }
 
     public function test_resource_creation_can_be_conditionally_enabled()
     {
-        $this->markTestIncomplete();
+        $this->api->resource('users', new MockAdapter(), function (Type $type) {
+            $type->creatable(function () {
+                return true;
+            });
+        });
+
+        $response = $this->createResource();
+
+        $this->assertEquals(201, $response->getStatusCode());
     }
 
     public function test_resource_creation_can_be_explicitly_disabled()
     {
-        $this->markTestIncomplete();
+        $this->api->resource('users', new MockAdapter(), function (Type $type) {
+            $type->notCreatable();
+        });
+
+        $this->expectException(ForbiddenException::class);
+
+        $this->createResource();
     }
 
     public function test_resource_creation_can_be_conditionally_disabled()
     {
-        $this->markTestIncomplete();
+        $this->api->resource('users', new MockAdapter(), function (Type $type) {
+            $type->creatable(function () {
+                return false;
+            });
+        });
+
+        $this->expectException(ForbiddenException::class);
+
+        $this->createResource();
     }
 
-    public function test_new_models_are_supplied_by_the_adapter()
+    public function test_resource_creatable_callback_receives_correct_parameters()
     {
-        $this->markTestIncomplete();
+        $called = false;
+
+        $this->api->resource('users', new MockAdapter(), function (Type $type) use (&$called) {
+            $type->creatable(function ($request) use (&$called) {
+                $this->assertInstanceOf(ServerRequestInterface::class, $request);
+                return $called = true;
+            });
+        });
+
+        $this->createResource();
+
+        $this->assertTrue($called);
+    }
+
+    public function test_new_models_are_supplied_and_saved_by_the_adapter()
+    {
+        $adapter = $this->prophesize(AdapterInterface::class);
+        $adapter->create()->willReturn($createdModel = (object) []);
+        $adapter->save($createdModel)->shouldBeCalled();
+        $adapter->getId($createdModel)->willReturn('1');
+
+        $this->api->resource('users', $adapter->reveal(), function (Type $type) {
+            $type->creatable();
+        });
+
+        $this->createResource();
     }
 
     public function test_resources_can_provide_custom_models()
     {
-        $this->markTestIncomplete();
+        $createdModel = (object) [];
+
+        $adapter = $this->prophesize(AdapterInterface::class);
+        $adapter->create()->shouldNotBeCalled();
+        $adapter->save($createdModel)->shouldBeCalled();
+        $adapter->getId($createdModel)->willReturn('1');
+
+        $this->api->resource('users', $adapter->reveal(), function (Type $type) use ($createdModel) {
+            $type->creatable();
+            $type->create(function ($request) use ($createdModel) {
+                $this->assertInstanceOf(ServerRequestInterface::class, $request);
+                return $createdModel;
+            });
+        });
+
+        $this->createResource();
     }
 
-    public function test_creating_a_resource_calls_the_save_adapter_method()
+    public function test_resources_can_provide_custom_savers()
     {
-        $this->markTestIncomplete();
+        $called = false;
+
+        $adapter = $this->prophesize(AdapterInterface::class);
+        $adapter->create()->willReturn($createdModel = (object) []);
+        $adapter->save($createdModel)->shouldNotBeCalled();
+        $adapter->getId($createdModel)->willReturn('1');
+
+        $this->api->resource('users', $adapter->reveal(), function (Type $type) use ($createdModel, &$called) {
+            $type->creatable();
+            $type->save(function ($model, $request) use ($createdModel, &$called) {
+                $model->id = '1';
+                $this->assertSame($createdModel, $model);
+                $this->assertInstanceOf(ServerRequestInterface::class, $request);
+                return $called = true;
+            });
+        });
+
+        $this->createResource();
+
+        $this->assertTrue($called);
     }
 
-    // saver...
-    // listeners...
+    public function test_resources_can_have_creation_listeners()
+    {
+        $called = 0;
+
+        $adapter = $this->prophesize(AdapterInterface::class);
+        $adapter->create()->willReturn($createdModel = (object) []);
+        $adapter->getId($createdModel)->willReturn('1');
+
+        $this->api->resource('users', $adapter->reveal(), function (Type $type) use ($adapter, $createdModel, &$called) {
+            $type->creatable();
+            $type->creating(function ($model, $request) use ($adapter, $createdModel, &$called) {
+                $this->assertSame($createdModel, $model);
+                $this->assertInstanceOf(ServerRequestInterface::class, $request);
+                $adapter->save($createdModel)->shouldNotHaveBeenCalled();
+                $called++;
+            });
+            $type->created(function ($model, $request) use ($adapter, $createdModel, &$called) {
+                $this->assertSame($createdModel, $model);
+                $this->assertInstanceOf(ServerRequestInterface::class, $request);
+                $adapter->save($createdModel)->shouldHaveBeenCalled();
+                $called++;
+            });
+        });
+
+        $this->createResource();
+
+        $this->assertEquals(2, $called);
+    }
 }

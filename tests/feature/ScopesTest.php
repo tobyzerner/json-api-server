@@ -12,7 +12,6 @@
 namespace Tobyz\Tests\JsonApiServer\feature;
 
 use Psr\Http\Message\ServerRequestInterface;
-use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;

@@ -78,7 +78,7 @@ class FieldVisibilityTest extends AbstractTestCase
         $this->assertArrayHasKey('visibleHasMany', $relationships);
     }
 
-    public function test_attributes_can_be_conditionally_visible()
+    public function test_fields_can_be_conditionally_visible()
     {
         $this->markTestIncomplete();
 

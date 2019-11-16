@@ -13,7 +13,6 @@ namespace Tobyz\Tests\JsonApiServer;
 
 use DMS\PHPUnitExtensions\ArraySubset\ArraySubsetAsserts;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Message\ResponseInterface;
 use Zend\Diactoros\ServerRequest;
 use Zend\Diactoros\Uri;
 

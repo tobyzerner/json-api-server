@@ -12,6 +12,7 @@
 namespace Tobyz\Tests\JsonApiServer\feature;
 
 use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockAdapter;
 
@@ -31,21 +32,58 @@ class CountabilityTest extends AbstractTestCase
     {
         $this->api = new JsonApi('http://example.com');
 
-        $this->adapter = new MockAdapter();
+        $models = [];
+        for ($i = 1; $i <= 100; $i++) {
+            $models[] = (object) ['type' => 'users', 'id' => $i];
+        }
+
+        $this->adapter = new MockAdapter($models, 'users');
     }
 
     public function test_total_number_of_resources_and_last_pagination_link_is_included_by_default()
     {
-        $this->markTestIncomplete();
+        $this->api->resource('users', $this->adapter);
+
+        $response = $this->api->handle(
+            $this->buildRequest('GET', '/users')
+        );
+
+        $document = json_decode($response->getBody(), true);
+
+        $this->assertArrayHasKey('last', $document['links'] ?? []);
+        $this->assertEquals(100, $document['meta']['total'] ?? null);
     }
 
     public function test_types_can_be_made_uncountable()
     {
-        $this->markTestIncomplete();
+        $this->api->resource('users', $this->adapter, function (Type $type) {
+            $type->uncountable();
+        });
+
+        $response = $this->api->handle(
+            $this->buildRequest('GET', '/users')
+        );
+
+        $document = json_decode($response->getBody(), true);
+
+        $this->assertArrayNotHasKey('last', $document['links'] ?? []);
+        $this->assertArrayNotHasKey('total', $document['meta'] ?? []);
     }
 
     public function test_types_can_be_made_countable()
     {
-        $this->markTestIncomplete();
+        $this->api->resource('users', $this->adapter, function (Type $type) {
+            $type->uncountable();
+            $type->countable();
+        });
+
+        $response = $this->api->handle(
+            $this->buildRequest('GET', '/users')
+        );
+
+        $document = json_decode($response->getBody(), true);
+
+        $this->assertArrayHasKey('last', $document['links'] ?? []);
+        $this->assertEquals(100, $document['meta']['total'] ?? null);
     }
 }
