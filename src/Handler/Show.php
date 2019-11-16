@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of tobyz/json-api-server.
+ *
+ * (c) Toby Zerner <toby.zerner@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Tobyz\JsonApiServer\Handler;
 
 use JsonApiPhp\JsonApi\CompoundDocument;
@@ -11,6 +20,7 @@ use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\JsonApiResponse;
 use Tobyz\JsonApiServer\ResourceType;
 use Tobyz\JsonApiServer\Serializer;
+use function Tobyz\JsonApiServer\run_callbacks;
 
 class Show implements RequestHandlerInterface
 {
@@ -27,15 +37,19 @@ class Show implements RequestHandlerInterface
         $this->model = $model;
     }
 
+    /**
+     * Handle a request to show a resource.
+     */
     public function handle(Request $request): Response
     {
         $include = $this->getInclude($request);
 
         $this->loadRelationships([$this->model], $include, $request);
 
-        $serializer = new Serializer($this->api, $request);
+        run_callbacks($this->resource->getSchema()->getListeners('show'), [$this->model, $request]);
 
-        $serializer->add($this->resource, $this->model, $include, true);
+        $serializer = new Serializer($this->api, $request);
+        $serializer->addSingle($this->resource, $this->model, $include);
 
         return new JsonApiResponse(
             new CompoundDocument(

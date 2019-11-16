@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of tobyz/json-api-server.
+ *
+ * (c) Toby Zerner <toby.zerner@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Tobyz\JsonApiServer;
 
 use DateTime;
@@ -30,11 +39,16 @@ final class Serializer
         $this->request = $request;
     }
 
-    public function add(ResourceType $resource, $model, array $include, bool $single = false)
+    public function add(ResourceType $resource, $model, array $include, bool $single = false): void
     {
         $data = $this->addToMap($resource, $model, $include, $single);
 
         $this->primary[] = $data['type'].':'.$data['id'];
+    }
+
+    public function addSingle(ResourceType $resource, $model, array $include): void
+    {
+        $this->add($resource, $model, $include, true);
     }
 
     private function addToMap(ResourceType $resource, $model, array $include, bool $single = false)
@@ -69,11 +83,11 @@ final class Serializer
                 continue;
             }
 
-            if ($field->getSingle() && ! $single) {
+            if ($field->isSingle() && ! $single) {
                 continue;
             }
 
-            if (! evaluate($field->getVisible(), [$model, $this->request])) {
+            if (! evaluate($field->isVisible(), [$model, $this->request])) {
                 continue;
             }
 
@@ -81,12 +95,12 @@ final class Serializer
                 $value = $this->attribute($field, $model, $adapter);
             } elseif ($field instanceof Schema\Relationship) {
                 $isIncluded = isset($include[$name]);
-                $isLinkage = evaluate($field->getLinkage(), [$this->request]);
+                $isLinkage = evaluate($field->isLinkage(), [$this->request]);
 
                 if (! $isIncluded && ! $isLinkage) {
                     $value = $this->emptyRelationship($field, $resourceUrl);
                 } elseif ($field instanceof Schema\HasOne) {
-                    $value = $this->toOne($field, $model, $adapter, $isIncluded, $isLinkage, $include[$name] ?? [], $resourceUrl);
+                    $value = $this->toOne($field, $model, $adapter, $isIncluded, $isLinkage, $include[$name] ?? [], $resourceUrl, $single);
                 } elseif ($field instanceof Schema\HasMany) {
                     $value = $this->toMany($field, $model, $adapter, $isIncluded, $isLinkage, $include[$name] ?? [], $resourceUrl);
                 }
@@ -114,7 +128,7 @@ final class Serializer
 
     private function attribute(Attribute $field, $model, AdapterInterface $adapter): Structure\Attribute
     {
-        if ($getter = $field->getGetter()) {
+        if ($getter = $field->getGetCallback()) {
             $value = $getter($model, $this->request);
         } else {
             $value = $adapter->getAttribute($model, $field);
@@ -127,11 +141,11 @@ final class Serializer
         return new Structure\Attribute($field->getName(), $value);
     }
 
-    private function toOne(Schema\HasOne $field, $model, AdapterInterface $adapter, bool $isIncluded, bool $isLinkage, array $include, string $resourceUrl)
+    private function toOne(Schema\HasOne $field, $model, AdapterInterface $adapter, bool $isIncluded, bool $isLinkage, array $include, string $resourceUrl, bool $single = false)
     {
         $links = $this->getRelationshipLinks($field, $resourceUrl);
 
-        $value = $isIncluded ? (($getter = $field->getGetter()) ? $getter($model, $this->request) : $adapter->getHasOne($model, $field)) : ($isLinkage && $field->getLoadable() ? $adapter->getHasOne($model, $field, ['id']) : null);
+        $value = $isIncluded ? (($getter = $field->getGetCallback()) ? $getter($model, $this->request) : $adapter->getHasOne($model, $field, false)) : ($isLinkage ? $adapter->getHasOne($model, $field, true) : null);
 
         if (! $value) {
             return new Structure\ToNull(
@@ -141,7 +155,7 @@ final class Serializer
         }
 
         if ($isIncluded) {
-            $identifier = $this->addRelated($field, $value, $include);
+            $identifier = $this->addRelated($field, $value, $include, $single);
         } else {
             $identifier = $this->relatedResourceIdentifier($field, $value);
         }
@@ -156,10 +170,10 @@ final class Serializer
 
     private function toMany(Schema\HasMany $field, $model, AdapterInterface $adapter, bool $isIncluded, bool $isLinkage, array $include, string $resourceUrl)
     {
-        if ($getter = $field->getGetter()) {
+        if ($getter = $field->getGetCallback()) {
             $value = $getter($model, $this->request);
         } else {
-            $value = ($isLinkage || $isIncluded) ? $adapter->getHasMany($model, $field) : null;
+            $value = ($isLinkage || $isIncluded) ? $adapter->getHasMany($model, $field, false) : null;
         }
 
         $identifiers = [];
@@ -197,7 +211,7 @@ final class Serializer
 
     private function getRelationshipLinks(Relationship $field, string $resourceUrl): array
     {
-        if (! $field->hasLinks()) {
+        if (! $field->isLinks()) {
             return [];
         }
 
@@ -207,12 +221,12 @@ final class Serializer
         ];
     }
 
-    private function addRelated(Relationship $field, $model, array $include): ResourceIdentifier
+    private function addRelated(Relationship $field, $model, array $include, bool $single = false): ResourceIdentifier
     {
-        $relatedResource = $field->getType() ? $this->api->getResource($field->getType()) : $this->resourceForModel($model);
+        $relatedResource = is_string($field->getType()) ? $this->api->getResource($field->getType()) : $this->resourceForModel($model);
 
         return $this->resourceIdentifier(
-            $this->addToMap($relatedResource, $model, $include)
+            $this->addToMap($relatedResource, $model, $include, $single)
         );
     }
 
@@ -286,7 +300,7 @@ final class Serializer
     {
         $type = $field->getType();
 
-        $relatedResource = $type ? $this->api->getResource($type) : $this->resourceForModel($model);
+        $relatedResource = is_string($type) ? $this->api->getResource($type) : $this->resourceForModel($model);
 
         return $this->resourceIdentifier([
             'type' => $relatedResource->getType(),

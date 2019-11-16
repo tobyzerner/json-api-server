@@ -1,15 +1,27 @@
 <?php
 
+/*
+ * This file is part of tobyz/json-api-server.
+ *
+ * (c) Toby Zerner <toby.zerner@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Tobyz\JsonApiServer\Handler\Concerns;
 
-use Closure;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use function Tobyz\JsonApiServer\evaluate;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\ResourceType;
 use Tobyz\JsonApiServer\Schema\Relationship;
 use function Tobyz\JsonApiServer\run_callbacks;
 
+/**
+ * @property JsonApi $api
+ * @property ResourceType $resource
+ */
 trait IncludesData
 {
     private function getInclude(Request $request): array
@@ -32,10 +44,9 @@ trait IncludesData
         $tree = [];
 
         foreach (explode(',', $include) as $path) {
-            $keys = explode('.', $path);
             $array = &$tree;
 
-            foreach ($keys as $key) {
+            foreach (explode('.', $path) as $key) {
                 if (! isset($array[$key])) {
                     $array[$key] = [];
                 }
@@ -52,7 +63,8 @@ trait IncludesData
         $fields = $resource->getSchema()->getFields();
 
         foreach ($include as $name => $nested) {
-            if (! isset($fields[$name])
+            if (
+                ! isset($fields[$name])
                 || ! $fields[$name] instanceof Relationship
                 || ! $fields[$name]->isIncludable()
             ) {
@@ -69,69 +81,42 @@ trait IncludesData
         }
     }
 
-    private function buildRelationshipTrails(ResourceType $resource, array $include): array
-    {
-        $fields = $resource->getSchema()->getFields();
-        $trails = [];
-
-        foreach ($include as $name => $nested) {
-            $relationship = $fields[$name];
-
-            if ($relationship->getLoadable()) {
-                $trails[] = [$relationship];
-            }
-
-            if ($type = $fields[$name]->getType()) {
-                $relatedResource = $this->api->getResource($type);
-
-                $trails = array_merge(
-                    $trails,
-                    array_map(
-                        function ($trail) use ($relationship) {
-                            return array_merge([$relationship], $trail);
-                        },
-                        $this->buildRelationshipTrails($relatedResource, $nested)
-                    )
-                );
-            }
-        }
-
-        return $trails;
-    }
-
     private function loadRelationships(array $models, array $include, Request $request)
     {
-        $adapter = $this->resource->getAdapter();
-        $fields = $this->resource->getSchema()->getFields();
+        $this->loadRelationshipsAtLevel($models, [], $this->resource, $include, $request);
+    }
 
-        $trails = $this->buildRelationshipTrails($this->resource, $include);
-        $loaded = [];
-
-        foreach ($trails as $relationships) {
-            $relationship = end($relationships);
-
-            if (($load = $relationship->getLoadable()) instanceof Closure) {
-                $load($models, $relationships, false, $request);
-            } else {
-                $scope = function ($query) use ($request, $relationship) {
-                    run_callbacks($relationship->getScopes(), [$query, $request]);
-                };
-
-                $adapter->load($models, $relationships, $scope);
-            }
-
-            $loaded[] = $relationships[0];
-        }
+    private function loadRelationshipsAtLevel(array $models, array $relationshipPath, ResourceType $resource, array $include, Request $request)
+    {
+        $adapter = $resource->getAdapter();
+        $fields = $resource->getSchema()->getFields();
 
         foreach ($fields as $name => $field) {
-            if (! $field instanceof Relationship || ! evaluate($field->getLinkage(), [$request]) || ! $field->getLoadable() || in_array($field, $loaded)) {
+            if (
+                ! $field instanceof Relationship
+                || (! $field->isLinkage() && ! isset($include[$name]))
+            ) {
                 continue;
             }
 
-            if (($load = $field->getLoadable()) instanceof Closure) {
-                $load($models, true);
-            } else {
-                $adapter->loadIds($models, $field);
+            $nextRelationshipPath = array_merge($relationshipPath, [$field]);
+
+            if ($load = $field->isLoadable()) {
+                if (is_callable($load)) {
+                    $load($models, $nextRelationshipPath, $field->isLinkage(), $request);
+                } else {
+                    $scope = function ($query) use ($request, $field) {
+                        run_callbacks($field->getListeners('scope'), [$query, $request]);
+                    };
+
+                    $adapter->load($models, $nextRelationshipPath, $scope, $field->isLinkage());
+                }
+            }
+
+            if (isset($include[$name]) && is_string($type = $field->getType())) {
+                $relatedResource = $this->api->getResource($type);
+
+                $this->loadRelationshipsAtLevel($models, $nextRelationshipPath, $relatedResource, $include[$name] ?? [], $request);
             }
         }
     }

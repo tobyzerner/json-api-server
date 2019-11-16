@@ -1,10 +1,18 @@
 <?php
 
+/*
+ * This file is part of tobyz/json-api-server.
+ *
+ * (c) Toby Zerner <toby.zerner@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Tobyz\JsonApiServer\Schema;
 
-use Closure;
-use function Tobyz\JsonApiServer\negate;
 use Tobyz\JsonApiServer\Schema\Concerns\HasListeners;
+use function Tobyz\JsonApiServer\negate;
 use function Tobyz\JsonApiServer\wrap;
 
 abstract class Field
@@ -16,10 +24,10 @@ abstract class Field
     private $visible = true;
     private $single = false;
     private $writable = false;
-    private $getter;
-    private $setter;
-    private $saver;
-    private $default;
+    private $getCallback;
+    private $setCallback;
+    private $saveCallback;
+    private $defaultCallback;
     private $filterable = false;
 
     public function __construct(string $name)
@@ -27,8 +35,15 @@ abstract class Field
         $this->name = $name;
     }
 
+    /**
+     * Get the location of the field within a JSON:API resource object
+     * ('attributes' or 'relationships').
+     */
     abstract public function getLocation(): string;
 
+    /**
+     * Set the model property to which this field corresponds.
+     */
     public function property(string $property)
     {
         $this->property = $property;
@@ -36,14 +51,20 @@ abstract class Field
         return $this;
     }
 
-    public function visible(Closure $condition = null)
+    /**
+     * Allow this field to be seen.
+     */
+    public function visible(callable $condition = null)
     {
         $this->visible = $condition ?: true;
 
         return $this;
     }
 
-    public function hidden(Closure $condition = null)
+    /**
+     * Disallow this field to be seen.
+     */
+    public function hidden(callable $condition = null)
     {
         $this->visible = $condition ? negate($condition) : false;
 
@@ -51,9 +72,11 @@ abstract class Field
     }
 
     /**
-     * Indicates that the field should only be visible on single root resources
+     * Only show this field on single root resources.
      *
-     * @return $this
+     * This is useful if a field requires an expensive calculation for each
+     * individual resource (eg. n+1 query problem). In this case it may be
+     * desirable to only have the field show when viewing a single resource.
      */
     public function single()
     {
@@ -62,69 +85,109 @@ abstract class Field
         return $this;
     }
 
-    public function writable(Closure $condition = null)
+    /**
+     * Allow this field to be written.
+     */
+    public function writable(callable $condition = null)
     {
         $this->writable = $condition ?: true;
 
         return $this;
     }
 
-    public function readonly(Closure $condition = null)
+    /**
+     * Disallow this field to be written.
+     */
+    public function readonly(callable $condition = null)
     {
         $this->writable = $condition ? negate($condition) : false;
 
         return $this;
     }
 
+    /**
+     * Define the value of this field.
+     *
+     * If null, the adapter will be used to get the value of this field.
+     *
+     * @param null|string|callable $value
+     */
     public function get($value)
     {
-        $this->getter = wrap($value);
+        $this->getCallback = $value === null ? null : wrap($value);
 
         return $this;
     }
 
-    public function set(Closure $callback)
+    /**
+     * Set the callback to apply a new value for this field to the model.
+     *
+     * If null, the adapter will be used to set the field on the model.
+     */
+    public function set(?callable $callback)
     {
-        $this->setter = $callback;
+        $this->setCallback = $callback;
 
         return $this;
     }
 
-    public function save(Closure $callback)
+    /**
+     * Set the callback to save this field to the model.
+     *
+     * If specified, the adapter will NOT be used to set the field on the model.
+     */
+    public function save(?callable $callback)
     {
-        $this->saver = $callback;
+        $this->saveCallback = $callback;
 
         return $this;
     }
 
-    public function saved(Closure $callback)
+    /**
+     * Run a callback after this field has been saved.
+     */
+    public function onSaved(callable $callback)
     {
         $this->listeners['saved'][] = $callback;
 
         return $this;
     }
 
+    /**
+     * Set a default value for this field to be used when creating a resource.
+     *
+     * @param null|string|callable $value
+     */
     public function default($value)
     {
-        $this->default = wrap($value);
+        $this->defaultCallback = wrap($value);
 
         return $this;
     }
 
-    public function validate(Closure $callback)
+    /**
+     * Add a validation callback for this field.
+     */
+    public function validate(callable $callback)
     {
         $this->listeners['validate'][] = $callback;
 
         return $this;
     }
 
-    public function filterable(Closure $callback = null)
+    /**
+     * Allow this field to be used for filtering the resource listing.
+     */
+    public function filterable()
     {
-        $this->filterable = $callback ?: true;
+        $this->filterable = true;
 
         return $this;
     }
 
+    /**
+     * Disallow this field to be used for filtering the resource listing.
+     */
     public function notFilterable()
     {
         $this->filterable = false;
@@ -137,53 +200,47 @@ abstract class Field
         return $this->name;
     }
 
-    public function getProperty()
+    public function getProperty(): ?string
     {
         return $this->property;
     }
 
-    /**
-     * @return bool|Closure
-     */
-    public function getVisible()
+    public function isVisible()
     {
         return $this->visible;
     }
 
-    public function getSingle()
+    public function isSingle(): bool
     {
         return $this->single;
     }
 
-    public function getWritable()
+    public function isWritable()
     {
         return $this->writable;
     }
 
-    public function getGetter()
+    public function getGetCallback()
     {
-        return $this->getter;
+        return $this->getCallback;
     }
 
-    public function getSetter()
+    public function getSetCallback(): ?callable
     {
-        return $this->setter;
+        return $this->setCallback;
     }
 
-    public function getSaver()
+    public function getSaveCallback(): ?callable
     {
-        return $this->saver;
+        return $this->saveCallback;
     }
 
-    public function getDefault()
+    public function getDefaultCallback()
     {
-        return $this->default;
+        return $this->defaultCallback;
     }
 
-    /**
-     * @return bool|Closure
-     */
-    public function getFilterable()
+    public function isFilterable(): bool
     {
         return $this->filterable;
     }

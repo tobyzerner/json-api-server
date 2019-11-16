@@ -1,34 +1,61 @@
 <?php
 
+/*
+ * This file is part of tobyz/json-api-server.
+ *
+ * (c) Toby Zerner <toby.zerner@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Tobyz\JsonApiServer\Handler\Concerns;
 
 use Psr\Http\Message\ServerRequestInterface as Request;
-use function Tobyz\JsonApiServer\evaluate;
-use function Tobyz\JsonApiServer\get_value;
-use function Tobyz\JsonApiServer\has_value;
-use function Tobyz\JsonApiServer\set_value;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
-use function Tobyz\JsonApiServer\run_callbacks;
+use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\ResourceType;
 use Tobyz\JsonApiServer\Schema\Attribute;
 use Tobyz\JsonApiServer\Schema\HasMany;
 use Tobyz\JsonApiServer\Schema\HasOne;
 use Tobyz\JsonApiServer\Schema\Relationship;
+use function Tobyz\JsonApiServer\evaluate;
+use function Tobyz\JsonApiServer\get_value;
+use function Tobyz\JsonApiServer\has_value;
+use function Tobyz\JsonApiServer\run_callbacks;
+use function Tobyz\JsonApiServer\set_value;
 
+/**
+ * @property JsonApi $api
+ * @property ResourceType $resource
+ */
 trait SavesData
 {
     use FindsResources;
 
-    private function parseData($body): array
+    /**
+     * Parse and validate a JSON:API document's `data` member.
+     *
+     * @throws BadRequestException if the `data` member is invalid.
+     */
+    private function parseData($body, $model = null): array
     {
-        if (! is_array($body) && ! is_object($body)) {
-            throw new BadRequestException;
-        }
-
         $body = (array) $body;
 
-        if (! isset($body['data'])) {
-            throw new BadRequestException('Root data attribute missing');
+        if (! isset($body['data']) || ! is_array($body['data'])) {
+            throw new BadRequestException('data must be an object');
+        }
+
+        if (! isset($body['data']['type']) || $body['data']['type'] !== $this->resource->getType()) {
+            throw new BadRequestException('data.type does not match the resource type');
+        }
+
+        if ($model) {
+            $id = $this->resource->getAdapter()->getId($model);
+            if (! isset($body['data']['id']) || $body['data']['id'] !== $id) {
+                throw new BadRequestException('data.id does not match the resource ID');
+            }
         }
 
         if (isset($body['data']['attributes']) && ! is_array($body['data']['attributes'])) {
@@ -45,7 +72,12 @@ trait SavesData
         );
     }
 
-    private function getModelForIdentifier(Request $request, $identifier, array $validTypes = null)
+    /**
+     * Get the model corresponding to the given identifier.
+     *
+     * @throws BadRequestException if the identifier is invalid.
+     */
+    private function getModelForIdentifier(Request $request, array $identifier, array $validTypes = null)
     {
         if (! isset($identifier['type'])) {
             throw new BadRequestException('type not specified');
@@ -64,12 +96,20 @@ trait SavesData
         return $this->findResource($request, $resource, $identifier['id']);
     }
 
+    /**
+     * Assert that the fields contained within a data object are valid.
+     */
     private function validateFields(array $data, $model, Request $request)
     {
         $this->assertFieldsExist($data);
         $this->assertFieldsWritable($data, $model, $request);
     }
 
+    /**
+     * Assert that the fields contained within a data object exist in the schema.
+     *
+     * @throws BadRequestException if a field is unknown.
+     */
     private function assertFieldsExist(array $data)
     {
         $fields = $this->resource->getSchema()->getFields();
@@ -83,15 +123,23 @@ trait SavesData
         }
     }
 
+    /**
+     * Assert that the fields contained within a data object are writable.
+     *
+     * @throws BadRequestException if a field is not writable.
+     */
     private function assertFieldsWritable(array $data, $model, Request $request)
     {
         foreach ($this->resource->getSchema()->getFields() as $field) {
-            if (has_value($data, $field) && ! evaluate($field->getWritable(), [$model, $request])) {
+            if (has_value($data, $field) && ! evaluate($field->isWritable(), [$model, $request])) {
                 throw new BadRequestException("Field [{$field->getName()}] is not writable");
             }
         }
     }
 
+    /**
+     * Replace relationship linkage within a data object with models.
+     */
     private function loadRelatedResources(array &$data, Request $request)
     {
         foreach ($this->resource->getSchema()->getFields() as $field) {
@@ -102,7 +150,7 @@ trait SavesData
             $value = get_value($data, $field);
 
             if (isset($value['data'])) {
-                $allowedTypes = $field->getAllowedTypes();
+                $allowedTypes = (array) $field->getType();
 
                 if ($field instanceof HasOne) {
                     set_value($data, $field, $this->getModelForIdentifier($request, $value['data'], $allowedTypes));
@@ -117,12 +165,17 @@ trait SavesData
         }
     }
 
-    private function assertDataValid(array $data, $model, Request $request, bool $all): void
+    /**
+     * Assert that the field values within a data object pass validation.
+     *
+     * @throws UnprocessableEntityException if any fields do not pass validation.
+     */
+    private function assertDataValid(array $data, $model, Request $request, bool $validateAll): void
     {
         $failures = [];
 
         foreach ($this->resource->getSchema()->getFields() as $field) {
-            if (! $all && ! has_value($data, $field)) {
+            if (! $validateAll && ! has_value($data, $field)) {
                 continue;
             }
 
@@ -141,6 +194,9 @@ trait SavesData
         }
     }
 
+    /**
+     * Set field values from a data object to the model instance.
+     */
     private function setValues(array $data, $model, Request $request)
     {
         $adapter = $this->resource->getAdapter();
@@ -169,21 +225,30 @@ trait SavesData
         }
     }
 
+    /**
+     * Save the model and its fields.
+     */
     private function save(array $data, $model, Request $request)
     {
         $this->saveModel($model, $request);
         $this->saveFields($data, $model, $request);
     }
 
+    /**
+     * Save the model.
+     */
     private function saveModel($model, Request $request)
     {
-        if ($saver = $this->resource->getSchema()->getSaver()) {
-            $saver($model, $request);
+        if ($saveCallback = $this->resource->getSchema()->getSaveCallback()) {
+            $saveCallback($model, $request);
         } else {
             $this->resource->getAdapter()->save($model);
         }
     }
 
+    /**
+     * Save any fields that were not saved with the model.
+     */
     private function saveFields(array $data, $model, Request $request)
     {
         $adapter = $this->resource->getAdapter();
@@ -195,8 +260,8 @@ trait SavesData
 
             $value = get_value($data, $field);
 
-            if ($saver = $field->getSaver()) {
-                $saver($model, $value, $request);
+            if ($saveCallback = $field->getSaveCallback()) {
+                $saveCallback($model, $value, $request);
             } elseif ($field instanceof HasMany) {
                 $adapter->saveHasMany($model, $field, $value);
             }
@@ -205,6 +270,9 @@ trait SavesData
         $this->runSavedCallbacks($data, $model, $request);
     }
 
+    /**
+     * Run field saved listeners.
+     */
     private function runSavedCallbacks(array $data, $model, Request $request)
     {
         foreach ($this->resource->getSchema()->getFields() as $field) {

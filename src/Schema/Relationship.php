@@ -1,20 +1,32 @@
 <?php
 
-namespace Tobyz\JsonApiServer\Schema;
+/*
+ * This file is part of tobyz/json-api-server.
+ *
+ * (c) Toby Zerner <toby.zerner@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
-use Closure;
-use function Tobyz\JsonApiServer\negate;
+namespace Tobyz\JsonApiServer\Schema;
 
 abstract class Relationship extends Field
 {
     private $type;
-    private $allowedTypes;
     private $linkage = false;
     private $links = true;
     private $loadable = true;
     private $includable = false;
-    private $scopes = [];
 
+    public function getLocation(): string
+    {
+        return 'relationships';
+    }
+
+    /**
+     * Set the resource type that this relationship is to.
+     */
     public function type($type)
     {
         $this->type = $type;
@@ -22,35 +34,52 @@ abstract class Relationship extends Field
         return $this;
     }
 
+    /**
+     * Define this as a polymorphic relationship.
+     */
     public function polymorphic(array $types = null)
     {
-        $this->type = null;
-        $this->allowedTypes = $types;
+        $this->type = $types;
 
         return $this;
     }
 
-    public function linkage(Closure $condition = null)
+    /**
+     * Show resource linkage for the relationship.
+     */
+    public function linkage()
     {
-        $this->linkage = $condition ?: true;
+        $this->linkage = true;
 
         return $this;
     }
 
-    public function noLinkage(Closure $condition = null)
+    /**
+     * Do not show resource linkage for the relationship.
+     */
+    public function noLinkage()
     {
-        $this->linkage = $condition ? negate($condition) : false;
+        $this->linkage = false;
 
         return $this;
     }
 
-    public function loadable(Closure $callback = null)
+    /**
+     * Allow the relationship data to be eager-loaded into the model collection.
+     *
+     * This is used to prevent the n+1 query problem. If null, the adapter will
+     * be used to eager-load relationship data into the model collection.
+     */
+    public function loadable(callable $callback = null)
     {
         $this->loadable = $callback ?: true;
 
         return $this;
     }
 
+    /**
+     * Do not eager-load relationship data into the model collection.
+     */
     public function notLoadable()
     {
         $this->loadable = false;
@@ -58,6 +87,9 @@ abstract class Relationship extends Field
         return $this;
     }
 
+    /**
+     * Allow the relationship data to be included in a compound document.
+     */
     public function includable()
     {
         $this->includable = true;
@@ -65,6 +97,9 @@ abstract class Relationship extends Field
         return $this;
     }
 
+    /**
+     * Do not allow the relationship data to be included in a compound document.
+     */
     public function notIncludable()
     {
         $this->includable = false;
@@ -72,16 +107,9 @@ abstract class Relationship extends Field
         return $this;
     }
 
-    public function getType(): ?string
-    {
-        return $this->type;
-    }
-
-    public function getAllowedTypes(): ?array
-    {
-        return $this->allowedTypes;
-    }
-
+    /**
+     * Show links for the relationship.
+     */
     public function links()
     {
         $this->links = true;
@@ -89,6 +117,9 @@ abstract class Relationship extends Field
         return $this;
     }
 
+    /**
+     * Do not show links for the relationship.
+     */
     public function noLinks()
     {
         $this->links = false;
@@ -96,20 +127,33 @@ abstract class Relationship extends Field
         return $this;
     }
 
-    public function getLinkage()
+    /**
+     * Apply a scope to the query to eager-load the relationship data.
+     */
+    public function scope(callable $callback)
+    {
+        $this->listeners['scope'][] = $callback;
+    }
+
+    public function getType()
+    {
+        return $this->type;
+    }
+
+    public function isLinkage(): bool
     {
         return $this->linkage;
     }
 
-    public function hasLinks(): bool
+    public function isLinks(): bool
     {
         return $this->links;
     }
 
     /**
-     * @return bool|Closure
+     * @return bool|callable
      */
-    public function getLoadable()
+    public function isLoadable()
     {
         return $this->loadable;
     }
@@ -117,20 +161,5 @@ abstract class Relationship extends Field
     public function isIncludable(): bool
     {
         return $this->includable;
-    }
-
-    public function getLocation(): string
-    {
-        return 'relationships';
-    }
-
-    public function scope(Closure $callback)
-    {
-        $this->scopes[] = $callback;
-    }
-
-    public function getScopes(): array
-    {
-        return $this->scopes;
     }
 }

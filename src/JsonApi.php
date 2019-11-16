@@ -1,12 +1,21 @@
 <?php
 
+/*
+ * This file is part of tobyz/json-api-server.
+ *
+ * (c) Toby Zerner <toby.zerner@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Tobyz\JsonApiServer;
 
-use Closure;
 use JsonApiPhp\JsonApi\ErrorDocument;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface;
+use Tobyz\JsonApiServer\Adapter\AdapterInterface;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\InternalServerErrorException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
@@ -31,16 +40,27 @@ final class JsonApi implements RequestHandlerInterface
         $this->baseUrl = $baseUrl;
     }
 
-    public function resource(string $type, $adapter, Closure $buildSchema = null): void
+    /**
+     * Define a new resource type.
+     */
+    public function resource(string $type, AdapterInterface $adapter, callable $buildSchema = null): void
     {
         $this->resources[$type] = new ResourceType($type, $adapter, $buildSchema);
     }
 
+    /**
+     * Get defined resource types.
+     */
     public function getResources(): array
     {
         return $this->resources;
     }
 
+    /**
+     * Get a resource type.
+     *
+     * @throws ResourceNotFoundException if the resource type has not been defined.
+     */
     public function getResource(string $type): ResourceType
     {
         if (! isset($this->resources[$type])) {
@@ -50,6 +70,15 @@ final class JsonApi implements RequestHandlerInterface
         return $this->resources[$type];
     }
 
+    /**
+     * Handle a request.
+     *
+     * @throws UnsupportedMediaTypeException if the request Content-Type header is invalid
+     * @throws NotAcceptableException if the request Accept header is invalid
+     * @throws MethodNotAllowedException if the request method is invalid
+     * @throws BadRequestException if the request URI is invalid
+     * @throws NotImplementedException
+     */
     public function handle(Request $request): Response
     {
         $this->validateRequest($request);
@@ -112,11 +141,7 @@ final class JsonApi implements RequestHandlerInterface
 
         $mediaTypes = new MediaTypes($header);
 
-        if ($mediaTypes->containsExactly('*/*')) {
-            return;
-        }
-
-        if ($mediaTypes->containsExactly(self::CONTENT_TYPE)) {
+        if ($mediaTypes->containsExactly('*/*') || $mediaTypes->containsExactly(self::CONTENT_TYPE)) {
             return;
         }
 
@@ -172,6 +197,12 @@ final class JsonApi implements RequestHandlerInterface
         }
     }
 
+    /**
+     * Convert an exception into a JSON:API error document response.
+     *
+     * If the exception is not an instance of ErrorProviderInterface, an
+     * Internal Server Error response will be produced.
+     */
     public function error($e)
     {
         if (! $e instanceof ErrorProviderInterface) {
@@ -188,6 +219,9 @@ final class JsonApi implements RequestHandlerInterface
         return new JsonApiResponse($data, $status);
     }
 
+    /**
+     * Get the base URL for the API.
+     */
     public function getBaseUrl(): string
     {
         return $this->baseUrl;

@@ -13,9 +13,9 @@ namespace Tobyz\JsonApiServer\Schema\Concerns;
 
 trait HasListeners
 {
-    private $listeners = [];
+    protected $listeners = [];
 
-    public function getListeners(string $event)
+    public function getListeners(string $event): array
     {
         return $this->listeners[$event] ?? [];
     }

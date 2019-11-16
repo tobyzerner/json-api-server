@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of tobyz/json-api-server.
+ *
+ * (c) Toby Zerner <toby.zerner@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Tobyz\JsonApiServer\Adapter;
 
 use Closure;
@@ -69,12 +78,15 @@ class EloquentAdapter implements AdapterInterface
         return $model->{$this->getAttributeProperty($attribute)};
     }
 
-    public function getHasOne($model, HasOne $relationship, array $fields = null)
+    public function getHasOne($model, HasOne $relationship, bool $linkage)
     {
         $relation = $this->getEloquentRelation($model, $relationship);
 
-        // comment
-        if ($fields === ['id'] && $relation instanceof BelongsTo) {
+        // If it's a belongs-to relationship and we only need to get the ID,
+        // then we don't have to actually load the relation because the ID is
+        // stored in a column directly on the model. We will mock up a related
+        // model with the value of the ID filled.
+        if ($linkage && $relation instanceof BelongsTo) {
             if ($key = $model->{$relation->getForeignKeyName()}) {
                 $related = $relation->getRelated();
 
@@ -87,7 +99,7 @@ class EloquentAdapter implements AdapterInterface
         return $this->getRelationValue($model, $relationship);
     }
 
-    public function getHasMany($model, HasMany $relationship, array $fields = null): array
+    public function getHasMany($model, HasMany $relationship, bool $linkage): array
     {
         $collection = $this->getRelationValue($model, $relationship);
 
@@ -188,38 +200,42 @@ class EloquentAdapter implements AdapterInterface
         $query->take($limit)->skip($offset);
     }
 
-    public function load(array $models, array $relationships, Closure $scope): void
+    public function load(array $models, array $relationships, Closure $scope, bool $linkage): void
     {
+        // TODO: Find the relation on the model that we're after. If it's a
+        // belongs-to relation, and we only need linkage, then we won't need
+        // to load anything as the related ID is store directly on the model.
+
         (new Collection($models))->loadMissing([
             $this->getRelationshipPath($relationships) => $scope
         ]);
     }
 
-    public function loadIds(array $models, Relationship $relationship): void
-    {
-        if (empty($models)) {
-            return;
-        }
-
-        $property = $this->getRelationshipProperty($relationship);
-        $relation = $models[0]->$property();
-
-        // If it's a belongs-to relationship, then the ID is stored on the model
-        // itself, so we don't need to load anything in advance.
-        if ($relation instanceof BelongsTo) {
-            return;
-        }
-
-        (new Collection($models))->loadMissing([
-            $property => function ($query) use ($relation) {
-                $query->select($relation->getRelated()->getKeyName());
-
-                if (! $relation instanceof BelongsToMany) {
-                    $query->addSelect($relation->getForeignKeyName());
-                }
-            }
-        ]);
-    }
+    // public function loadIds(array $models, Relationship $relationship): void
+    // {
+    //     if (empty($models)) {
+    //         return;
+    //     }
+    //
+    //     $property = $this->getRelationshipProperty($relationship);
+    //     $relation = $models[0]->$property();
+    //
+    //     // If it's a belongs-to relationship, then the ID is stored on the model
+    //     // itself, so we don't need to load anything in advance.
+    //     if ($relation instanceof BelongsTo) {
+    //         return;
+    //     }
+    //
+    //     (new Collection($models))->loadMissing([
+    //         $property => function ($query) use ($relation) {
+    //             $query->select($relation->getRelated()->getKeyName());
+    //
+    //             if (! $relation instanceof BelongsToMany) {
+    //                 $query->addSelect($relation->getForeignKeyName());
+    //             }
+    //         }
+    //     ]);
+    // }
 
     private function getAttributeProperty(Attribute $attribute): string
     {

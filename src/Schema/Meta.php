@@ -1,19 +1,25 @@
 <?php
 
-namespace Tobyz\JsonApiServer\Schema;
+/*
+ * This file is part of tobyz/json-api-server.
+ *
+ * (c) Toby Zerner <toby.zerner@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
-use Closure;
-use function Tobyz\JsonApiServer\wrap;
+namespace Tobyz\JsonApiServer\Schema;
 
 final class Meta
 {
     private $name;
     private $value;
 
-    public function __construct(string $name, $value)
+    public function __construct(string $name, callable $value)
     {
         $this->name = $name;
-        $this->value = wrap($value);
+        $this->value = $value;
     }
 
     public function getName(): string
@@ -21,7 +27,7 @@ final class Meta
         return $this->name;
     }
 
-    public function getValue(): Closure
+    public function getValue(): callable
     {
         return $this->value;
     }
