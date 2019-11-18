@@ -71,7 +71,7 @@ try {
 }
 ```
 
-`Tobyz\JsonApiServer\JsonApi` is a [PSR-15 Request Handler](https://www.php-fig.org/psr/psr-15/). Instantiate it with your API's base URL. Convert your framework's request object into a [PSR-7 Request](https://www.php-fig.org/psr/psr-7/#321-psrhttpmessageserverrequestinterface) implementation, then let the `JsonApi` handler take it from there. Catch any exceptions and give them back to `JsonApi` if you want a JSON:API error response.
+`Tobyz\JsonApiServer\JsonApi` is a [PSR-15 Request Handler](https://www.php-fig.org/psr/psr-15/). Instantiate it with your API's base URL. Convert your framework's request object into a [PSR-7 Request](https://www.php-fig.org/psr/psr-7/#321-psrhttpmessageserverrequestinterface) implementation, then let the `JsonApi` handler take it from there. Catch any exceptions and give them back to `JsonApi` to generate a JSON:API error response.
 
 ### Defining Resources
 
@@ -80,7 +80,7 @@ Define your API's resources using the `resource` method. The first argument is t
 ```php
 use Tobyz\JsonApiServer\Schema\Type;
 
-$api->resource('comments', $adapter, function (Schema $schema) {
+$api->resource('comments', $adapter, function (Type $type) {
     // define your schema
 });
 ```
@@ -98,13 +98,14 @@ $adapter = new EloquentAdapter(User::class);
 Define an [attribute field](https://jsonapi.org/format/#document-resource-object-attributes) on your resource using the `attribute` method:
 
 ```php
-$schema->attribute('firstName');
+$type->attribute('firstName');
 ```
 
 By default the attribute will correspond to the property on your model with the same name. (`EloquentAdapter` will `snake_case` it automatically for you.) If you'd like it to correspond to a different property, use the `property` method:
 
 ```php
-$schema->attribute('firstName')->property('fname');
+$type->attribute('firstName')
+    ->property('fname');
 ```
 
 ### Relationships
@@ -112,14 +113,15 @@ $schema->attribute('firstName')->property('fname');
 Define [relationship fields](https://jsonapi.org/format/#document-resource-object-relationships) on your resource using the `hasOne` and `hasMany` methods:
 
 ```php
-$schema->hasOne('user');
-$schema->hasMany('comments');
+$type->hasOne('user');
+$type->hasMany('comments');
 ```
 
 By default the [resource type](https://jsonapi.org/format/#document-resource-object-identification) that the relationship corresponds to will be derived from the relationship name. In the example above, the `user` relationship would correspond to the `users` resource type, while `comments` would correspond to `comments`. If you'd like to use a different resource type, call the `type` method:
 
 ```php
-$schema->hasOne('author')->type('people');
+$type->hasOne('author')
+    ->type('people');
 ```
 
 Like attributes, the relationship will automatically read and write to the relation on your model with the same name. If you'd like it to correspond to a different relation, use the `property` method.
@@ -129,7 +131,7 @@ Like attributes, the relationship will automatically read and write to the relat
 Relationships include [`self`](https://jsonapi.org/format/#fetching-relationships) and [`related`](https://jsonapi.org/format/#document-resource-object-related-resource-links) links automatically. For some relationships it may not make sense to have them accessible via their own URL; you may disable these links by calling the `noLinks` method:
 
 ```php
-$schema->hasOne('mostRelevantPost')
+$type->hasOne('mostRelevantPost')
     ->noLinks();
 ```
 
@@ -137,10 +139,10 @@ $schema->hasOne('mostRelevantPost')
 
 #### Relationship Linkage
 
-By default relationships include no [resource linkage](https://jsonapi.org/format/#document-resource-object-linkage). You can toggle this (without forcing the related resources to be included) by calling the `linkage` or `noLinkage` methods.
+By default relationships include no [resource linkage](https://jsonapi.org/format/#document-resource-object-linkage). You can toggle this by calling the `linkage` or `noLinkage` methods.
 
 ```php
-$schema->hasOne('user')
+$type->hasOne('user')
     ->linkage();
 ```
 
@@ -151,22 +153,22 @@ $schema->hasOne('user')
 To make a relationship available for [inclusion](https://jsonapi.org/format/#fetching-includes) via the `include` query parameter, call the `includable` method.
 
 ```php
-$schema->hasOne('user')
+$type->hasOne('user')
     ->includable();
 ```
 
 > **Warning:** Be careful when making to-many relationships includable as pagination is not supported.
 
-Relationships included via the `include` query parameter are automatically eager-loaded. However, you may wish to define your own eager-loading logic, or prevent a relationship from being eager-loaded. You can do so using the `loadable` and `notLoadable` methods:
+Relationships included via the `include` query parameter are automatically [eager-loaded](https://laravel.com/docs/5.8/eloquent-relationships#eager-loading) by the adapter. However, you may wish to define your own eager-loading logic, or prevent a relationship from being eager-loaded. You can do so using the `loadable` and `notLoadable` methods:
 
 ```php
-$schema->hasOne('user')
+$type->hasOne('user')
     ->includable()
-    ->loadable(function ($models, $request) {
+    ->loadable(function ($models, ServerRequestInterface $request) {
         collect($models)->load(['user' => function () { /* constraints */ }]);
     });
 
-$schema->hasOne('user')
+$type->hasOne('user')
     ->includable()
     ->notLoadable();
 ```
@@ -176,19 +178,22 @@ $schema->hasOne('user')
 Define a relationship as polymorphic using the `polymorphic` method:
 
 ```php
-$schema->hasOne('commentable')->polymorphic();
-$schema->hasMany('taggable')->polymorphic();
+$type->hasOne('commentable')
+    ->polymorphic();
+
+$type->hasMany('taggable')
+    ->polymorphic();
 ```
 
 This will mean that the resource type associated with the relationship will be derived from the model of each related resource. Consequently, nested includes cannot be requested on these relationships.
 
 ### Getters
 
-Use the `get` method to define custom retrieval logic for your field, instead of just reading the value straight from the model property. (If you're using Eloquent, you could also define [casts](https://laravel.com/docs/5.8/eloquent-mutators#attribute-casting) or [accessors](https://laravel.com/docs/5.8/eloquent-mutators#defining-an-accessor) on your model to achieve a similar thing.)
+Use the `get` method to define custom retrieval logic for your field, instead of just reading the value straight from the model property. (If you're using Eloquent, you could also define attribute [casts](https://laravel.com/docs/5.8/eloquent-mutators#attribute-casting) or [accessors](https://laravel.com/docs/5.8/eloquent-mutators#defining-an-accessor) on your model to achieve a similar thing.)
 
 ```php
-$schema->attribute('firstName')
-    ->get(function ($model, $request) {
+$type->attribute('firstName')
+    ->get(function ($model, ServerRequestInterface $request) {
         return ucfirst($model->first_name);
     });
 ```
@@ -200,24 +205,30 @@ $schema->attribute('firstName')
 You can restrict the visibility of the whole resource using the `scope` method. This will allow you to modify the query builder object provided by your adapter:
 
 ```php
-$schema->scope(function ($query, $request, $id = null) {
+$type->scope(function ($query, ServerRequestInterface $request, string $id = null) {
     $query->where('user_id', $request->getAttribute('userId'));
 });
 ```
 
-The third argument to this callback (`$id`) is only populated if the request is to access a single resource. If the request is to a resource index, it will be `null`.
+The third argument to this callback (`$id`) is only populated if the request is to access a single resource. If the request is to a resource listing, it will be `null`.
+
+If you want to prevent listing the resource altogether (ie. return `403 Forbidden` from `GET /articles`), you can use the `notListable` method:
+
+```php
+$type->notListable();
+```
 
 #### Field Visibility
 
 You can specify logic to restrict the visibility of a field using the `visible` and `hidden` methods:
 
 ```php
-$schema->attribute('email')
+$type->attribute('email')
     // Make a field always visible (default)
     ->visible()
 
     // Make a field visible only if certain logic is met
-    ->visible(function ($model, $request) {
+    ->visible(function ($model, ServerRequestInterface $request) {
         return $model->id == $request->getAttribute('userId');
     })
 
@@ -225,9 +236,18 @@ $schema->attribute('email')
     ->hidden()
 
     // Hide a field only if certain logic is met
-    ->hidden(function ($model, $request) {
+    ->hidden(function ($model, ServerRequestInterface $request) {
         return $request->getAttribute('userIsSuspended');
     });
+```
+
+#### Expensive Fields
+
+If a field is particularly expensive to calculate (for example, if you define a custom getter which runs a query), you can opt to only show the field when a single resource has been requested (ie. the field will not be included on resource listings). Use the `single` method to do this:
+
+```php
+$type->attribute('expensive')
+    ->single();
 ```
 
 ### Writability
@@ -235,12 +255,12 @@ $schema->attribute('email')
 By default, fields are read-only. You can allow a field to be written to via `PATCH` and `POST` requests using the `writable` and `readonly` methods:
 
 ```php
-$schema->attribute('email')
+$type->attribute('email')
     // Make an attribute writable
     ->writable()
 
     // Make an attribute writable only if certain logic is met
-    ->writable(function ($model, $request) {
+    ->writable(function ($model, ServerRequestInterface $request) {
         return $model->id == $request->getAttribute('userId');
     })
 
@@ -248,7 +268,7 @@ $schema->attribute('email')
     ->readonly()
 
     // Make an attribute writable *unless* certain logic is met
-    ->readonly(function ($model, $request) {
+    ->readonly(function ($model, ServerRequestInterface $request) {
         return $request->getAttribute('userIsSuspended');
     });
 ```
@@ -258,24 +278,24 @@ $schema->attribute('email')
 You can provide a default value for a field to be used when creating a new resource if there is no value provided by the consumer. Pass a value or a closure to the `default` method:
 
 ```php
-$schema->attribute('joinedAt')
+$type->attribute('joinedAt')
     ->default(new DateTime);
 
-$schema->attribute('ipAddress')
-    ->default(function ($request) {
+$type->attribute('ipAddress')
+    ->default(function (ServerRequestInterface $request) {
         return $request->getServerParams()['REMOTE_ADDR'] ?? null;
     });
 ```
 
-If you're using Eloquent, you could also define [default attribute values](https://laravel.com/docs/5.8/eloquent#default-attribute-values) to achieve a similar thing, although you wouldn't have access to the request object.
+If you're using Eloquent, you could also define [default attribute values](https://laravel.com/docs/5.8/eloquent#default-attribute-values) to achieve a similar thing (although you wouldn't have access to the request object).
 
 ### Validation
 
 You can ensure that data provided for a field is valid before it is saved. Provide a closure to the `validate` method, and call the first argument if validation fails:
 
 ```php
-$schema->attribute('email')
-    ->validate(function ($fail, $email, $model, $request, $field) {
+$type->attribute('email')
+    ->validate(function (callable $fail, $email, $model, ServerRequestInterface $request) {
         if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $fail('Invalid email');
         }
@@ -285,8 +305,8 @@ $schema->attribute('email')
 This works for relationships too – the related models will be retrieved via your adapter and passed into your validation function.
 
 ```php
-$schema->hasMany('groups')
-    ->validate(function ($fail, $groups, $model, $request, $field) {
+$type->hasMany('groups')
+    ->validate(function (callable $fail, array $groups, $model, ServerRequestInterface $request) {
         foreach ($groups as $group) {
             if ($group->id === 1) {
                 $fail('You cannot assign this group');
@@ -300,17 +320,17 @@ You can easily use Laravel's [Validation](https://laravel.com/docs/5.8/validatio
 ```php
 use Tobyz\JsonApiServer\Laravel\rules;
 
-$schema->attribute('username')
+$type->attribute('username')
     ->validate(rules('required', 'min:3', 'max:30'));
 ```
 
 ### Setters & Savers
 
-Use the `set` method to define custom mutation logic for your field, instead of just setting the value straight on the model property. (Of course, if you're using Eloquent, you could also define [casts](https://laravel.com/docs/5.8/eloquent-mutators#attribute-casting) or [mutators](https://laravel.com/docs/5.8/eloquent-mutators#defining-a-mutator) on your model to achieve a similar thing.)
+Use the `set` method to define custom mutation logic for your field, instead of just setting the value straight on the model property. (If you're using Eloquent, you could also define attribute [casts](https://laravel.com/docs/5.8/eloquent-mutators#attribute-casting) or [mutators](https://laravel.com/docs/5.8/eloquent-mutators#defining-a-mutator) on your model to achieve a similar thing.)
 
 ```php
-$schema->attribute('firstName')
-    ->set(function ($model, $value, $request) {
+$type->attribute('firstName')
+    ->set(function ($model, $value, ServerRequestInterface $request) {
         $model->first_name = strtolower($value);
     });
 ```
@@ -318,11 +338,11 @@ $schema->attribute('firstName')
 If your field corresponds to some other form of data storage rather than a simple property on your model, you can use the `save` method to provide a closure to be run _after_ your model is saved:
 
 ```php
-$schema->attribute('locale')
-    ->save(function ($model, $value, $request) {
+$type->attribute('locale')
+    ->save(function ($model, $value, ServerRequestInterface $request) {
         $model->preferences()
-            ->update(['value' => $value])
-            ->where('key', 'locale');
+            ->where('key', 'locale')
+            ->update(['value' => $value]);
     });
 ```
 
@@ -331,13 +351,13 @@ $schema->attribute('locale')
 You can define a field as `filterable` to allow the resource index to be [filtered](https://jsonapi.org/recommendations/#filtering) by the field's value. This works for both attributes and relationships:
 
 ```php
-$schema->attribute('firstName')
+$type->attribute('firstName')
     ->filterable();
 
-$schema->hasMany('groups')
+$type->hasMany('groups')
     ->filterable();
     
-// e.g. GET /api/users?filter[firstName]=Toby&filter[groups]=1,2,3
+// eg. GET /api/users?filter[firstName]=Toby&filter[groups]=1,2,3
 ```
 
 The `EloquentAdapter` automatically parses and applies `>`, `>=`, `<`, `<=`, and `..` operators on attribute filter values, so you can do:
@@ -347,20 +367,10 @@ GET /api/users?filter[postCount]=>=10
 GET /api/users?filter[postCount]=5..15
 ```
 
-You can also pass a closure to customize how the filter is applied to the query builder object:
+To define filters with custom logic, or ones that do not correspond to an attribute, use the `filter` method:
 
 ```php
-$schema->attribute('name')
-    ->filterable(function ($query, $value, $request) {
-        $query->where('first_name', $value)
-            ->orWhere('last_name', $value);
-    });
-```
-
-To define filters that do not correspond to an attribute, use the `filter` method:
-
-```php
-$schema->filter('minPosts', function ($query, $value, $request) {
+$type->filter('minPosts', function ($query, $value, ServerRequestInterface $request) {
     $query->where('postCount', '>=', $value);
 });
 ```
@@ -370,93 +380,82 @@ $schema->filter('minPosts', function ($query, $value, $request) {
 You can define an attribute as `sortable` to allow the resource index to be [sorted](https://jsonapi.org/format/#fetching-sorting) by the attribute's value:
 
 ```php
-$schema->attribute('firstName')
+$type->attribute('firstName')
     ->sortable();
     
-$schema->attribute('lastName')
+$type->attribute('lastName')
     ->sortable();
     
 // e.g. GET /api/users?sort=lastName,firstName
 ```
 
-You can pass a closure to customize how the sort is applied to the query builder object:
-
-```php
-$schema->attribute('name')
-    ->sortable(function ($query, $direction, $request) {
-        $query->orderBy('last_name', $direction)
-            ->orderBy('first_name', $direction);
-    });
-```
-
 You can set a default sort string to be used when the consumer has not supplied one using the `defaultSort` method on the schema builder:
 
 ```php
-$schema->defaultSort('-updatedAt,-createdAt');
+$type->defaultSort('-updatedAt,-createdAt');
 ```
 
-To define sortable criteria that does not correspond to an attribute, use the `sort` method:
+To define sort fields with custom logic, or ones that do not correspond to an attribute, use the `sort` method:
 
 ```php
-$schema->sort('relevance', function ($query, $direction, $request) {
+$type->sort('relevance', function ($query, $direction, ServerRequestInterface $request) {
     $query->orderBy('relevance', $direction);
 });
 ```
 
 ### Pagination
 
-By default, resource listings are automatically [paginated](https://jsonapi.org/format/#fetching-pagination) with 20 records per page. You can change this limit using the `paginate` method on the schema builder, or you can remove it by passing `null`:
+By default, resource listings are automatically [paginated](https://jsonapi.org/format/#fetching-pagination) with 20 records per page. You can change this amount using the `paginate` method on the schema builder, or you can remove it by calling the `dontPaginate` method:
 
 ```php
-$schema->paginate(50); // default to listing 50 resources per page
-$schema->paginate(null); // default to listing all resources
+$type->paginate(50); // default to listing 50 resources per page
+$type->dontPaginate(); // default to listing all resources
 ```
 
-Consumers may request a different limit using the `page[limit]` query parameter. By default the maximum possible limit is capped at 50; you can change this cap using the `limit` method, or you can remove it by passing `null`:
+Consumers may request a different limit using the `page[limit]` query parameter. By default the maximum possible limit is capped at 50; you can change this cap using the `limit` method, or you can remove it by calling the `noLimit` method:
 
 ```php
-$schema->limit(100); // set the maximum limit for resources per page to 100
-$schema->limit(null); // remove the maximum limit for resources per page
+$type->limit(100); // set the maximum limit for resources per page to 100
+$type->noLimit(); // remove the maximum limit for resources per page
 ```
 
 #### Countability
 
-By default a query will be performed to count the total number of resources in a collection. This will be used to populate a `count` attribute in the document's `meta` object, as well as the `last` pagination link. For some types of resources, or when a query is resource-intensive (especially when certain filters or sorting is applied), it may be undesirable to have this happen. So it can be toggled using the `countable` and `uncountable` methods:
+By default a query will be performed to count the total number of resources in a collection. This will be used to populate a `total` attribute in the document's `meta` object, as well as the `last` pagination link. For some types of resources, or when a query is resource-intensive (especially when certain filters or sorting is applied), it may be undesirable to have this happen. So it can be toggled using the `countable` and `uncountable` methods:
 
 ```php
-$schema->countable();
-$schema->uncountable();
+$type->countable();
+$type->uncountable();
 ```
 
 ### Meta Information
 
-You can add meta information to the document or any relationship field using the `meta` method. Pass a value or a closure:
+You can add meta information to any resource or relationship field using the `meta` method:
 
 ```php
-$schema->meta('author', 'Toby Zerner');
-$schema->meta('requestTime', function ($request) {
+$type->meta('requestTime', function (ServerRequestInterface $request) {
     return new DateTime;
 });
 ```
 
 ### Creating Resources
 
-By default, resources are not [creatable](https://jsonapi.org/format/#crud-creating) (i.e. `POST` requests will return `403 Forbidden`). You can allow them to be created using the `creatable` and `notCreatable` methods on the schema builder. Pass a closure that returns `true` if the resource should be creatable, or no value to have it always creatable.
+By default, resources are not [creatable](https://jsonapi.org/format/#crud-creating) (ie. `POST` requests will return `403 Forbidden`). You can allow them to be created using the `creatable` and `notCreatable` methods on the schema builder. Pass a closure that returns `true` if the resource should be creatable, or no value to have it always creatable.
 
 ```php
-$schema->creatable();
+$type->creatable();
 
-$schema->creatable(function ($request) {
+$type->creatable(function (ServerRequestInterface $request) {
     return $request->getAttribute('isAdmin');
 });
 ```
 
 #### Customizing the Model
 
-When creating a resource, an empty model is supplied by the adapter. You may wish to override this and provide a custom model in special circumstances. You can do so using the `create` method:
+When creating a resource, an empty model is supplied by the adapter. You may wish to override this and provide a custom model in special circumstances. You can do so using the `createModel` method:
 
 ```php
-$schema->create(function ($request) {
+$type->createModel(function (ServerRequestInterface $request) {
     return new CustomModel;
 });
 ```
@@ -466,9 +465,9 @@ $schema->create(function ($request) {
 By default, resources are not [updatable](https://jsonapi.org/format/#crud-updating) (i.e. `PATCH` requests will return `403 Forbidden`). You can allow them to be updated using the `updatable` and `notUpdatable` methods on the schema builder:
 
 ```php
-$schema->updatable();
+$type->updatable();
 
-$schema->updatable(function ($request) {
+$type->updatable(function (ServerRequestInterface $request) {
     return $request->getAttribute('isAdmin');
 });
 ```
@@ -478,21 +477,21 @@ $schema->updatable(function ($request) {
 By default, resources are not [deletable](https://jsonapi.org/format/#crud-deleting) (i.e. `DELETE` requests will return `403 Forbidden`). You can allow them to be deleted using the `deletable` and `notDeletable` methods on the schema builder:
 
 ```php
-$schema->deletable();
+$type->deletable();
 
-$schema->deletable(function ($request) {
+$type->deletable(function (ServerRequestInterface $request) {
     return $request->getAttribute('isAdmin');
 });
 ```
 
 ### Events
 
-The server will fire several events, allowing you to hook into the following points in a resource's lifecycle: `creating`, `created`, `updating`, `updated`, `saving`, `saved`, `deleting`, `deleted`. (Of course, if you're using Eloquent, you could also use [model events](https://laravel.com/docs/5.8/eloquent#events) to achieve a similar thing, although you wouldn't have access to the request object.)
+The server will fire several events, allowing you to hook into the following points in a resource's lifecycle: `listing`, `listed`, `showing`, `shown`, `creating`, `created`, `updating`, `updated`, `deleting`, `deleted`. (If you're using Eloquent, you could also use [model events](https://laravel.com/docs/5.8/eloquent#events) to achieve a similar thing, although you wouldn't have access to the request object.)
 
-To listen for an event, simply call the matching method name on the schema builder and pass a closure to be executed, which will receive the model and the request:
+To listen for an event, simply call the matching method name on the schema and pass a closure to be executed, which will receive the model and the request:
 
 ```php
-$schema->creating(function ($model, $request) {
+$type->onCreating(function ($model, ServerRequestInterface $request) {
     // do something before a new model is saved
 });
 ```
@@ -509,13 +508,7 @@ $api->authenticated();
 
 ## Contributing
 
-Feel free to send pull requests or create issues if you come across problems or have great ideas. See the [Contributing Guide](https://github.com/tobyz/json-api-server/blob/master/CONTRIBUTING.md) for more information.
-
-### Running Tests
-
-```bash
-$ vendor/bin/phpunit
-```
+Feel free to send pull requests or create issues if you come across problems or have great ideas.
 
 ## License
 

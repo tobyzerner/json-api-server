@@ -165,13 +165,13 @@ class DeleteTest extends AbstractTestCase
 
         $this->api->resource('users', $adapter->reveal(), function (Type $type) use ($adapter, $deletingModel, &$called) {
             $type->deletable();
-            $type->deleting(function ($model, $request) use ($adapter, $deletingModel, &$called) {
+            $type->onDeleting(function ($model, $request) use ($adapter, $deletingModel, &$called) {
                 $this->assertSame($deletingModel, $model);
                 $this->assertInstanceOf(ServerRequestInterface::class, $request);
                 $adapter->delete($deletingModel)->shouldNotHaveBeenCalled();
                 $called++;
             });
-            $type->deleted(function ($model, $request) use ($adapter, $deletingModel, &$called) {
+            $type->onDeleted(function ($model, $request) use ($adapter, $deletingModel, &$called) {
                 $this->assertSame($deletingModel, $model);
                 $this->assertInstanceOf(ServerRequestInterface::class, $request);
                 $adapter->delete($deletingModel)->shouldHaveBeenCalled();

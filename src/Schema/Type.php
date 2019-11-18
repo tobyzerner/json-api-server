@@ -12,14 +12,14 @@
 namespace Tobyz\JsonApiServer\Schema;
 
 use Tobyz\JsonApiServer\Schema\Concerns\HasListeners;
+use Tobyz\JsonApiServer\Schema\Concerns\HasMeta;
 use function Tobyz\JsonApiServer\negate;
 
 final class Type
 {
-    use HasListeners;
+    use HasListeners, HasMeta;
 
     private $fields = [];
-    private $meta = [];
     private $filters = [];
     private $sortFields = [];
     private $perPage = 20;
@@ -93,32 +93,6 @@ final class Type
     public function getFields(): array
     {
         return $this->fields;
-    }
-
-    /**
-     * Add a meta attribute to the resource type.
-     */
-    public function meta(string $name, callable $value): Meta
-    {
-        return $this->meta[$name] = new Meta($name, $value);
-    }
-
-    /**
-     * Remove a meta attribute from the resource type.
-     */
-    public function removeMeta(string $name): void
-    {
-        unset($this->meta[$name]);
-    }
-
-    /**
-     * Get the resource type's meta attributes.
-     *
-     * @return Meta[]
-     */
-    public function getMeta(): array
-    {
-        return $this->meta;
     }
 
     /**

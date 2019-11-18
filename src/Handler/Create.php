@@ -78,8 +78,8 @@ class Create implements RequestHandlerInterface
     private function fillDefaultValues(array &$data, Request $request)
     {
         foreach ($this->resource->getSchema()->getFields() as $field) {
-            if (! has_value($data, $field) && ($default = $field->getDefault())) {
-                set_value($data, $field, $default($request));
+            if (! has_value($data, $field) && ($defaultCallback = $field->getDefaultCallback())) {
+                set_value($data, $field, $defaultCallback($request));
             }
         }
     }

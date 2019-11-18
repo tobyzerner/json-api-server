@@ -29,21 +29,6 @@ class MetaTest extends AbstractTestCase
         $this->api = new JsonApi('http://example.com');
     }
 
-    public function test_meta_fields_can_be_added_to_resources_with_a_value()
-    {
-        $this->api->resource('users', new MockAdapter(), function (Type $type) {
-            $type->meta('foo', 'bar');
-        });
-
-        $response = $this->api->handle(
-            $this->buildRequest('GET', '/users/1')
-        );
-
-        $document = json_decode($response->getBody(), true);
-
-        $this->assertEquals(['foo' => 'bar'], $document['data']['meta']);
-    }
-
     public function test_meta_fields_can_be_added_to_resources_with_a_closure()
     {
         $adapter = new MockAdapter(['1' => (object) ['id' => '1']]);

@@ -17,11 +17,13 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface;
 use Tobyz\JsonApiServer\Adapter\AdapterInterface;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\InternalServerErrorException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
 use Tobyz\JsonApiServer\Exception\NotAcceptableException;
 use Tobyz\JsonApiServer\Exception\NotImplementedException;
 use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
+use Tobyz\JsonApiServer\Exception\UnauthorizedException;
 use Tobyz\JsonApiServer\Exception\UnsupportedMediaTypeException;
 use Tobyz\JsonApiServer\Handler\Concerns\FindsResources;
 use Tobyz\JsonApiServer\Http\MediaTypes;
@@ -34,6 +36,7 @@ final class JsonApi implements RequestHandlerInterface
 
     private $resources = [];
     private $baseUrl;
+    private $authenticated = false;
 
     public function __construct(string $baseUrl)
     {
@@ -50,6 +53,8 @@ final class JsonApi implements RequestHandlerInterface
 
     /**
      * Get defined resource types.
+     *
+     * @return ResourceType[]
      */
     public function getResources(): array
     {
@@ -209,6 +214,10 @@ final class JsonApi implements RequestHandlerInterface
             $e = new InternalServerErrorException;
         }
 
+        if (! $this->authenticated && $e instanceof ForbiddenException) {
+            $e = new UnauthorizedException;
+        }
+
         $errors = $e->getJsonApiErrors();
         $status = $e->getJsonApiStatus();
 
@@ -225,5 +234,13 @@ final class JsonApi implements RequestHandlerInterface
     public function getBaseUrl(): string
     {
         return $this->baseUrl;
+    }
+
+    /**
+     * Indicate that the consumer is authenticated.
+     */
+    public function authenticated(): void
+    {
+        $this->authenticated = true;
     }
 }

@@ -49,7 +49,7 @@ class Show implements RequestHandlerInterface
         run_callbacks($this->resource->getSchema()->getListeners('show'), [$this->model, $request]);
 
         $serializer = new Serializer($this->api, $request);
-        $serializer->addSingle($this->resource, $this->model, $include);
+        $serializer->add($this->resource, $this->model, $include, true);
 
         return new JsonApiResponse(
             new CompoundDocument(

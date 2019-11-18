@@ -11,7 +11,6 @@
 
 namespace Tobyz\Tests\JsonApiServer\feature;
 
-use Psr\Http\Message\ServerRequestInterface;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Type;
@@ -65,30 +64,6 @@ class SortingTest extends AbstractTestCase
         );
 
         $this->assertContains([$attribute, 'asc'], $this->adapter->query->sort);
-    }
-
-    public function test_attributes_can_be_sortable_with_custom_logic()
-    {
-        $called = false;
-
-        $this->api->resource('users', $this->adapter, function (Type $type) use (&$called) {
-            $type->attribute('name')
-                ->sortable(function ($query, $direction, $request) use (&$called) {
-                    $this->assertSame($this->adapter->query, $query);
-                    $this->assertEquals('asc', $direction);
-                    $this->assertInstanceOf(ServerRequestInterface::class, $request);
-
-                    $called = true;
-                });
-        });
-
-        $this->api->handle(
-            $this->buildRequest('GET', '/users')
-                ->withQueryParams(['sort' => 'name'])
-        );
-
-        $this->assertTrue($called);
-        $this->assertTrue(empty($this->adapter->query->sort));
     }
 
     public function test_attribute_sortable_callback_receives_correct_parameters()

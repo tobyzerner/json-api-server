@@ -14,24 +14,15 @@ namespace Tobyz\JsonApiServer;
 use DateTime;
 use DateTimeInterface;
 use JsonApiPhp\JsonApi as Structure;
-use JsonApiPhp\JsonApi\EmptyRelationship;
-use JsonApiPhp\JsonApi\Link\RelatedLink;
-use JsonApiPhp\JsonApi\Link\SelfLink;
-use JsonApiPhp\JsonApi\ResourceIdentifier;
-use JsonApiPhp\JsonApi\ResourceIdentifierCollection;
-use JsonApiPhp\JsonApi\ToMany;
-use JsonApiPhp\JsonApi\ToOne;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use Tobyz\JsonApiServer\Adapter\AdapterInterface;
-use Tobyz\JsonApiServer\Schema\Attribute;
-use Tobyz\JsonApiServer\Schema\Relationship;
+use RuntimeException;
 
 final class Serializer
 {
-    protected $api;
-    protected $request;
-    protected $map = [];
-    protected $primary = [];
+    private $api;
+    private $request;
+    private $map = [];
+    private $primary = [];
 
     public function __construct(JsonApi $api, Request $request)
     {
@@ -39,44 +30,59 @@ final class Serializer
         $this->request = $request;
     }
 
+    /**
+     * Add a primary resource to the document.
+     */
     public function add(ResourceType $resource, $model, array $include, bool $single = false): void
     {
         $data = $this->addToMap($resource, $model, $include, $single);
 
-        $this->primary[] = $data['type'].':'.$data['id'];
+        $this->primary[] = $this->key($data);
     }
 
-    public function addSingle(ResourceType $resource, $model, array $include): void
+    /**
+     * Get the serialized primary resources.
+     */
+    public function primary(): array
     {
-        $this->add($resource, $model, $include, true);
+        $primary = array_map(function ($key) {
+            return $this->map[$key];
+        }, $this->primary);
+
+        return $this->resourceObjects($primary);
     }
 
-    private function addToMap(ResourceType $resource, $model, array $include, bool $single = false)
+    /**
+     * Get the serialized included resources.
+     */
+    public function included(): array
+    {
+        $included = array_values(array_diff_key($this->map, array_flip($this->primary)));
+
+        return $this->resourceObjects($included);
+    }
+
+    private function addToMap(ResourceType $resource, $model, array $include, bool $single = false): array
     {
         $adapter = $resource->getAdapter();
         $schema = $resource->getSchema();
 
         $data = [
             'type' => $type = $resource->getType(),
-            'id' => $adapter->getId($model),
+            'id' => $id = $adapter->getId($model),
             'fields' => [],
             'links' => [],
             'meta' => []
         ];
 
-        $resourceUrl = $this->api->getBaseUrl().'/'.$data['type'].'/'.$data['id'];
-
+        $key = $this->key($data);
+        $url = $this->api->getBaseUrl()."/$type/$id";
         $fields = $schema->getFields();
-
         $queryParams = $this->request->getQueryParams();
 
         if (isset($queryParams['fields'][$type])) {
             $fields = array_intersect_key($fields, array_flip(explode(',', $queryParams['fields'][$type])));
         }
-
-        ksort($fields);
-
-        $key = $data['type'].':'.$data['id'];
 
         foreach ($fields as $name => $field) {
             if (isset($this->map[$key]['fields'][$name])) {
@@ -92,158 +98,39 @@ final class Serializer
             }
 
             if ($field instanceof Schema\Attribute) {
-                $value = $this->attribute($field, $model, $adapter);
+                $value = $this->attribute($field, $resource, $model);
             } elseif ($field instanceof Schema\Relationship) {
                 $isIncluded = isset($include[$name]);
-                $isLinkage = evaluate($field->isLinkage(), [$this->request]);
+                $relationshipInclude = $isIncluded ? ($relationshipInclude[$name] ?? []) : null;
+                $links = $this->relationshipLinks($field, $url);
+                $meta = $this->meta($field->getMeta(), $model);
+                $members = array_merge($links, $meta);
 
-                if (! $isIncluded && ! $isLinkage) {
-                    $value = $this->emptyRelationship($field, $resourceUrl);
+                if (! $isIncluded && ! $field->isLinkage()) {
+                    $value = $this->emptyRelationship($field, $members);
                 } elseif ($field instanceof Schema\HasOne) {
-                    $value = $this->toOne($field, $model, $adapter, $isIncluded, $isLinkage, $include[$name] ?? [], $resourceUrl, $single);
+                    $value = $this->toOne($field, $members, $resource, $model, $relationshipInclude, $single);
                 } elseif ($field instanceof Schema\HasMany) {
-                    $value = $this->toMany($field, $model, $adapter, $isIncluded, $isLinkage, $include[$name] ?? [], $resourceUrl);
+                    $value = $this->toMany($field, $members, $resource, $model, $relationshipInclude);
                 }
             }
 
-            if (!empty($value)) {
+            if (! empty($value)) {
                 $data['fields'][$name] = $value;
             }
         }
 
-        $data['links']['self'] = new SelfLink($resourceUrl);
-
-        $metas = $schema->getMeta();
-
-        ksort($metas);
-
-        foreach ($metas as $name => $meta) {
-            $data['meta'][$name] = new Structure\Meta($meta->getName(), ($meta->getValue())($model, $this->request));
-        }
+        $data['links']['self'] = new Structure\Link\SelfLink($url);
+        $data['meta'] = $this->meta($schema->getMeta(), $model);
 
         $this->merge($data);
 
         return $data;
     }
 
-    private function attribute(Attribute $field, $model, AdapterInterface $adapter): Structure\Attribute
-    {
-        if ($getter = $field->getGetCallback()) {
-            $value = $getter($model, $this->request);
-        } else {
-            $value = $adapter->getAttribute($model, $field);
-        }
-
-        if ($value instanceof DateTimeInterface) {
-            $value = $value->format(DateTime::RFC3339);
-        }
-
-        return new Structure\Attribute($field->getName(), $value);
-    }
-
-    private function toOne(Schema\HasOne $field, $model, AdapterInterface $adapter, bool $isIncluded, bool $isLinkage, array $include, string $resourceUrl, bool $single = false)
-    {
-        $links = $this->getRelationshipLinks($field, $resourceUrl);
-
-        $value = $isIncluded ? (($getter = $field->getGetCallback()) ? $getter($model, $this->request) : $adapter->getHasOne($model, $field, false)) : ($isLinkage ? $adapter->getHasOne($model, $field, true) : null);
-
-        if (! $value) {
-            return new Structure\ToNull(
-                $field->getName(),
-                ...$links
-            );
-        }
-
-        if ($isIncluded) {
-            $identifier = $this->addRelated($field, $value, $include, $single);
-        } else {
-            $identifier = $this->relatedResourceIdentifier($field, $value);
-        }
-
-
-        return new ToOne(
-            $field->getName(),
-            $identifier,
-            ...$links
-        );
-    }
-
-    private function toMany(Schema\HasMany $field, $model, AdapterInterface $adapter, bool $isIncluded, bool $isLinkage, array $include, string $resourceUrl)
-    {
-        if ($getter = $field->getGetCallback()) {
-            $value = $getter($model, $this->request);
-        } else {
-            $value = ($isLinkage || $isIncluded) ? $adapter->getHasMany($model, $field, false) : null;
-        }
-
-        $identifiers = [];
-
-        if ($isIncluded) {
-            foreach ($value as $relatedModel) {
-                $identifiers[] = $this->addRelated($field, $relatedModel, $include);
-            }
-        } else {
-            foreach ($value as $relatedModel) {
-                $identifiers[] = $this->relatedResourceIdentifier($field, $relatedModel);
-            }
-        }
-
-        return new ToMany(
-            $field->getName(),
-            new ResourceIdentifierCollection(...$identifiers),
-            ...$this->getRelationshipLinks($field, $resourceUrl)
-        );
-    }
-
-    private function emptyRelationship(Relationship $field, string $resourceUrl): ?EmptyRelationship
-    {
-        $links = $this->getRelationshipLinks($field, $resourceUrl);
-
-        if (! $links) {
-            return null;
-        }
-
-        return new EmptyRelationship(
-            $field->getName(),
-            ...$links
-        );
-    }
-
-    private function getRelationshipLinks(Relationship $field, string $resourceUrl): array
-    {
-        if (! $field->isLinks()) {
-            return [];
-        }
-
-        return [
-            new SelfLink($resourceUrl.'/relationships/'.$field->getName()),
-            new RelatedLink($resourceUrl.'/'.$field->getName())
-        ];
-    }
-
-    private function addRelated(Relationship $field, $model, array $include, bool $single = false): ResourceIdentifier
-    {
-        $relatedResource = is_string($field->getType()) ? $this->api->getResource($field->getType()) : $this->resourceForModel($model);
-
-        return $this->resourceIdentifier(
-            $this->addToMap($relatedResource, $model, $include, $single)
-        );
-    }
-
-    private function resourceForModel($model)
-    {
-        foreach ($this->api->getResources() as $resource) {
-            if ($resource->getAdapter()->represents($model)) {
-                return $resource;
-            }
-        }
-
-        throw new \RuntimeException('No resource defined to handle model of type '.get_class($model));
-    }
-
     private function merge($data): void
     {
-        $key = $data['type'].':'.$data['id'];
+        $key = $this->key($data);
 
         if (isset($this->map[$key])) {
             $this->map[$key]['fields'] = array_merge($this->map[$key]['fields'], $data['fields']);
@@ -254,20 +141,107 @@ final class Serializer
         }
     }
 
-    public function primary(): array
+    private function attribute(Schema\Attribute $field, ResourceType $resource, $model): Structure\Attribute
     {
-        $primary = array_map(function ($key) {
-            return $this->map[$key];
-        }, $this->primary);
+        if ($getCallback = $field->getGetCallback()) {
+            $value = $getCallback($model, $this->request);
+        } else {
+            $value = $resource->getAdapter()->getAttribute($model, $field);
+        }
 
-        return $this->resourceObjects($primary);
+        if ($value instanceof DateTimeInterface) {
+            $value = $value->format(DateTime::RFC3339);
+        }
+
+        return new Structure\Attribute($field->getName(), $value);
     }
 
-    public function included(): array
+    private function toOne(Schema\HasOne $field, array $members, ResourceType $resource, $model, ?array $include, bool $single)
     {
-        $included = array_values(array_diff_key($this->map, array_flip($this->primary)));
+        $included = $include !== null;
 
-        return $this->resourceObjects($included);
+        $model = ($included && $getCallback = $field->getGetCallback())
+            ? $getCallback($model, $this->request)
+            : $resource->getAdapter()->getHasOne($model, $field, ! $included);
+
+        if (! $model) {
+            return new Structure\ToNull($field->getName(), ...$members);
+        }
+
+        $identifier = $include !== null
+            ? $this->addRelated($field, $model, $include, $single)
+            : $this->relatedResourceIdentifier($field, $model);
+
+        return new Structure\ToOne($field->getName(), $identifier, ...$members);
+    }
+
+    private function toMany(Schema\HasMany $field, array $members, ResourceType $resource, $model, ?array $include)
+    {
+        $included = $include !== null;
+
+        $models = ($included && $getCallback = $field->getGetCallback())
+            ? $getCallback($model, $this->request)
+            : $resource->getAdapter()->getHasMany($model, $field, ! $included);
+
+        $identifiers = [];
+
+        foreach ($models as $relatedModel) {
+            $identifiers[] = $included
+                ? $this->addRelated($field, $relatedModel, $include)
+                : $this->relatedResourceIdentifier($field, $relatedModel);
+        }
+
+        return new Structure\ToMany(
+            $field->getName(),
+            new Structure\ResourceIdentifierCollection(...$identifiers),
+            ...$members
+        );
+    }
+
+    private function emptyRelationship(Schema\Relationship $field, array $members): ?Structure\EmptyRelationship
+    {
+        if (! $members) {
+            return null;
+        }
+
+        return new Structure\EmptyRelationship($field->getName(), ...$members);
+    }
+
+    /**
+     * @return Structure\Internal\RelationshipMember
+     */
+    private function relationshipLinks(Schema\Relationship $field, string $url): array
+    {
+        if (! $field->isLinks()) {
+            return [];
+        }
+
+        return [
+            new Structure\Link\SelfLink($url.'/relationships/'.$field->getName()),
+            new Structure\Link\RelatedLink($url.'/'.$field->getName())
+        ];
+    }
+
+    private function addRelated(Schema\Relationship $field, $model, array $include, bool $single = false): Structure\ResourceIdentifier
+    {
+        $relatedResource = is_string($field->getType())
+            ? $this->api->getResource($field->getType())
+            : $this->resourceForModel($model);
+
+        return $this->resourceIdentifier(
+            $this->addToMap($relatedResource, $model, $include, $single)
+        );
+    }
+
+    private function resourceForModel($model): ResourceType
+    {
+        foreach ($this->api->getResources() as $resource) {
+            if ($resource->getAdapter()->represents($model)) {
+                return $resource;
+            }
+        }
+
+        throw new RuntimeException('No resource defined to represent model of type '.get_class($model));
     }
 
     private function resourceObjects(array $items): array
@@ -290,21 +264,36 @@ final class Serializer
 
     private function resourceIdentifier(array $data): Structure\ResourceIdentifier
     {
-        return new Structure\ResourceIdentifier(
-            $data['type'],
-            $data['id']
-        );
+        return new Structure\ResourceIdentifier($data['type'], $data['id']);
     }
 
     private function relatedResourceIdentifier(Schema\Relationship $field, $model)
     {
         $type = $field->getType();
-
-        $relatedResource = is_string($type) ? $this->api->getResource($type) : $this->resourceForModel($model);
+        $relatedResource = is_string($type)
+            ? $this->api->getResource($type)
+            : $this->resourceForModel($model);
 
         return $this->resourceIdentifier([
             'type' => $relatedResource->getType(),
             'id' => $relatedResource->getAdapter()->getId($model)
         ]);
+    }
+
+    /**
+     * @return Structure\Internal\RelationshipMember
+     */
+    private function meta(array $items, $model): array
+    {
+        ksort($items);
+
+        return array_map(function (Schema\Meta $meta) use ($model) {
+            return new Structure\Meta($meta->getName(), ($meta->getValue())($model, $this->request));
+        }, $items);
+    }
+
+    private function key(array $data)
+    {
+        return $data['type'].':'.$data['id'];
     }
 }

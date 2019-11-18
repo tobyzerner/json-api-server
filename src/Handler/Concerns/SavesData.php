@@ -208,12 +208,12 @@ trait SavesData
 
             $value = get_value($data, $field);
 
-            if ($setter = $field->getSetter()) {
-                $setter($model, $value, $request);
+            if ($setCallback = $field->getSetCallback()) {
+                $setCallback($model, $value, $request);
                 continue;
             }
 
-            if ($field->getSaver()) {
+            if ($field->getSaveCallback()) {
                 continue;
             }
 

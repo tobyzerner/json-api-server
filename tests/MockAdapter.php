@@ -53,12 +53,12 @@ class MockAdapter implements AdapterInterface
         return $model->{$this->getProperty($attribute)} ?? 'default';
     }
 
-    public function getHasOne($model, HasOne $relationship, array $fields = null)
+    public function getHasOne($model, HasOne $relationship, bool $linkage)
     {
         return $model->{$this->getProperty($relationship)} ?? null;
     }
 
-    public function getHasMany($model, HasMany $relationship, array $fields = null): array
+    public function getHasMany($model, HasMany $relationship, bool $linkage): array
     {
         return $model->{$this->getProperty($relationship)} ?? [];
     }
@@ -122,17 +122,10 @@ class MockAdapter implements AdapterInterface
         $query->paginate[] = [$limit, $offset];
     }
 
-    public function load(array $models, array $relationships, Closure $scope): void
+    public function load(array $models, array $relationships, Closure $scope, bool $linkage): void
     {
         foreach ($models as $model) {
             $model->load[] = $relationships;
-        }
-    }
-
-    public function loadIds(array $models, Relationship $relationship): void
-    {
-        foreach ($models as $model) {
-            $model->loadIds[] = $relationship;
         }
     }
 
@@ -146,26 +139,8 @@ class MockAdapter implements AdapterInterface
         return isset($model['type']) && $model['type'] === $this->type;
     }
 
-    /**
-     * Get the number of results from the query.
-     *
-     * @param $query
-     * @return int
-     */
     public function count($query): int
     {
         return count($this->models);
-    }
-
-    /**
-     * Get the ID of the related resource for a has-one relationship.
-     *
-     * @param $model
-     * @param HasOne $relationship
-     * @return mixed|null
-     */
-    public function getHasOneId($model, HasOne $relationship): ?string
-    {
-        // TODO: Implement getHasOneId() method.
     }
 }

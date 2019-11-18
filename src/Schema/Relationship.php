@@ -11,8 +11,12 @@
 
 namespace Tobyz\JsonApiServer\Schema;
 
+use Tobyz\JsonApiServer\Schema\Concerns\HasMeta;
+
 abstract class Relationship extends Field
 {
+    use HasMeta;
+
     private $type;
     private $linkage = false;
     private $links = true;

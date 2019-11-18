@@ -1,5 +1,6 @@
 {
     "name": "tobyz/json-api-server",
+    "description": "A fully automated framework-agnostic JSON:API server implementation in PHP.",
     "require": {
         "php": "^7.2",
         "doctrine/inflector": "^1.3",
@@ -19,7 +20,10 @@
         "psr-4": {
             "Tobyz\\JsonApiServer\\": "src/"
         },
-        "files": ["src/functions.php"]
+        "files": [
+            "src/functions.php",
+            "src/functions_laravel.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
@@ -30,6 +34,9 @@
         "dms/phpunit-arraysubset-asserts": "^0.1.0",
         "helmich/phpunit-json-assert": "^3.0",
         "phpunit/phpunit": "^8.0"
+    },
+    "scripts": {
+        "test": "phpunit"
     },
     "config": {
         "sort-packages": true
