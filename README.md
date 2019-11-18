@@ -1,10 +1,9 @@
-# tobyz/json-api-server
+# json-api-server
 
-[![Build Status](https://img.shields.io/travis/com/tobyz/json-api-server.svg?style=flat)](https://travis-ci.com/tobyz/json-api-server)
 [![Pre Release](https://img.shields.io/packagist/vpre/tobyz/json-api-server.svg?style=flat)](https://github.com/tobyz/json-api-server/releases)
 [![License](https://img.shields.io/packagist/l/tobyz/json-api-server.svg?style=flat)](https://packagist.org/packages/tobyz/json-api-server)
 
-**A fully automated framework-agnostic [JSON:API](http://jsonapi.org) server implementation in PHP.**  
+**A fully automated [JSON:API](http://jsonapi.org) server implementation in PHP.**  
 Define your schema, plug in your models, and we'll take care of the rest. 🍻
 
 ```bash
