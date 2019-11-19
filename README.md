@@ -3,12 +3,16 @@
 [![Pre Release](https://img.shields.io/packagist/vpre/tobyz/json-api-server.svg?style=flat)](https://github.com/tobyz/json-api-server/releases)
 [![License](https://img.shields.io/packagist/l/tobyz/json-api-server.svg?style=flat)](https://packagist.org/packages/tobyz/json-api-server)
 
-**A fully automated [JSON:API](http://jsonapi.org) server implementation in PHP.**  
-Define your schema, plug in your models, and we'll take care of the rest. 🍻
+> **A fully automated [JSON:API](http://jsonapi.org) server implementation in PHP.**  
+> Define your schema, plug in your models, and we'll take care of the rest. 🍻
+
+## Installation
 
 ```bash
 composer require tobyz/json-api-server
 ```
+
+## Usage
 
 ```php
 use Tobyz\JsonApiServer\Adapter\EloquentAdapter;
@@ -505,10 +509,14 @@ You should indicate to the server if the consumer is authenticated using the `au
 $api->authenticated();
 ```
 
+## Examples
+
+* TODO
+
 ## Contributing
 
-Feel free to send pull requests or create issues if you come across problems or have great ideas.
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
 ## License
 
-This code is published under the [The MIT License](LICENSE). This means you can do almost anything with it, as long as the copyright notice and the accompanying license file is left intact.
+[MIT](LICENSE)
