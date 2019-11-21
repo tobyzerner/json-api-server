@@ -101,7 +101,7 @@ final class Serializer
                 $value = $this->attribute($field, $resource, $model);
             } elseif ($field instanceof Schema\Relationship) {
                 $isIncluded = isset($include[$name]);
-                $relationshipInclude = $isIncluded ? ($relationshipInclude[$name] ?? []) : null;
+                $relationshipInclude = $isIncluded ? ($include[$name] ?? []) : null;
                 $links = $this->relationshipLinks($field, $url);
                 $meta = $this->meta($field->getMeta(), $model);
                 $members = array_merge($links, $meta);
@@ -160,7 +160,7 @@ final class Serializer
     {
         $included = $include !== null;
 
-        $model = ($included && $getCallback = $field->getGetCallback())
+        $model = ($getCallback = $field->getGetCallback())
             ? $getCallback($model, $this->request)
             : $resource->getAdapter()->getHasOne($model, $field, ! $included);
 
@@ -179,7 +179,7 @@ final class Serializer
     {
         $included = $include !== null;
 
-        $models = ($included && $getCallback = $field->getGetCallback())
+        $models = ($getCallback = $field->getGetCallback())
             ? $getCallback($model, $this->request)
             : $resource->getAdapter()->getHasMany($model, $field, ! $included);
 

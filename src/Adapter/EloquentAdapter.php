@@ -15,7 +15,6 @@ use Closure;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use InvalidArgumentException;
 use Tobyz\JsonApiServer\Schema\Attribute;
 use Tobyz\JsonApiServer\Schema\HasMany;
@@ -65,7 +64,7 @@ class EloquentAdapter implements AdapterInterface
 
     public function count($query): int
     {
-        return $query->count();
+        return $query->getQuery()->getCountForPagination();
     }
 
     public function getId($model): string
@@ -80,20 +79,22 @@ class EloquentAdapter implements AdapterInterface
 
     public function getHasOne($model, HasOne $relationship, bool $linkage)
     {
-        $relation = $this->getEloquentRelation($model, $relationship);
-
         // If it's a belongs-to relationship and we only need to get the ID,
         // then we don't have to actually load the relation because the ID is
         // stored in a column directly on the model. We will mock up a related
         // model with the value of the ID filled.
-        if ($linkage && $relation instanceof BelongsTo) {
-            if ($key = $model->{$relation->getForeignKeyName()}) {
-                $related = $relation->getRelated();
+        if ($linkage) {
+            $relation = $this->getEloquentRelation($model, $relationship);
 
-                return $related->newInstance()->forceFill([$related->getKeyName() => $key]);
+            if ($relation instanceof BelongsTo) {
+                if ($key = $model->{$relation->getForeignKeyName()}) {
+                    $related = $relation->getRelated();
+
+                    return $related->newInstance()->forceFill([$related->getKeyName() => $key]);
+                }
+
+                return null;
             }
-
-            return null;
         }
 
         return $this->getRelationValue($model, $relationship);

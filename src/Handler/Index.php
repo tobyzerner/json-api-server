@@ -11,6 +11,7 @@
 
 namespace Tobyz\JsonApiServer\Handler;
 
+use Illuminate\Support\Arr;
 use JsonApiPhp\JsonApi as Structure;
 use JsonApiPhp\JsonApi\Link\LastLink;
 use JsonApiPhp\JsonApi\Link\NextLink;
@@ -57,13 +58,11 @@ class Index implements RequestHandlerInterface
 
         $include = $this->getInclude($request);
 
-        $this->filter($query, $request);
+        [$offset, $limit] = $this->paginate($query, $request);
         $this->sort($query, $request);
+        $this->filter($query, $request);
 
         $total = $schema->isCountable() ? $adapter->count($query) : null;
-
-        [$offset, $limit] = $this->paginate($query, $request);
-
         $models = $adapter->get($query);
 
         $this->loadRelationships($models, $include, $request);
@@ -107,7 +106,7 @@ class Index implements RequestHandlerInterface
             }
         }
 
-        $queryString = http_build_query($queryParams);
+        $queryString = Arr::query($queryParams);
 
         return $selfUrl.($queryString ? '?'.$queryString : '');
     }

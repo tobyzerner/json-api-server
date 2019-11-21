@@ -16,6 +16,7 @@ use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\ResourceType;
 use Tobyz\JsonApiServer\Schema\Relationship;
+use function Tobyz\JsonApiServer\evaluate;
 use function Tobyz\JsonApiServer\run_callbacks;
 
 /**
@@ -95,6 +96,7 @@ trait IncludesData
             if (
                 ! $field instanceof Relationship
                 || (! $field->isLinkage() && ! isset($include[$name]))
+                || $field->isVisible() === false
             ) {
                 continue;
             }
@@ -111,12 +113,12 @@ trait IncludesData
 
                     $adapter->load($models, $nextRelationshipPath, $scope, $field->isLinkage());
                 }
-            }
 
-            if (isset($include[$name]) && is_string($type = $field->getType())) {
-                $relatedResource = $this->api->getResource($type);
+                if (isset($include[$name]) && is_string($type = $field->getType())) {
+                    $relatedResource = $this->api->getResource($type);
 
-                $this->loadRelationshipsAtLevel($models, $nextRelationshipPath, $relatedResource, $include[$name] ?? [], $request);
+                    $this->loadRelationshipsAtLevel($models, $nextRelationshipPath, $relatedResource, $include[$name] ?? [], $request);
+                }
             }
         }
     }
