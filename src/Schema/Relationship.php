@@ -137,6 +137,8 @@ abstract class Relationship extends Field
     public function scope(callable $callback)
     {
         $this->listeners['scope'][] = $callback;
+
+        return $this;
     }
 
     public function getType()
