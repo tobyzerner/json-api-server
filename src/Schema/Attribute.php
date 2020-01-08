@@ -11,6 +11,8 @@
 
 namespace Tobyz\JsonApiServer\Schema;
 
+use function Tobyz\JsonApiServer\negate;
+
 final class Attribute extends Field
 {
     private $sortable = false;
@@ -23,9 +25,9 @@ final class Attribute extends Field
     /**
      * Allow this attribute to be used for sorting the resource listing.
      */
-    public function sortable()
+    public function sortable(callable $condition = null)
     {
-        $this->sortable = true;
+        $this->sortable = $condition ?: true;
 
         return $this;
     }
@@ -33,14 +35,14 @@ final class Attribute extends Field
     /**
      * Disallow this attribute to be used for sorting the resource listing.
      */
-    public function notSortable()
+    public function notSortable(callable $condition = null)
     {
-        $this->sortable = false;
+        $this->sortable = $condition ? negate($condition) : false;
 
         return $this;
     }
 
-    public function isSortable(): bool
+    public function isSortable()
     {
         return $this->sortable;
     }

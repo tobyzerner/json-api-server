@@ -27,6 +27,7 @@ use Tobyz\JsonApiServer\Schema\Attribute;
 use Tobyz\JsonApiServer\Schema\HasMany;
 use Tobyz\JsonApiServer\Schema\HasOne;
 use Tobyz\JsonApiServer\Serializer;
+use function Tobyz\JsonApiServer\evaluate;
 use function Tobyz\JsonApiServer\run_callbacks;
 
 class Index implements RequestHandlerInterface
@@ -162,7 +163,7 @@ class Index implements RequestHandlerInterface
             if (
                 isset($fields[$name])
                 && $fields[$name] instanceof Attribute
-                && $fields[$name]->isSortable()
+                && evaluate($fields[$name]->isSortable(), [$request])
             ) {
                 $adapter->sortByAttribute($query, $fields[$name], $direction);
                 continue;
@@ -249,7 +250,7 @@ class Index implements RequestHandlerInterface
                 continue;
             }
 
-            if (isset($fields[$name]) && $fields[$name]->isFilterable()) {
+            if (isset($fields[$name]) && evaluate($fields[$name]->isFilterable(), [$request])) {
                 if ($fields[$name] instanceof Attribute) {
                     $adapter->filterByAttribute($query, $fields[$name], $value);
                 } elseif ($fields[$name] instanceof HasOne) {

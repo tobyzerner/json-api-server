@@ -178,9 +178,9 @@ abstract class Field
     /**
      * Allow this field to be used for filtering the resource listing.
      */
-    public function filterable()
+    public function filterable(callable $condition = null)
     {
-        $this->filterable = true;
+        $this->filterable = $condition ?: true;
 
         return $this;
     }
@@ -188,9 +188,9 @@ abstract class Field
     /**
      * Disallow this field to be used for filtering the resource listing.
      */
-    public function notFilterable()
+    public function notFilterable(callable $condition = null)
     {
-        $this->filterable = false;
+        $this->filterable = $condition ? negate($condition) : false;
 
         return $this;
     }
@@ -240,7 +240,7 @@ abstract class Field
         return $this->defaultCallback;
     }
 
-    public function isFilterable(): bool
+    public function isFilterable()
     {
         return $this->filterable;
     }
