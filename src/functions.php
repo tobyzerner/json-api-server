@@ -46,7 +46,8 @@ function run_callbacks(array $callbacks, array $params)
 
 function has_value(array $data, Field $field)
 {
-    return isset($data[$field->getLocation()][$field->getName()]);
+    return array_key_exists($location = $field->getLocation(), $data)
+        && array_key_exists($field->getName(), $data[$location]);
 }
 
 function get_value(array $data, Field $field)
