@@ -246,7 +246,7 @@ class Index implements RequestHandlerInterface
             }
 
             if (isset($filters[$name])) {
-                $filters[$name]($query, $value, $request);
+                $filters[$name]->getCallback()($query, $value, $request);
                 continue;
             }
 

@@ -20,6 +20,7 @@ abstract class Field
     use HasListeners;
 
     private $name;
+    private $description;
     private $property;
     private $visible = true;
     private $single = false;
@@ -40,6 +41,16 @@ abstract class Field
      * ('attributes' or 'relationships').
      */
     abstract public function getLocation(): string;
+
+    /**
+     * Set the description of the field for documentation generation.
+     */
+    public function description(string $description)
+    {
+        $this->description = $description;
+
+        return $this;
+    }
 
     /**
      * Set the model property to which this field corresponds.

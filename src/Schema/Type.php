@@ -19,6 +19,7 @@ final class Type
 {
     use HasListeners, HasMeta;
 
+    private $description;
     private $fields = [];
     private $filters = [];
     private $sortFields = [];
@@ -34,6 +35,14 @@ final class Type
     private $updatable = false;
     private $deletable = false;
     private $deleteCallback;
+
+    /**
+     * Set the description of the type for documentation generation.
+     */
+    public function description(string $description)
+    {
+        $this->description = $description;
+    }
 
     /**
      * Add an attribute to the resource type.
@@ -98,9 +107,9 @@ final class Type
     /**
      * Add a filter to the resource type.
      */
-    public function filter(string $name, callable $callback): void
+    public function filter(string $name, callable $callback): Filter
     {
-        $this->filters[$name] = $callback;
+        return $this->filters[$name] = new Filter($name, $callback);
     }
 
     /**
