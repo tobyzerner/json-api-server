@@ -34,7 +34,7 @@ function wrap($value)
 
 function evaluate($condition, array $params)
 {
-    return $condition === true || ($condition instanceof Closure && $condition(...$params));
+    return $condition === true || (is_callable($condition) && $condition(...$params));
 }
 
 function run_callbacks(array $callbacks, array $params)
