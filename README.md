@@ -6,6 +6,57 @@
 > **A fully automated [JSON:API](http://jsonapi.org) server implementation in PHP.**  
 > Define your schema, plug in your models, and we'll take care of the rest. 🍻
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+
+- [Installation](#installation)
+- [Usage](#usage)
+  - [Handling Requests](#handling-requests)
+  - [Defining Resources](#defining-resources)
+  - [Attributes](#attributes)
+  - [Relationships](#relationships)
+    - [Relationship Links](#relationship-links)
+    - [Relationship Linkage](#relationship-linkage)
+    - [Relationship Inclusion](#relationship-inclusion)
+    - [Custom Loading Logic](#custom-loading-logic)
+    - [Polymorphic Relationships](#polymorphic-relationships)
+  - [Getters](#getters)
+  - [Visibility](#visibility)
+    - [Resource Visibility](#resource-visibility)
+    - [Field Visibility](#field-visibility)
+  - [Writability](#writability)
+  - [Default Values](#default-values)
+  - [Validation](#validation)
+  - [Transformers, Setters & Savers](#transformers-setters--savers)
+  - [Filtering](#filtering)
+  - [Sorting](#sorting)
+  - [Context](#context)
+  - [Pagination](#pagination)
+    - [Countability](#countability)
+  - [Meta Information](#meta-information)
+  - [Creating Resources](#creating-resources)
+    - [Customizing the Model](#customizing-the-model)
+    - [Customizing Creation Logic](#customizing-creation-logic)
+  - [Updating Resources](#updating-resources)
+    - [Customizing Update Logic](#customizing-update-logic)
+  - [Deleting Resources](#deleting-resources)
+  - [Events](#events)
+  - [Authentication](#authentication)
+  - [Laravel Helpers](#laravel-helpers)
+    - [Authorization](#authorization)
+    - [Validation](#validation-1)
+  - [Meta Information](#meta-information-1)
+    - [Document-level](#document-level)
+    - [Resource-level](#resource-level)
+    - [Relationship-level](#relationship-level)
+  - [Modifying Responses](#modifying-responses)
+- [Examples](#examples)
+- [Contributing](#contributing)
+- [License](#license)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ## Installation
 
 ```bash
@@ -15,31 +66,50 @@ composer require tobyz/json-api-server
 ## Usage
 
 ```php
-use Tobyz\JsonApiServer\Adapter\EloquentAdapter;
+use App\Models\{Article, Comment, User};
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Type;
+use Tobyz\JsonApiServer\Laravel\EloquentAdapter;
+use Tobyz\JsonApiServer\Laravel;
 
 $api = new JsonApi('http://example.com/api');
 
 $api->resource('articles', new EloquentAdapter(Article::class), function (Type $type) {
-    $type->attribute('title');
-    $type->hasOne('author')->type('people');
-    $type->hasMany('comments');
-});
+    $type->attribute('title')
+        ->writable()
+        ->required();
 
-$api->resource('people', new EloquentAdapter(User::class), function (Type $type) {
-    $type->attribute('firstName');
-    $type->attribute('lastName');
-    $type->attribute('twitter');
+    $type->hasOne('author')->type('users')
+        ->includable()
+        ->filterable();
+
+    $type->hasMany('comments')
+        ->includable();
 });
 
 $api->resource('comments', new EloquentAdapter(Comment::class), function (Type $type) {
-    $type->attribute('body');
-    $type->hasOne('author')->type('people');
+    $type->creatable(Laravel\authenticated());
+    $type->updatable(Laravel\can('update-comment'));
+    $type->deletable(Laravel\can('delete-comment'));
+
+    $type->attribute('body')
+        ->writable()
+        ->required();
+
+    $type->hasOne('article')
+        ->required();
+
+    $type->hasOne('author')->type('users')
+        ->required();
+});
+
+$api->resource('users', new EloquentAdapter(User::class), function (Type $type) {
+    $type->attribute('firstName')->sortable();
+    $type->attribute('lastName')->sortable();
 });
 
 /** @var Psr\Http\Message\ServerRequestInterface $request */
-/** @var Psr\Http\Message\Response $response */
+/** @var Psr\Http\Message\ResponseInterface $response */
 try {
     $response = $api->handle($request);
 } catch (Exception $e) {
@@ -47,7 +117,7 @@ try {
 }
 ```
 
-Assuming you have a few [Eloquent](https://laravel.com/docs/5.8/eloquent) models set up, the above code will serve a **complete JSON:API that conforms to the [spec](https://jsonapi.org/format/)**, including support for:
+Assuming you have a few [Eloquent](https://laravel.com/docs/8.0/eloquent) models set up, the above code will serve a **complete JSON:API that conforms to the [spec](https://jsonapi.org/format/)**, including support for:
 
 - **Showing** individual resources (`GET /api/articles/1`)
 - **Listing** resource collections (`GET /api/articles`)
@@ -74,11 +144,11 @@ try {
 }
 ```
 
-`Tobyz\JsonApiServer\JsonApi` is a [PSR-15 Request Handler](https://www.php-fig.org/psr/psr-15/). Instantiate it with your API's base URL. Convert your framework's request object into a [PSR-7 Request](https://www.php-fig.org/psr/psr-7/#321-psrhttpmessageserverrequestinterface) implementation, then let the `JsonApi` handler take it from there. Catch any exceptions and give them back to `JsonApi` to generate a JSON:API error response.
+`Tobyz\JsonApiServer\JsonApi` is a [PSR-15 Request Handler](https://www.php-fig.org/psr/psr-15/). Instantiate it with your API's base URL or path. Convert your framework's request object into a [PSR-7 Request](https://www.php-fig.org/psr/psr-7/#321-psrhttpmessageserverrequestinterface) implementation, then let the `JsonApi` handler take it from there. Catch any exceptions and give them back to `JsonApi` to generate a JSON:API error response.
 
 ### Defining Resources
 
-Define your API's resources using the `resource` method. The first argument is the [resource type](https://jsonapi.org/format/#document-resource-object-identification). The second is an instance of `Tobyz\JsonApiServer\Adapter\AdapterInterface` which will allow the handler to interact with your models. The third is a closure in which you'll build the schema for your resource.
+Define your API's resource types using the `resource` method. The first argument is the name of the [resource type](https://jsonapi.org/format/#document-resource-object-identification). The second is an instance of `Tobyz\JsonApiServer\Adapter\AdapterInterface` which will allow the handler to interact with your app's models. The third is a closure in which you'll build the schema for your resource type.
 
 ```php
 use Tobyz\JsonApiServer\Schema\Type;
@@ -88,7 +158,9 @@ $api->resource('comments', $adapter, function (Type $type) {
 });
 ```
 
-We provide an `EloquentAdapter` to hook your resources up with Laravel [Eloquent](https://laravel.com/docs/5.8/eloquent) models. Set it up with the name of the model that your resource represents. You can [implement your own adapter](https://github.com/tobyz/json-api-server/blob/master/src/Adapter/AdapterInterface.php) if you use a different ORM.
+#### Adapters
+
+We provide an `EloquentAdapter` to hook your resources up with Laravel [Eloquent](https://laravel.com/docs/8.0/eloquent) models. Set it up with the model class that your resource represents. You can [implement your own adapter](https://github.com/tobyz/json-api-server/blob/master/src/Adapter/AdapterInterface.php) if you use a different ORM.
 
 ```php
 use Tobyz\JsonApiServer\Adapter\EloquentAdapter;
@@ -104,7 +176,7 @@ Define an [attribute field](https://jsonapi.org/format/#document-resource-object
 $type->attribute('firstName');
 ```
 
-By default the attribute will correspond to the property on your model with the same name. (`EloquentAdapter` will `snake_case` it automatically for you.) If you'd like it to correspond to a different property, use the `property` method:
+By default, the attribute will correspond to the property on your model with the same name. (`EloquentAdapter` will `snake_case` it automatically for you.) If you'd like it to correspond to a different property, use the `property` method:
 
 ```php
 $type->attribute('firstName')
@@ -120,7 +192,7 @@ $type->hasOne('user');
 $type->hasMany('comments');
 ```
 
-By default the [resource type](https://jsonapi.org/format/#document-resource-object-identification) that the relationship corresponds to will be derived from the relationship name. In the example above, the `user` relationship would correspond to the `users` resource type, while `comments` would correspond to `comments`. If you'd like to use a different resource type, call the `type` method:
+By default, the [resource type](https://jsonapi.org/format/#document-resource-object-identification) that the relationship corresponds to will be derived from the relationship name. In the example above, the `user` relationship would correspond to the `users` resource type, while `comments` would correspond to `comments`. If you'd like to use a different resource type, call the `type` method:
 
 ```php
 $type->hasOne('author')
@@ -131,25 +203,25 @@ Like attributes, the relationship will automatically read and write to the relat
 
 #### Relationship Links
 
-Relationships include [`self`](https://jsonapi.org/format/#fetching-relationships) and [`related`](https://jsonapi.org/format/#document-resource-object-related-resource-links) links automatically. For some relationships it may not make sense to have them accessible via their own URL; you may disable these links by calling the `noLinks` method:
+Relationships include [`self`](https://jsonapi.org/format/#fetching-relationships) and [`related`](https://jsonapi.org/format/#document-resource-object-related-resource-links) links automatically. For some relationships it may not make sense to have them accessible via their own URL; you may disable these links by calling the `withoutLinks` method:
 
 ```php
 $type->hasOne('mostRelevantPost')
-    ->noLinks();
+    ->withoutLinks();
 ```
 
-> **Note:** Accessing these URLs is not yet implemented. 
+> **Note:** These URLs are not yet implemented. 
 
 #### Relationship Linkage
 
-By default relationships include no [resource linkage](https://jsonapi.org/format/#document-resource-object-linkage). You can toggle this by calling the `linkage` or `noLinkage` methods.
+By default, to-one relationships include [resource linkage](https://jsonapi.org/format/#document-resource-object-linkage), but to-many relationships do not. You can toggle this by calling the `withLinkage` or `withoutLinkage` methods.
 
 ```php
-$type->hasOne('user')
-    ->linkage();
+$type->hasMany('users')
+    ->withwithLinkage();
 ```
 
-> **Warning:** Be careful when enabling linkage on to-many relationships as pagination is not supported.
+> **Warning:** Be careful when enabling linkage on to-many relationships as pagination is not supported in relationships.
 
 #### Relationship Inclusion
 
@@ -162,33 +234,57 @@ $type->hasOne('user')
 
 > **Warning:** Be careful when making to-many relationships includable as pagination is not supported.
 
-Relationships included via the `include` query parameter are automatically [eager-loaded](https://laravel.com/docs/5.8/eloquent-relationships#eager-loading) by the adapter. However, you may wish to define your own eager-loading logic, or prevent a relationship from being eager-loaded. You can do so using the `loadable` and `notLoadable` methods:
+Relationships included via the `include` query parameter are automatically [eager-loaded](https://laravel.com/docs/8.0/eloquent-relationships#eager-loading) by the adapter, and any type [scopes](#resource-visibility) are applied automatically. You can also apply additional scopes at the relationship level using the `scope` method:
+
+```php
+$type->hasOne('users')
+    ->includable()
+    ->scope(function ($query, ServerRequestInterface $request, HasOne $field) {
+        $query->where('is_listed', true);
+    });
+```
+
+#### Custom Loading Logic
+
+Instead of using the adapter's eager-loading logic, you may wish to define your own for a relationship. You can do so using the `load` method. Beware that this can be complicated as eager-loading always takes place on the set of models at the root level; these are passed as the first parameter. The second parameter is an array of the `Relationship` objects that make up the nested inclusion trail leading to the current relationship. So, for example, if a request was made to `GET /categories?include=latestPost.user`, then the custom loading logic for the `user` relationship might look like this:
+
+```php
+$api->resource('categories', new EloquentAdapter(Models\Category::class), function (Type $type) {
+    $type->hasOne('latestPost')->type('posts')->includable(); // 1
+});
+
+$api->resource('posts', new EloquentAdapter(Models\Post::class), function (Type $type) {
+    $type->hasOne('user') // 2
+        ->includable()
+        ->load(function (array $models, array $relationships, Context $context) {
+            // Since this request is to the `GET /categories` endpoint, $models
+            // will be an array of Category models, and $relationships will be
+            // an array containing the objects [1, 2] above.
+        });
+});
+```
+
+To prevent a relationship from being eager-loaded altogether, use the `dontLoad` method:
 
 ```php
 $type->hasOne('user')
     ->includable()
-    ->loadable(function ($models, ServerRequestInterface $request) {
-        collect($models)->load(['user' => function () { /* constraints */ }]);
-    });
-
-$type->hasOne('user')
-    ->includable()
-    ->notLoadable();
+    ->dontLoad();
 ```
 
 #### Polymorphic Relationships
 
-Define a relationship as polymorphic using the `polymorphic` method:
+Define a polymorphic relationship using the `polymorphic` method. Optionally you may provide an array of allowed resource types:
 
 ```php
 $type->hasOne('commentable')
     ->polymorphic();
 
 $type->hasMany('taggable')
-    ->polymorphic();
+    ->polymorphic(['photos', 'videos']);
 ```
 
-This will mean that the resource type associated with the relationship will be derived from the model of each related resource. Consequently, nested includes cannot be requested on these relationships.
+Note that nested includes cannot be requested on polymorphic relationships.
 
 ### Getters
 
@@ -196,7 +292,7 @@ Use the `get` method to define custom retrieval logic for your field, instead of
 
 ```php
 $type->attribute('firstName')
-    ->get(function ($model, ServerRequestInterface $request) {
+    ->get(function ($model, Context $context) {
         return ucfirst($model->first_name);
     });
 ```
@@ -205,17 +301,17 @@ $type->attribute('firstName')
 
 #### Resource Visibility
 
-You can restrict the visibility of the whole resource using the `scope` method. This will allow you to modify the query builder object provided by your adapter:
+You can restrict the visibility of the whole resource using the `scope` method. This will allow you to modify the query builder object provided by the adapter:
 
 ```php
-$type->scope(function ($query, ServerRequestInterface $request, string $id = null) {
-    $query->where('user_id', $request->getAttribute('userId'));
+$type->scope(function ($query, Context $context) {
+    $query->where('user_id', $context->getRequest()->getAttribute('userId'));
 });
 ```
 
 The third argument to this callback (`$id`) is only populated if the request is to access a single resource. If the request is to a resource listing, it will be `null`.
 
-If you want to prevent listing the resource altogether (ie. return `403 Forbidden` from `GET /articles`), you can use the `notListable` method:
+If you want to prevent listing the resource altogether (ie. return `405 Method Not Allowed` from `GET /articles`), you can use the `notListable` method:
 
 ```php
 $type->notListable();
@@ -231,26 +327,17 @@ $type->attribute('email')
     ->visible()
 
     // Make a field visible only if certain logic is met
-    ->visible(function ($model, ServerRequestInterface $request) {
-        return $model->id == $request->getAttribute('userId');
+    ->visible(function ($model, Context $context) {
+        return $model->id == $context->getRequest()->getAttribute('userId');
     })
 
     // Always hide a field (useful for write-only fields like password)
     ->hidden()
 
     // Hide a field only if certain logic is met
-    ->hidden(function ($model, ServerRequestInterface $request) {
-        return $request->getAttribute('userIsSuspended');
+    ->hidden(function ($model, Context $context) {
+        return $context->getRequest()->getAttribute('userIsSuspended');
     });
-```
-
-#### Expensive Fields
-
-If a field is particularly expensive to calculate (for example, if you define a custom getter which runs a query), you can opt to only show the field when a single resource has been requested (ie. the field will not be included on resource listings). Use the `single` method to do this:
-
-```php
-$type->attribute('expensive')
-    ->single();
 ```
 
 ### Writability
@@ -263,16 +350,16 @@ $type->attribute('email')
     ->writable()
 
     // Make an attribute writable only if certain logic is met
-    ->writable(function ($model, ServerRequestInterface $request) {
-        return $model->id == $request->getAttribute('userId');
+    ->writable(function ($model, Context $context) {
+        return $model->id == $context->getRequest()->getAttribute('userId');
     })
 
     // Make an attribute read-only (default)
     ->readonly()
 
     // Make an attribute writable *unless* certain logic is met
-    ->readonly(function ($model, ServerRequestInterface $request) {
-        return $request->getAttribute('userIsSuspended');
+    ->readonly(function ($model, Context $context) {
+        return $context->getRequest()->getAttribute('userIsSuspended');
     });
 ```
 
@@ -285,8 +372,8 @@ $type->attribute('joinedAt')
     ->default(new DateTime);
 
 $type->attribute('ipAddress')
-    ->default(function (ServerRequestInterface $request) {
-        return $request->getServerParams()['REMOTE_ADDR'] ?? null;
+    ->default(function (Context $context) {
+        return $context->getRequest()->getServerParams()['REMOTE_ADDR'] ?? null;
     });
 ```
 
@@ -298,8 +385,8 @@ You can ensure that data provided for a field is valid before it is saved. Provi
 
 ```php
 $type->attribute('email')
-    ->validate(function (callable $fail, $email, $model, ServerRequestInterface $request) {
-        if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    ->validate(function (callable $fail, $value, $model, Context $context) {
+        if (! filter_var($value, FILTER_VALIDATE_EMAIL)) {
             $fail('Invalid email');
         }
     });
@@ -309,7 +396,7 @@ This works for relationships too – the related models will be retrieved via yo
 
 ```php
 $type->hasMany('groups')
-    ->validate(function (callable $fail, array $groups, $model, ServerRequestInterface $request) {
+    ->validate(function (callable $fail, array $groups, $model, Context $context) {
         foreach ($groups as $group) {
             if ($group->id === 1) {
                 $fail('You cannot assign this group');
@@ -318,34 +405,55 @@ $type->hasMany('groups')
     });
 ```
 
-You can easily use Laravel's [Validation](https://laravel.com/docs/5.8/validation) component for field validation with the `rules` function:
+You can easily use Laravel's [Validation](https://laravel.com/docs/8.0/validation) component for field validation with the `rules` function:
 
 ```php
 use Tobyz\JsonApiServer\Laravel\rules;
 
 $type->attribute('username')
-    ->validate(rules('required', 'min:3', 'max:30'));
+    ->validate(rules(['required', 'min:3', 'max:30']));
 ```
 
-### Setters & Savers
+### Transformers, Setters & Savers
 
-Use the `set` method to define custom mutation logic for your field, instead of just setting the value straight on the model property. (If you're using Eloquent, you could also define attribute [casts](https://laravel.com/docs/5.8/eloquent-mutators#attribute-casting) or [mutators](https://laravel.com/docs/5.8/eloquent-mutators#defining-a-mutator) on your model to achieve a similar thing.)
+Use the `transform` method on an attribute to mutate any incoming value before it is saved to the model. (If you're using Eloquent, you could also define attribute [casts](https://laravel.com/docs/5.8/eloquent-mutators#attribute-casting) or [mutators](https://laravel.com/docs/5.8/eloquent-mutators#defining-a-mutator) on your model to achieve a similar thing.)
 
 ```php
 $type->attribute('firstName')
-    ->set(function ($model, $value, ServerRequestInterface $request) {
-        $model->first_name = strtolower($value);
+    ->transform(function ($value, Context $context) {
+        return ucfirst($value);
     });
 ```
 
-If your field corresponds to some other form of data storage rather than a simple property on your model, you can use the `save` method to provide a closure to be run _after_ your model is saved:
+Use the `set` method to define custom mutation logic for your field, instead of just setting the value straight on the model property.
+
+```php
+$type->attribute('firstName')
+    ->set(function ($value, $model, Context $context) {
+        $model->first_name = ucfirst($value);
+        if ($model->first_name === 'Toby') {
+            $model->last_name = 'Zerner';
+        }
+    });
+```
+
+If your field corresponds to some other form of data storage rather than a simple property on your model, you can use the `save` method to provide a closure to be run _after_ your model has been successfully saved. If specified, the adapter will NOT be used to set the field on the model.
 
 ```php
 $type->attribute('locale')
-    ->save(function ($model, $value, ServerRequestInterface $request) {
+    ->save(function ($value, $model, Context $context) {
         $model->preferences()
             ->where('key', 'locale')
             ->update(['value' => $value]);
+    });
+```
+
+Finally, you can add an event listener to be run after a field has been saved using the `onSaved` method:
+
+```php
+$type->attribute('email')
+    ->onSaved(function ($value, $model, Context $context) {
+        event(new EmailWasChanged($model));
     });
 ```
 
@@ -363,7 +471,7 @@ $type->hasMany('groups')
 // eg. GET /api/users?filter[firstName]=Toby&filter[groups]=1,2,3
 ```
 
-The `EloquentAdapter` automatically parses and applies `>`, `>=`, `<`, `<=`, and `..` operators on attribute filter values, so you can do:
+The `>`, `>=`, `<`, `<=`, and `..` operators on attribute filter values are automatically parsed and applied, supporting queries like:
 
 ```
 GET /api/users?filter[postCount]=>=10
@@ -373,7 +481,7 @@ GET /api/users?filter[postCount]=5..15
 To define filters with custom logic, or ones that do not correspond to an attribute, use the `filter` method:
 
 ```php
-$type->filter('minPosts', function ($query, $value, ServerRequestInterface $request) {
+$type->filter('minPosts', function ($query, $value, Context $context) {
     $query->where('postCount', '>=', $value);
 });
 ```
@@ -401,9 +509,20 @@ $type->defaultSort('-updatedAt,-createdAt');
 To define sort fields with custom logic, or ones that do not correspond to an attribute, use the `sort` method:
 
 ```php
-$type->sort('relevance', function ($query, string $direction, ServerRequestInterface $request) {
+$type->sort('relevance', function ($query, string $direction, Context $context) {
     $query->orderBy('relevance', $direction);
 });
+```
+
+### Context
+
+The `Context` object is passed through to all callbacks. This object has a few useful methods:
+
+```php
+$context->getApi(); // Get the root API object
+$context->getRequest(); // Get the current request being handled
+$context->setRequest($request); // Modify the current request
+$context->getField(); // In the context of a field callback, get the current field
 ```
 
 ### Pagination
@@ -424,7 +543,7 @@ $type->noLimit(); // remove the maximum limit for resources per page
 
 #### Countability
 
-By default a query will be performed to count the total number of resources in a collection. This will be used to populate a `total` attribute in the document's `meta` object, as well as the `last` pagination link. For some types of resources, or when a query is resource-intensive (especially when certain filters or sorting is applied), it may be undesirable to have this happen. So it can be toggled using the `countable` and `uncountable` methods:
+By default, a query will be performed to count the total number of resources in a collection. This will be used to populate a `total` attribute in the document's `meta` object, as well as the `last` pagination link. For some types of resources, or when a query is resource-intensive (especially when certain filters or sorting is applied), it may be undesirable to have this happen. So it can be toggled using the `countable` and `uncountable` methods:
 
 ```php
 $type->countable();
@@ -433,12 +552,21 @@ $type->uncountable();
 
 ### Meta Information
 
-You can add meta information to any resource or relationship field using the `meta` method:
+You can add meta information to a resource using the `meta` method:
 
 ```php
-$type->meta('requestTime', function (ServerRequestInterface $request) {
+$type->meta('requestTime', function ($model, Context $context) {
     return new DateTime;
 });
+```
+
+or relationship field :
+
+```php
+$type->hasOne('user')
+    ->meta('updatedAt', function ($model, $user, Context $context) {
+        return $user->updated_at;
+    });
 ```
 
 ### Creating Resources
@@ -448,18 +576,26 @@ By default, resources are not [creatable](https://jsonapi.org/format/#crud-creat
 ```php
 $type->creatable();
 
-$type->creatable(function (ServerRequestInterface $request) {
+$type->creatable(function (Context $context) {
     return $request->getAttribute('isAdmin');
 });
 ```
 
 #### Customizing the Model
 
-When creating a resource, an empty model is supplied by the adapter. You may wish to override this and provide a custom model in special circumstances. You can do so using the `createModel` method:
+When creating a resource, an empty model is supplied by the adapter. You may wish to override this and provide a custom model in special circumstances. You can do so using the `newModel` method:
 
 ```php
-$type->createModel(function (ServerRequestInterface $request) {
+$type->newModel(function (Context $context) {
     return new CustomModel;
+});
+```
+
+#### Customizing Creation Logic
+
+```php
+$type->create(function ($model, Context $context) {
+    // push to a queue
 });
 ```
 
@@ -470,8 +606,16 @@ By default, resources are not [updatable](https://jsonapi.org/format/#crud-updat
 ```php
 $type->updatable();
 
-$type->updatable(function (ServerRequestInterface $request) {
-    return $request->getAttribute('isAdmin');
+$type->updatable(function (Context $context) {
+    return $context->getRequest()->getAttribute('isAdmin');
+});
+```
+
+#### Customizing Update Logic
+
+```php
+$type->update(function ($model, Context $context) {
+    // push to a queue
 });
 ```
 
@@ -483,7 +627,11 @@ By default, resources are not [deletable](https://jsonapi.org/format/#crud-delet
 $type->deletable();
 
 $type->deletable(function (ServerRequestInterface $request) {
-    return $request->getAttribute('isAdmin');
+    return $request->getAttr``ibute('isAdmin');
+});
+
+$type->delete(function ($model, Context $context) {
+    $model->delete();
 });
 ```
 
@@ -508,6 +656,22 @@ You should indicate to the server if the consumer is authenticated using the `au
 ```php
 $api->authenticated();
 ```
+
+### Laravel Helpers
+
+#### Authorization
+
+#### Validation
+
+### Meta Information
+
+#### Document-level
+
+#### Resource-level
+
+#### Relationship-level
+
+### Modifying Responses
 
 ## Examples
 

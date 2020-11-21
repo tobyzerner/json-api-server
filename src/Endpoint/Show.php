@@ -9,7 +9,7 @@
  * file that was distributed with this source code.
  */
 
-namespace Tobyz\JsonApiServer\Handler;
+namespace Tobyz\JsonApiServer\Endpoint;
 
 use JsonApiPhp\JsonApi\CompoundDocument;
 use JsonApiPhp\JsonApi\Included;
@@ -17,9 +17,9 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface;
 use Tobyz\JsonApiServer\JsonApi;
-use Tobyz\JsonApiServer\JsonApiResponse;
 use Tobyz\JsonApiServer\ResourceType;
 use Tobyz\JsonApiServer\Serializer;
+use function Tobyz\JsonApiServer\json_api_response;
 use function Tobyz\JsonApiServer\run_callbacks;
 
 class Show implements RequestHandlerInterface
@@ -49,9 +49,9 @@ class Show implements RequestHandlerInterface
         run_callbacks($this->resource->getSchema()->getListeners('show'), [$this->model, $request]);
 
         $serializer = new Serializer($this->api, $request);
-        $serializer->add($this->resource, $this->model, $include, true);
+        $serializer->add($this->resource, $this->model, $include);
 
-        return new JsonApiResponse(
+        return json_api_response(
             new CompoundDocument(
                 $serializer->primary()[0],
                 new Included(...$serializer->included())

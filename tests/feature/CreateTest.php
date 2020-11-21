@@ -120,7 +120,7 @@ class CreateTest extends AbstractTestCase
     public function test_new_models_are_supplied_and_saved_by_the_adapter()
     {
         $adapter = $this->prophesize(AdapterInterface::class);
-        $adapter->create()->willReturn($createdModel = (object) []);
+        $adapter->newModel()->willReturn($createdModel = (object) []);
         $adapter->save($createdModel)->shouldBeCalled();
         $adapter->getId($createdModel)->willReturn('1');
 
@@ -136,13 +136,13 @@ class CreateTest extends AbstractTestCase
         $createdModel = (object) [];
 
         $adapter = $this->prophesize(AdapterInterface::class);
-        $adapter->create()->shouldNotBeCalled();
+        $adapter->newModel()->shouldNotBeCalled();
         $adapter->save($createdModel)->shouldBeCalled();
         $adapter->getId($createdModel)->willReturn('1');
 
         $this->api->resource('users', $adapter->reveal(), function (Type $type) use ($createdModel) {
             $type->creatable();
-            $type->createModel(function ($request) use ($createdModel) {
+            $type->newModel(function ($request) use ($createdModel) {
                 $this->assertInstanceOf(ServerRequestInterface::class, $request);
                 return $createdModel;
             });
@@ -156,7 +156,7 @@ class CreateTest extends AbstractTestCase
         $called = false;
 
         $adapter = $this->prophesize(AdapterInterface::class);
-        $adapter->create()->willReturn($createdModel = (object) []);
+        $adapter->newModel()->willReturn($createdModel = (object) []);
         $adapter->save($createdModel)->shouldNotBeCalled();
         $adapter->getId($createdModel)->willReturn('1');
 
@@ -180,7 +180,7 @@ class CreateTest extends AbstractTestCase
         $called = 0;
 
         $adapter = $this->prophesize(AdapterInterface::class);
-        $adapter->create()->willReturn($createdModel = (object) []);
+        $adapter->newModel()->willReturn($createdModel = (object) []);
         $adapter->getId($createdModel)->willReturn('1');
 
         $this->api->resource('users', $adapter->reveal(), function (Type $type) use ($adapter, $createdModel, &$called) {

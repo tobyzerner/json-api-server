@@ -33,7 +33,7 @@ class UnprocessableEntityException extends DomainException implements ErrorProvi
                 new Error\Status($this->getJsonApiStatus()),
             ];
 
-            if ($field = $failure['field']) {
+            if ($field = $failure['field'] ?? null) {
                 $members[] = new Error\SourcePointer('/data/'.$field->getLocation().'/'.$field->getName());
             }
 

@@ -9,12 +9,11 @@
  * file that was distributed with this source code.
  */
 
-namespace Tobyz\JsonApiServer\Handler\Concerns;
+namespace Tobyz\JsonApiServer\Endpoint\Concerns;
 
-use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Message\ServerRequestInterface;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
-use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\ResourceType;
 use Tobyz\JsonApiServer\Schema\Attribute;
 use Tobyz\JsonApiServer\Schema\HasMany;
@@ -53,6 +52,7 @@ trait SavesData
 
         if ($model) {
             $id = $this->resource->getAdapter()->getId($model);
+
             if (! isset($body['data']['id']) || $body['data']['id'] !== $id) {
                 throw new BadRequestException('data.id does not match the resource ID');
             }
@@ -77,7 +77,7 @@ trait SavesData
      *
      * @throws BadRequestException if the identifier is invalid.
      */
-    private function getModelForIdentifier(Request $request, array $identifier, array $validTypes = null)
+    private function getModelForIdentifier(ServerRequestInterface $request, array $identifier, array $validTypes = null)
     {
         if (! isset($identifier['type'])) {
             throw new BadRequestException('type not specified');
@@ -87,7 +87,7 @@ trait SavesData
             throw new BadRequestException('id not specified');
         }
 
-        if ($validTypes !== null && ! in_array($identifier['type'], $validTypes)) {
+        if ($validTypes !== null && count($validTypes) && ! in_array($identifier['type'], $validTypes)) {
             throw new BadRequestException("type [{$identifier['type']}] not allowed");
         }
 
@@ -99,7 +99,7 @@ trait SavesData
     /**
      * Assert that the fields contained within a data object are valid.
      */
-    private function validateFields(array $data, $model, Request $request)
+    private function validateFields(array $data, $model, ServerRequestInterface $request)
     {
         $this->assertFieldsExist($data);
         $this->assertFieldsWritable($data, $model, $request);
@@ -128,10 +128,11 @@ trait SavesData
      *
      * @throws BadRequestException if a field is not writable.
      */
-    private function assertFieldsWritable(array $data, $model, Request $request)
+    private function assertFieldsWritable(array $data, $model, ServerRequestInterface $request)
     {
+
         foreach ($this->resource->getSchema()->getFields() as $field) {
-            if (has_value($data, $field) && ! evaluate($field->isWritable(), [$model, $request])) {
+            if (has_value($data, $field) && ! evaluate($field->getWritable(), [$model, $request])) {
                 throw new BadRequestException("Field [{$field->getName()}] is not writable");
             }
         }
@@ -140,7 +141,7 @@ trait SavesData
     /**
      * Replace relationship linkage within a data object with models.
      */
-    private function loadRelatedResources(array &$data, Request $request)
+    private function loadRelatedResources(array &$data, ServerRequestInterface $request)
     {
         foreach ($this->resource->getSchema()->getFields() as $field) {
             if (! $field instanceof Relationship || ! has_value($data, $field)) {
@@ -170,7 +171,7 @@ trait SavesData
      *
      * @throws UnprocessableEntityException if any fields do not pass validation.
      */
-    private function assertDataValid(array $data, $model, Request $request, bool $validateAll): void
+    private function assertDataValid(array $data, $model, ServerRequestInterface $request, bool $validateAll): void
     {
         $failures = [];
 
@@ -185,7 +186,7 @@ trait SavesData
 
             run_callbacks(
                 $field->getListeners('validate'),
-                [$fail, get_value($data, $field), $model, $request, $field, $data]
+                [$fail, get_value($data, $field), $model, $request]
             );
         }
 
@@ -197,7 +198,7 @@ trait SavesData
     /**
      * Set field values from a data object to the model instance.
      */
-    private function setValues(array $data, $model, Request $request)
+    private function setValues(array $data, $model, ServerRequestInterface $request)
     {
         $adapter = $this->resource->getAdapter();
 
@@ -228,7 +229,7 @@ trait SavesData
     /**
      * Save the model and its fields.
      */
-    private function save(array $data, $model, Request $request)
+    private function save(array $data, $model, ServerRequestInterface $request)
     {
         $this->saveModel($model, $request);
         $this->saveFields($data, $model, $request);
@@ -237,7 +238,7 @@ trait SavesData
     /**
      * Save the model.
      */
-    private function saveModel($model, Request $request)
+    private function saveModel($model, ServerRequestInterface $request)
     {
         if ($saveCallback = $this->resource->getSchema()->getSaveCallback()) {
             $saveCallback($model, $request);
@@ -249,7 +250,7 @@ trait SavesData
     /**
      * Save any fields that were not saved with the model.
      */
-    private function saveFields(array $data, $model, Request $request)
+    private function saveFields(array $data, $model, ServerRequestInterface $request)
     {
         $adapter = $this->resource->getAdapter();
 
@@ -273,8 +274,9 @@ trait SavesData
     /**
      * Run field saved listeners.
      */
-    private function runSavedCallbacks(array $data, $model, Request $request)
+    private function runSavedCallbacks(array $data, $model, ServerRequestInterface $request)
     {
+
         foreach ($this->resource->getSchema()->getFields() as $field) {
             if (! has_value($data, $field)) {
                 continue;

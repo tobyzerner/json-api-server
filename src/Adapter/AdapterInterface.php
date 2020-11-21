@@ -11,11 +11,9 @@
 
 namespace Tobyz\JsonApiServer\Adapter;
 
-use Closure;
 use Tobyz\JsonApiServer\Schema\Attribute;
 use Tobyz\JsonApiServer\Schema\HasMany;
 use Tobyz\JsonApiServer\Schema\HasOne;
-use Tobyz\JsonApiServer\Schema\Relationship;
 
 interface AdapterInterface
 {
@@ -29,7 +27,7 @@ interface AdapterInterface
      *
      * @return mixed
      */
-    public function query();
+    public function newQuery();
 
     /**
      * Manipulate the query to only include resources with the given IDs.
@@ -47,9 +45,10 @@ interface AdapterInterface
      * @param $query
      * @param Attribute $attribute
      * @param $value
+     * @param string $operator The operator to use for comparison: = < > <= >=
      * @return mixed
      */
-    public function filterByAttribute($query, Attribute $attribute, $value): void;
+    public function filterByAttribute($query, Attribute $attribute, $value, string $operator = '='): void;
 
     /**
      * Manipulate the query to only include resources with any one of the given
@@ -136,7 +135,7 @@ interface AdapterInterface
      *
      * @return mixed
      */
-    public function create();
+    public function newModel();
 
     /**
      * Get the ID from the model.
@@ -226,21 +225,11 @@ interface AdapterInterface
      *
      * @param array $models
      * @param array $relationships
-     * @param Closure $scope Should be called to give the deepest relationship
+     * @param mixed $scope Should be called to give the deepest relationship
      *   an opportunity to scope the query that will fetch related resources
      * @param bool $linkage true if we just need the IDs of the related
      *   resources and not their full data
      * @return mixed
      */
-    public function load(array $models, array $relationships, Closure $scope, bool $linkage): void;
-
-    /**
-     * Load information about the IDs of related resources onto a collection
-     * of models.
-     *
-     * @param array $models
-     * @param Relationship $relationship
-     * @return mixed
-     */
-    // public function loadIds(array $models, Relationship $relationship): void;
+    public function load(array $models, array $relationships, $scope, bool $linkage): void;
 }

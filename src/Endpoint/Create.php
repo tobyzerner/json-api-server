@@ -9,9 +9,10 @@
  * file that was distributed with this source code.
  */
 
-namespace Tobyz\JsonApiServer\Handler;
+namespace Tobyz\JsonApiServer\Endpoint;
 
 use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
@@ -48,7 +49,7 @@ class Create implements RequestHandlerInterface
             throw new ForbiddenException;
         }
 
-        $model = $this->createModel($request);
+        $model = $this->newModel($request);
         $data = $this->parseData($request->getParsedBody());
 
         $this->validateFields($data, $model, $request);
@@ -68,14 +69,17 @@ class Create implements RequestHandlerInterface
             ->withStatus(201);
     }
 
-    private function createModel(Request $request)
+    private function newModel(ServerRequestInterface $request)
     {
-        $createModel = $this->resource->getSchema()->getCreateModelCallback();
+        $resource = $this->resource;
+        $newModel = $resource->getSchema()->getNewModelCallback();
 
-        return $createModel ? $createModel($request) : $this->resource->getAdapter()->create();
+        return $newModel
+            ? $newModel($request)
+            : $resource->getAdapter()->newModel();
     }
 
-    private function fillDefaultValues(array &$data, Request $request)
+    private function fillDefaultValues(array &$data, ServerRequestInterface $request)
     {
         foreach ($this->resource->getSchema()->getFields() as $field) {
             if (! has_value($data, $field) && ($defaultCallback = $field->getDefaultCallback())) {

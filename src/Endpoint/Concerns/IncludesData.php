@@ -9,14 +9,13 @@
  * file that was distributed with this source code.
  */
 
-namespace Tobyz\JsonApiServer\Handler\Concerns;
+namespace Tobyz\JsonApiServer\Endpoint\Concerns;
 
-use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Message\ServerRequestInterface;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\ResourceType;
 use Tobyz\JsonApiServer\Schema\Relationship;
-use function Tobyz\JsonApiServer\evaluate;
 use function Tobyz\JsonApiServer\run_callbacks;
 
 /**
@@ -25,7 +24,7 @@ use function Tobyz\JsonApiServer\run_callbacks;
  */
 trait IncludesData
 {
-    private function getInclude(Request $request): array
+    private function getInclude(ServerRequestInterface $request): array
     {
         $queryParams = $request->getQueryParams();
 
@@ -72,7 +71,7 @@ trait IncludesData
                 throw new BadRequestException("Invalid include [{$path}{$name}]", 'include');
             }
 
-            if ($type = $fields[$name]->getType()) {
+            if (($type = $fields[$name]->getType()) && is_string($type)) {
                 $relatedResource = $this->api->getResource($type);
 
                 $this->validateInclude($relatedResource, $nested, $name.'.');
@@ -82,39 +81,63 @@ trait IncludesData
         }
     }
 
-    private function loadRelationships(array $models, array $include, Request $request)
+    private function loadRelationships(array $models, array $include, ServerRequestInterface $request)
     {
         $this->loadRelationshipsAtLevel($models, [], $this->resource, $include, $request);
     }
 
-    private function loadRelationshipsAtLevel(array $models, array $relationshipPath, ResourceType $resource, array $include, Request $request)
+    private function loadRelationshipsAtLevel(array $models, array $relationshipPath, ResourceType $resource, array $include, ServerRequestInterface $request)
     {
         $adapter = $resource->getAdapter();
-        $fields = $resource->getSchema()->getFields();
+        $schema = $resource->getSchema();
+        $fields = $schema->getFields();
 
         foreach ($fields as $name => $field) {
             if (
                 ! $field instanceof Relationship
-                || (! $field->isLinkage() && ! isset($include[$name]))
-                || $field->isVisible() === false
+                || (! $field->hasLinkage() && ! isset($include[$name]))
+                || $field->getVisible() === false
             ) {
                 continue;
             }
 
             $nextRelationshipPath = array_merge($relationshipPath, [$field]);
 
-            if ($load = $field->isLoadable()) {
-                if (is_callable($load)) {
-                    $load($models, $nextRelationshipPath, $field->isLinkage(), $request);
-                } else {
-                    $scope = function ($query) use ($request, $field) {
-                        run_callbacks($field->getListeners('scope'), [$query, $request]);
-                    };
+            if ($load = $field->getLoad()) {
+                $type = $field->getType();
 
-                    $adapter->load($models, $nextRelationshipPath, $scope, $field->isLinkage());
+                if (is_callable($load)) {
+                    $load($models, $nextRelationshipPath, $field->hasLinkage(), $request);
+                } else {
+                    if (is_string($type)) {
+                        $relatedResource = $this->api->getResource($type);
+                        $scope = function ($query) use ($request, $field, $relatedResource) {
+                            run_callbacks($relatedResource->getSchema()->getListeners('scope'), [$query, $request]);
+                            run_callbacks($field->getListeners('scope'), [$query, $request]);
+                        };
+                    } else {
+                        $relatedResources = is_array($type) ? array_map(function ($type) {
+                            return $this->api->getResource($type);
+                        }, $type) : $this->api->getResources();
+
+                        $scope = array_combine(
+                            array_map(function ($relatedResource) {
+                                return $relatedResource->getType();
+                            }, $relatedResources),
+
+                            array_map(function ($relatedResource) use ($request, $field) {
+                                return function ($query) use ($request, $field, $relatedResource) {
+                                    run_callbacks($relatedResource->getSchema()->getListeners('scope'), [$query, $request]);
+                                    run_callbacks($field->getListeners('scope'), [$query, $request]);
+                                };
+                            }, $relatedResources)
+                        );
+                    }
+
+                    $adapter->load($models, $nextRelationshipPath, $scope, $field->hasLinkage());
                 }
 
-                if (isset($include[$name]) && is_string($type = $field->getType())) {
+                if (isset($include[$name]) && is_string($type)) {
                     $relatedResource = $this->api->getResource($type);
 
                     $this->loadRelationshipsAtLevel($models, $nextRelationshipPath, $relatedResource, $include[$name] ?? [], $request);

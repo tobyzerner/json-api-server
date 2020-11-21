@@ -40,9 +40,7 @@ class ScopesTest extends AbstractTestCase
         $this->api->resource('users', $this->adapter, function (Type $type) {
             $type->updatable();
             $type->deletable();
-            $type->scope(function (...$args) {
-                $this->assertSame($this->adapter->query, $args[0]);
-                $this->assertInstanceOf(ServerRequestInterface::class, $args[1]);
+            $type->scope(function ($query, ServerRequestInterface $request) {
                 $this->scopeWasCalled = true;
             });
         });
@@ -88,5 +86,45 @@ class ScopesTest extends AbstractTestCase
         );
 
         $this->assertTrue($this->scopeWasCalled);
+    }
+
+    public function test_scopes_are_applied_to_related_resources()
+    {
+        $this->api->resource('pets', new MockAdapter, function (Type $type) {
+            $type->hasOne('owner')
+                ->type('users')
+                ->includable();
+        });
+
+        $this->api->handle(
+            $this->buildRequest('GET', '/pets/1')
+                ->withQueryParams(['include' => 'owner'])
+        );
+
+        $this->assertTrue($this->scopeWasCalled);
+    }
+
+    public function test_scopes_are_applied_to_polymorphic_related_resources()
+    {
+        $this->api->resource('pets', new MockAdapter, function (Type $type) {
+            $type->hasOne('owner')
+                ->polymorphic(['users', 'organisations'])
+                ->includable();
+        });
+
+        $organisationScopeWasCalled = false;
+        $this->api->resource('organisations', new MockAdapter, function (Type $type) use (&$organisationScopeWasCalled) {
+            $type->scope(function ($query, ServerRequestInterface $request) use (&$organisationScopeWasCalled) {
+                $organisationScopeWasCalled = true;
+            });
+        });
+
+        $this->api->handle(
+            $this->buildRequest('GET', '/pets/1')
+                ->withQueryParams(['include' => 'owner'])
+        );
+
+        $this->assertTrue($this->scopeWasCalled);
+        $this->assertTrue($organisationScopeWasCalled);
     }
 }

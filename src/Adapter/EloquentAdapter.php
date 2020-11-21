@@ -15,6 +15,8 @@ use Closure;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
+use Illuminate\Database\Eloquent\Relations\MorphOneOrMany;
 use InvalidArgumentException;
 use Tobyz\JsonApiServer\Schema\Attribute;
 use Tobyz\JsonApiServer\Schema\HasMany;
@@ -42,12 +44,12 @@ class EloquentAdapter implements AdapterInterface
         return $model instanceof $this->model;
     }
 
-    public function create()
+    public function newModel()
     {
         return $this->model->newInstance();
     }
 
-    public function query()
+    public function newQuery()
     {
         return $this->model->query();
     }
@@ -64,7 +66,7 @@ class EloquentAdapter implements AdapterInterface
 
     public function count($query): int
     {
-        return $query->getQuery()->getCountForPagination();
+        return $query->toBase()->getCountForPagination();
     }
 
     public function getId($model): string
@@ -146,38 +148,19 @@ class EloquentAdapter implements AdapterInterface
         $query->whereIn($key, $ids);
     }
 
-    public function filterByAttribute($query, Attribute $attribute, $value): void
+    public function filterByAttribute($query, Attribute $attribute, $value, string $operator = '='): void
     {
         $column = $this->getAttributeColumn($attribute);
 
-        // TODO: extract this into non-adapter territory
-        if (preg_match('/(.+)\.\.(.+)/', $value, $matches)) {
-            if ($matches[1] !== '*') {
-                $query->where($column, '>=', $matches[1]);
-            }
-            if ($matches[2] !== '*') {
-                $query->where($column, '<=', $matches[2]);
-            }
-
-            return;
-        }
-
-        foreach (['>=', '>', '<=', '<'] as $operator) {
-            if (strpos($value, $operator) === 0) {
-                $query->where($column, $operator, substr($value, strlen($operator)));
-
-                return;
-            }
-        }
-
-        $query->where($column, $value);
+        $query->where($column, $operator, $value);
     }
 
     public function filterByHasOne($query, HasOne $relationship, array $ids): void
     {
         $relation = $this->getEloquentRelation($query->getModel(), $relationship);
+        $column = $relation instanceof HasOneThrough ? $relation->getQualifiedParentKeyName() : $relation->getQualifiedForeignKeyName();
 
-        $query->whereIn($relation->getQualifiedForeignKeyName(), $ids);
+        $query->whereIn($column, $ids);
     }
 
     public function filterByHasMany($query, HasMany $relationship, array $ids): void
@@ -186,9 +169,13 @@ class EloquentAdapter implements AdapterInterface
         $relation = $this->getEloquentRelation($query->getModel(), $relationship);
         $relatedKey = $relation->getRelated()->getQualifiedKeyName();
 
-        $query->whereHas($property, function ($query) use ($relatedKey, $ids) {
-            $query->whereIn($relatedKey, $ids);
-        });
+        if (count($ids)) {
+            $query->whereHas($property, function ($query) use ($relatedKey, $ids) {
+                $query->whereIn($relatedKey, $ids);
+            });
+        } else {
+            $query->whereDoesntHave($property);
+        }
     }
 
     public function sortByAttribute($query, Attribute $attribute, string $direction): void
@@ -201,42 +188,26 @@ class EloquentAdapter implements AdapterInterface
         $query->take($limit)->skip($offset);
     }
 
-    public function load(array $models, array $relationships, Closure $scope, bool $linkage): void
+    public function load(array $models, array $relationships, $scope, bool $linkage): void
     {
         // TODO: Find the relation on the model that we're after. If it's a
         // belongs-to relation, and we only need linkage, then we won't need
         // to load anything as the related ID is store directly on the model.
 
         (new Collection($models))->loadMissing([
-            $this->getRelationshipPath($relationships) => $scope
+            $this->getRelationshipPath($relationships) => function ($relation) use ($relationships, $scope) {
+                $query = $relation->getQuery();
+
+                if (is_array($scope)) {
+                    // Eloquent doesn't support polymorphic loading constraints,
+                    // so for now we just won't do anything.
+                    // https://github.com/laravel/framework/pull/35190
+                } else {
+                    $scope($query);
+                }
+            }
         ]);
     }
-
-    // public function loadIds(array $models, Relationship $relationship): void
-    // {
-    //     if (empty($models)) {
-    //         return;
-    //     }
-    //
-    //     $property = $this->getRelationshipProperty($relationship);
-    //     $relation = $models[0]->$property();
-    //
-    //     // If it's a belongs-to relationship, then the ID is stored on the model
-    //     // itself, so we don't need to load anything in advance.
-    //     if ($relation instanceof BelongsTo) {
-    //         return;
-    //     }
-    //
-    //     (new Collection($models))->loadMissing([
-    //         $property => function ($query) use ($relation) {
-    //             $query->select($relation->getRelated()->getKeyName());
-    //
-    //             if (! $relation instanceof BelongsToMany) {
-    //                 $query->addSelect($relation->getForeignKeyName());
-    //             }
-    //         }
-    //     ]);
-    // }
 
     private function getAttributeProperty(Attribute $attribute): string
     {

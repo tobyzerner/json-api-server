@@ -11,7 +11,7 @@
 
 namespace Tobyz\JsonApiServer\Schema;
 
-use Doctrine\Common\Inflector\Inflector;
+use Doctrine\Inflector\InflectorFactory;
 
 final class HasOne extends Relationship
 {
@@ -19,6 +19,7 @@ final class HasOne extends Relationship
     {
         parent::__construct($name);
 
-        $this->type(Inflector::pluralize($name));
+        $this->type(InflectorFactory::create()->build()->pluralize($name));
+        $this->withLinkage();
     }
 }

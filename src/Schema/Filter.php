@@ -11,11 +11,14 @@
 
 namespace Tobyz\JsonApiServer\Schema;
 
+use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
+
 final class Filter
 {
+    use HasDescription;
+
     private $name;
     private $callback;
-    private $description;
 
     public function __construct(string $name, callable $callback)
     {
@@ -31,13 +34,5 @@ final class Filter
     public function getCallback(): callable
     {
         return $this->callback;
-    }
-
-    /**
-     * Set the description of the type for documentation generation.
-     */
-    public function description(string $description)
-    {
-        $this->description = $description;
     }
 }

@@ -11,6 +11,7 @@
 
 namespace Tobyz\JsonApiServer\Schema;
 
+use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
 use Tobyz\JsonApiServer\Schema\Concerns\HasListeners;
 use function Tobyz\JsonApiServer\negate;
 use function Tobyz\JsonApiServer\wrap;
@@ -18,9 +19,9 @@ use function Tobyz\JsonApiServer\wrap;
 abstract class Field
 {
     use HasListeners;
+    use HasDescription;
 
     private $name;
-    private $description;
     private $property;
     private $visible = true;
     private $single = false;
@@ -41,16 +42,6 @@ abstract class Field
      * ('attributes' or 'relationships').
      */
     abstract public function getLocation(): string;
-
-    /**
-     * Set the description of the field for documentation generation.
-     */
-    public function description(string $description)
-    {
-        $this->description = $description;
-
-        return $this;
-    }
 
     /**
      * Set the model property to which this field corresponds.
@@ -78,20 +69,6 @@ abstract class Field
     public function hidden(callable $condition = null)
     {
         $this->visible = $condition ? negate($condition) : false;
-
-        return $this;
-    }
-
-    /**
-     * Only show this field on single root resources.
-     *
-     * This is useful if a field requires an expensive calculation for each
-     * individual resource (eg. n+1 query problem). In this case it may be
-     * desirable to only have the field show when viewing a single resource.
-     */
-    public function single()
-    {
-        $this->single = true;
 
         return $this;
     }
@@ -126,6 +103,16 @@ abstract class Field
     public function get($value)
     {
         $this->getCallback = $value === null ? null : wrap($value);
+
+        return $this;
+    }
+
+    /**
+     * Apply a transformation to the value before it is set on the model.
+     */
+    public function transform(callable $callback)
+    {
+        $this->listeners['transform'][] = $callback;
 
         return $this;
     }
@@ -216,17 +203,12 @@ abstract class Field
         return $this->property;
     }
 
-    public function isVisible()
+    public function getVisible()
     {
         return $this->visible;
     }
 
-    public function isSingle(): bool
-    {
-        return $this->single;
-    }
-
-    public function isWritable()
+    public function getWritable()
     {
         return $this->writable;
     }
@@ -251,7 +233,7 @@ abstract class Field
         return $this->defaultCallback;
     }
 
-    public function isFilterable()
+    public function getFilterable()
     {
         return $this->filterable;
     }

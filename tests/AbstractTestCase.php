@@ -12,9 +12,8 @@
 namespace Tobyz\Tests\JsonApiServer;
 
 use DMS\PHPUnitExtensions\ArraySubset\ArraySubsetAsserts;
+use Nyholm\Psr7\ServerRequest;
 use PHPUnit\Framework\TestCase;
-use Zend\Diactoros\ServerRequest;
-use Zend\Diactoros\Uri;
 
 abstract class AbstractTestCase extends TestCase
 {
@@ -27,8 +26,6 @@ abstract class AbstractTestCase extends TestCase
 
     protected function buildRequest(string $method, string $uri): ServerRequest
     {
-        return (new ServerRequest)
-            ->withMethod($method)
-            ->withUri(new Uri($uri));
+        return new ServerRequest($method, $uri);
     }
 }

@@ -11,8 +11,12 @@
 
 namespace Tobyz\JsonApiServer\Schema;
 
+use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
+
 final class Meta
 {
+    use HasDescription;
+
     private $name;
     private $value;
 

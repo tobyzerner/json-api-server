@@ -20,7 +20,6 @@ use RuntimeException;
 final class Serializer
 {
     private $api;
-    private $request;
     private $map = [];
     private $primary = [];
 
@@ -33,9 +32,9 @@ final class Serializer
     /**
      * Add a primary resource to the document.
      */
-    public function add(ResourceType $resource, $model, array $include, bool $single = false): void
+    public function add(ResourceType $resource, $model, array $include): void
     {
-        $data = $this->addToMap($resource, $model, $include, $single);
+        $data = $this->addToMap($resource, $model, $include);
 
         $this->primary[] = $this->key($data);
     }
@@ -62,7 +61,7 @@ final class Serializer
         return $this->resourceObjects($included);
     }
 
-    private function addToMap(ResourceType $resource, $model, array $include, bool $single = false): array
+    private function addToMap(ResourceType $resource, $model, array $include): array
     {
         $adapter = $resource->getAdapter();
         $schema = $resource->getSchema();
@@ -76,7 +75,7 @@ final class Serializer
         ];
 
         $key = $this->key($data);
-        $url = $this->api->getBaseUrl()."/$type/$id";
+        $url = $this->api->getBasePath()."/$type/$id";
         $fields = $schema->getFields();
         $queryParams = $this->request->getQueryParams();
 
@@ -89,11 +88,7 @@ final class Serializer
                 continue;
             }
 
-            if ($field->isSingle() && ! $single) {
-                continue;
-            }
-
-            if (! evaluate($field->isVisible(), [$model, $this->request])) {
+            if (! evaluate($field->getVisible(), [$model, $this->request])) {
                 continue;
             }
 
@@ -106,10 +101,10 @@ final class Serializer
                 $meta = $this->meta($field->getMeta(), $model);
                 $members = array_merge($links, $meta);
 
-                if (! $isIncluded && ! $field->isLinkage()) {
+                if (! $isIncluded && ! $field->hasLinkage()) {
                     $value = $this->emptyRelationship($field, $members);
                 } elseif ($field instanceof Schema\HasOne) {
-                    $value = $this->toOne($field, $members, $resource, $model, $relationshipInclude, $single);
+                    $value = $this->toOne($field, $members, $resource, $model, $relationshipInclude);
                 } elseif ($field instanceof Schema\HasMany) {
                     $value = $this->toMany($field, $members, $resource, $model, $relationshipInclude);
                 }
@@ -156,7 +151,7 @@ final class Serializer
         return new Structure\Attribute($field->getName(), $value);
     }
 
-    private function toOne(Schema\HasOne $field, array $members, ResourceType $resource, $model, ?array $include, bool $single)
+    private function toOne(Schema\HasOne $field, array $members, ResourceType $resource, $model, ?array $include)
     {
         $included = $include !== null;
 
@@ -169,7 +164,7 @@ final class Serializer
         }
 
         $identifier = $include !== null
-            ? $this->addRelated($field, $model, $include, $single)
+            ? $this->addRelated($field, $model, $include)
             : $this->relatedResourceIdentifier($field, $model);
 
         return new Structure\ToOne($field->getName(), $identifier, ...$members);
@@ -212,24 +207,24 @@ final class Serializer
      */
     private function relationshipLinks(Schema\Relationship $field, string $url): array
     {
-        if (! $field->isLinks()) {
+        // if (! $field->hasUrls()) {
             return [];
-        }
+        // }
 
-        return [
-            new Structure\Link\SelfLink($url.'/relationships/'.$field->getName()),
-            new Structure\Link\RelatedLink($url.'/'.$field->getName())
-        ];
+        // return [
+        //     new Structure\Link\SelfLink($url.'/relationships/'.$field->getName()),
+        //     new Structure\Link\RelatedLink($url.'/'.$field->getName())
+        // ];
     }
 
-    private function addRelated(Schema\Relationship $field, $model, array $include, bool $single = false): Structure\ResourceIdentifier
+    private function addRelated(Schema\Relationship $field, $model, array $include): Structure\ResourceIdentifier
     {
         $relatedResource = is_string($field->getType())
             ? $this->api->getResource($field->getType())
             : $this->resourceForModel($model);
 
         return $this->resourceIdentifier(
-            $this->addToMap($relatedResource, $model, $include, $single)
+            $this->addToMap($relatedResource, $model, $include)
         );
     }
 

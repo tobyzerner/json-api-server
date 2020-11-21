@@ -19,8 +19,8 @@ abstract class Relationship extends Field
 
     private $type;
     private $linkage = false;
-    private $links = true;
-    private $loadable = true;
+    // private $urls = true;
+    private $load = true;
     private $includable = false;
 
     public function getLocation(): string
@@ -51,7 +51,7 @@ abstract class Relationship extends Field
     /**
      * Show resource linkage for the relationship.
      */
-    public function linkage()
+    public function withLinkage()
     {
         $this->linkage = true;
 
@@ -61,7 +61,7 @@ abstract class Relationship extends Field
     /**
      * Do not show resource linkage for the relationship.
      */
-    public function noLinkage()
+    public function withoutLinkage()
     {
         $this->linkage = false;
 
@@ -74,9 +74,9 @@ abstract class Relationship extends Field
      * This is used to prevent the n+1 query problem. If null, the adapter will
      * be used to eager-load relationship data into the model collection.
      */
-    public function loadable(callable $callback = null)
+    public function load(callable $callback = null)
     {
-        $this->loadable = $callback ?: true;
+        $this->load = $callback ?: true;
 
         return $this;
     }
@@ -84,9 +84,9 @@ abstract class Relationship extends Field
     /**
      * Do not eager-load relationship data into the model collection.
      */
-    public function notLoadable()
+    public function dontLoad()
     {
-        $this->loadable = false;
+        $this->load = false;
 
         return $this;
     }
@@ -111,25 +111,25 @@ abstract class Relationship extends Field
         return $this;
     }
 
-    /**
-     * Show links for the relationship.
-     */
-    public function links()
-    {
-        $this->links = true;
-
-        return $this;
-    }
-
-    /**
-     * Do not show links for the relationship.
-     */
-    public function noLinks()
-    {
-        $this->links = false;
-
-        return $this;
-    }
+    // /**
+    //  * Make URLs available for the relationship.
+    //  */
+    // public function withUrls()
+    // {
+    //     $this->urls = true;
+    //
+    //     return $this;
+    // }
+    //
+    // /**
+    //  * Do not make URLs avaialble for the relationship.
+    //  */
+    // public function withoutUrls()
+    // {
+    //     $this->urls = false;
+    //
+    //     return $this;
+    // }
 
     /**
      * Apply a scope to the query to eager-load the relationship data.
@@ -146,22 +146,22 @@ abstract class Relationship extends Field
         return $this->type;
     }
 
-    public function isLinkage(): bool
+    public function hasLinkage(): bool
     {
         return $this->linkage;
     }
 
-    public function isLinks(): bool
-    {
-        return $this->links;
-    }
+    // public function hasUrls(): bool
+    // {
+    //     return $this->urls;
+    // }
 
     /**
      * @return bool|callable
      */
-    public function isLoadable()
+    public function getLoad()
     {
-        return $this->loadable;
+        return $this->load;
     }
 
     public function isIncludable(): bool

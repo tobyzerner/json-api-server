@@ -11,6 +11,9 @@
 
 namespace Tobyz\JsonApiServer\Laravel;
 
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Tobyz\JsonApiServer\Schema\Field;
@@ -40,5 +43,19 @@ function rules($rules, array $messages = [], array $customAttributes = [])
                 $fail($message);
             }
         }
+    };
+}
+
+function authenticated()
+{
+    return function () {
+        return Auth::check();
+    };
+}
+
+function can(string $ability)
+{
+    return function ($arg) use ($ability) {
+        return Gate::allows($ability, $arg instanceof Model ? $arg : null);
     };
 }

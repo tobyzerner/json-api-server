@@ -42,7 +42,7 @@ final class Attribute extends Field
         return $this;
     }
 
-    public function isSortable()
+    public function getSortable()
     {
         return $this->sortable;
     }

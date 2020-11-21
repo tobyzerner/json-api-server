@@ -11,15 +11,17 @@
 
 namespace Tobyz\JsonApiServer\Schema;
 
+use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
 use Tobyz\JsonApiServer\Schema\Concerns\HasListeners;
 use Tobyz\JsonApiServer\Schema\Concerns\HasMeta;
 use function Tobyz\JsonApiServer\negate;
 
 final class Type
 {
-    use HasListeners, HasMeta;
+    use HasListeners;
+    use HasMeta;
+    use HasDescription;
 
-    private $description;
     private $fields = [];
     private $filters = [];
     private $sortFields = [];
@@ -30,19 +32,11 @@ final class Type
     private $defaultSort;
     private $defaultFilter;
     private $saveCallback;
-    private $createModelCallback;
+    private $newModelCallback;
     private $creatable = false;
     private $updatable = false;
     private $deletable = false;
     private $deleteCallback;
-
-    /**
-     * Set the description of the type for documentation generation.
-     */
-    public function description(string $description)
-    {
-        $this->description = $description;
-    }
 
     /**
      * Add an attribute to the resource type.
@@ -279,17 +273,17 @@ final class Type
      *
      * If null, the adapter will be used to create new model instances.
      */
-    public function createModel(?callable $callback): void
+    public function newModel(?callable $callback): void
     {
-        $this->createModelCallback = $callback;
+        $this->newModelCallback = $callback;
     }
 
     /**
      * Get the callback to create a new model instance.
      */
-    public function getCreateModelCallback(): ?callable
+    public function getNewModelCallback(): ?callable
     {
-        return $this->createModelCallback;
+        return $this->newModelCallback;
     }
 
     /**
@@ -464,23 +458,5 @@ final class Type
     public function getDefaultSort(): ?string
     {
         return $this->defaultSort;
-    }
-
-    /**
-     * Set the default filter parameter value to be used if none is specified in
-     * the query string.
-     */
-    public function defaultFilter(?array $filter): void
-    {
-        $this->defaultFilter = $filter;
-    }
-
-    /**
-     * Get the default filter parameter value to be used if none is specified in
-     * the query string.
-     */
-    public function getDefaultFilter(): ?array
-    {
-        return $this->defaultFilter;
     }
 }

@@ -17,30 +17,29 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface;
 use Tobyz\JsonApiServer\Adapter\AdapterInterface;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
-use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\InternalServerErrorException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
 use Tobyz\JsonApiServer\Exception\NotAcceptableException;
 use Tobyz\JsonApiServer\Exception\NotImplementedException;
 use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
-use Tobyz\JsonApiServer\Exception\UnauthorizedException;
 use Tobyz\JsonApiServer\Exception\UnsupportedMediaTypeException;
-use Tobyz\JsonApiServer\Handler\Concerns\FindsResources;
+use Tobyz\JsonApiServer\Endpoint\Concerns\FindsResources;
 use Tobyz\JsonApiServer\Http\MediaTypes;
+use Tobyz\JsonApiServer\Schema\Concerns\HasMeta;
 
 final class JsonApi implements RequestHandlerInterface
 {
-    const CONTENT_TYPE = 'application/vnd.api+json';
+    const MEDIA_TYPE = 'application/vnd.api+json';
 
     use FindsResources;
+    use HasMeta;
 
     private $resources = [];
-    private $baseUrl;
-    private $authenticated = false;
+    private $basePath;
 
-    public function __construct(string $baseUrl)
+    public function __construct(string $basePath)
     {
-        $this->baseUrl = $baseUrl;
+        $this->basePath = $basePath;
     }
 
     /**
@@ -93,21 +92,20 @@ final class JsonApi implements RequestHandlerInterface
         );
 
         $segments = explode('/', trim($path, '/'));
+        $resource = $this->getResource($segments[0]);
 
         switch (count($segments)) {
             case 1:
-                return $this->handleCollection($request, $segments);
+                return $this->handleCollection($request, $resource);
 
             case 2:
-                return $this->handleResource($request, $segments);
+                return $this->handleResource($request, $resource, $segments[1]);
 
             case 3:
-                // return $this->handleRelated($request, $resource, $model, $segments[2]);
                 throw new NotImplementedException;
 
             case 4:
                 if ($segments[2] === 'relationships') {
-                    // return $this->handleRelationship($request, $resource, $model, $segments[3]);
                     throw new NotImplementedException;
                 }
         }
@@ -129,7 +127,7 @@ final class JsonApi implements RequestHandlerInterface
             return;
         }
 
-        if ((new MediaTypes($header))->containsExactly(self::CONTENT_TYPE)) {
+        if ((new MediaTypes($header))->containsExactly(self::MEDIA_TYPE)) {
             return;
         }
 
@@ -146,7 +144,7 @@ final class JsonApi implements RequestHandlerInterface
 
         $mediaTypes = new MediaTypes($header);
 
-        if ($mediaTypes->containsExactly('*/*') || $mediaTypes->containsExactly(self::CONTENT_TYPE)) {
+        if ($mediaTypes->containsExactly('*/*') || $mediaTypes->containsExactly(self::MEDIA_TYPE)) {
             return;
         }
 
@@ -155,7 +153,7 @@ final class JsonApi implements RequestHandlerInterface
 
     private function stripBasePath(string $path): string
     {
-        $basePath = parse_url($this->baseUrl, PHP_URL_PATH);
+        $basePath = parse_url($this->basePath, PHP_URL_PATH);
 
         $len = strlen($basePath);
 
@@ -166,36 +164,33 @@ final class JsonApi implements RequestHandlerInterface
         return $path;
     }
 
-    private function handleCollection(Request $request, array $segments): Response
+    private function handleCollection(Request $request, ResourceType $resource): Response
     {
-        $resource = $this->getResource($segments[0]);
-
         switch ($request->getMethod()) {
             case 'GET':
-                return (new Handler\Index($this, $resource))->handle($request);
+                return (new Endpoint\Index($this, $resource))->handle($request);
 
             case 'POST':
-                return (new Handler\Create($this, $resource))->handle($request);
+                return (new Endpoint\Create($this, $resource))->handle($request);
 
             default:
                 throw new MethodNotAllowedException;
         }
     }
 
-    private function handleResource(Request $request, array $segments): Response
+    private function handleResource(Request $request, ResourceType $resource, string $id): Response
     {
-        $resource = $this->getResource($segments[0]);
-        $model = $this->findResource($request, $resource, $segments[1]);
+        $model = $this->findResource($resource, $id, $request);
 
         switch ($request->getMethod()) {
             case 'PATCH':
-                return (new Handler\Update($this, $resource, $model))->handle($request);
+                return (new Endpoint\Update($this, $resource, $model))->handle($request);
 
             case 'GET':
-                return (new Handler\Show($this, $resource, $model))->handle($request);
+                return (new Endpoint\Show($this, $resource, $model))->handle($request);
 
             case 'DELETE':
-                return (new Handler\Delete($resource, $model))->handle($request);
+                return (new Endpoint\Delete($this, $resource, $model))->handle($request);
 
             default:
                 throw new MethodNotAllowedException;
@@ -214,33 +209,21 @@ final class JsonApi implements RequestHandlerInterface
             $e = new InternalServerErrorException;
         }
 
-        if (! $this->authenticated && $e instanceof ForbiddenException) {
-            $e = new UnauthorizedException;
-        }
-
         $errors = $e->getJsonApiErrors();
         $status = $e->getJsonApiStatus();
 
-        $data = new ErrorDocument(
+        $document = new ErrorDocument(
             ...$errors
         );
 
-        return new JsonApiResponse($data, $status);
+        return json_api_response($document, $status);
     }
 
     /**
-     * Get the base URL for the API.
+     * Get the base path for the API.
      */
-    public function getBaseUrl(): string
+    public function getBasePath(): string
     {
-        return $this->baseUrl;
-    }
-
-    /**
-     * Indicate that the consumer is authenticated.
-     */
-    public function authenticated(): void
-    {
-        $this->authenticated = true;
+        return $this->basePath;
     }
 }

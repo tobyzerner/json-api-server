@@ -9,9 +9,8 @@
  * file that was distributed with this source code.
  */
 
-namespace Tobyz\JsonApiServer\Handler;
+namespace Tobyz\JsonApiServer\Endpoint;
 
-use Illuminate\Support\Arr;
 use JsonApiPhp\JsonApi as Structure;
 use JsonApiPhp\JsonApi\Link\LastLink;
 use JsonApiPhp\JsonApi\Link\NextLink;
@@ -19,15 +18,16 @@ use JsonApiPhp\JsonApi\Link\PrevLink;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface;
+use Tobyz\JsonApiServer\Adapter\AdapterInterface;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\JsonApi;
-use Tobyz\JsonApiServer\JsonApiResponse;
 use Tobyz\JsonApiServer\ResourceType;
 use Tobyz\JsonApiServer\Schema\Attribute;
 use Tobyz\JsonApiServer\Schema\HasMany;
 use Tobyz\JsonApiServer\Schema\HasOne;
 use Tobyz\JsonApiServer\Serializer;
 use function Tobyz\JsonApiServer\evaluate;
+use function Tobyz\JsonApiServer\json_api_response;
 use function Tobyz\JsonApiServer\run_callbacks;
 
 class Index implements RequestHandlerInterface
@@ -51,11 +51,10 @@ class Index implements RequestHandlerInterface
         $adapter = $this->resource->getAdapter();
         $schema = $this->resource->getSchema();
 
-        run_callbacks($schema->getListeners('listing'), [&$request]);
+        $query = $adapter->newQuery();
 
-        $query = $adapter->query();
-
-        run_callbacks($schema->getListeners('scope'), [$query, $request, null]);
+        run_callbacks($schema->getListeners('listing'), [$query, $request]);
+        run_callbacks($schema->getListeners('scope'), [$query, $request]);
 
         $include = $this->getInclude($request);
 
@@ -75,8 +74,8 @@ class Index implements RequestHandlerInterface
         foreach ($models as $model) {
             $serializer->add($this->resource, $model, $include);
         }
-
-        return new JsonApiResponse(
+        
+        return json_api_response(
             new Structure\CompoundDocument(
                 new Structure\PaginatedCollection(
                     new Structure\Pagination(...$this->buildPaginationLinks($request, $offset, $limit, count($models), $total)),
@@ -107,7 +106,7 @@ class Index implements RequestHandlerInterface
             }
         }
 
-        $queryString = Arr::query($queryParams);
+        $queryString = http_build_query($queryParams, '', '&', PHP_QUERY_RFC3986);
 
         return $selfUrl.($queryString ? '?'.$queryString : '');
     }
@@ -163,7 +162,7 @@ class Index implements RequestHandlerInterface
             if (
                 isset($fields[$name])
                 && $fields[$name] instanceof Attribute
-                && evaluate($fields[$name]->isSortable(), [$request])
+                && evaluate($fields[$name]->getSortable(), [$request])
             ) {
                 $adapter->sortByAttribute($query, $fields[$name], $direction);
                 continue;
@@ -250,14 +249,14 @@ class Index implements RequestHandlerInterface
                 continue;
             }
 
-            if (isset($fields[$name]) && evaluate($fields[$name]->isFilterable(), [$request])) {
+            if (isset($fields[$name]) && evaluate($fields[$name]->getFilterable(), [$request])) {
                 if ($fields[$name] instanceof Attribute) {
-                    $adapter->filterByAttribute($query, $fields[$name], $value);
+                    $this->filterByAttribute($adapter, $query, $fields[$name], $value);
                 } elseif ($fields[$name] instanceof HasOne) {
-                    $value = explode(',', $value);
+                    $value = array_filter(explode(',', $value));
                     $adapter->filterByHasOne($query, $fields[$name], $value);
                 } elseif ($fields[$name] instanceof HasMany) {
-                    $value = explode(',', $value);
+                    $value = array_filter(explode(',', $value));
                     $adapter->filterByHasMany($query, $fields[$name], $value);
                 }
                 continue;
@@ -265,5 +264,29 @@ class Index implements RequestHandlerInterface
 
             throw new BadRequestException("Invalid filter [$name]", "filter[$name]");
         }
+    }
+
+    private function filterByAttribute(AdapterInterface $adapter, $query, Attribute $attribute, $value)
+    {
+        if (preg_match('/(.+)\.\.(.+)/', $value, $matches)) {
+            if ($matches[1] !== '*') {
+                $adapter->filterByAttribute($query, $attribute, $value, '>=');
+            }
+            if ($matches[2] !== '*') {
+                $adapter->filterByAttribute($query, $attribute, $value, '<=');
+            }
+
+            return;
+        }
+
+        foreach (['>=', '>', '<=', '<'] as $operator) {
+            if (strpos($value, $operator) === 0) {
+                $adapter->filterByAttribute($query, $attribute, substr($value, strlen($operator)), $operator);
+
+                return;
+            }
+        }
+
+        $adapter->filterByAttribute($query, $attribute, $value);
     }
 }

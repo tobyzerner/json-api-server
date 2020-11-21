@@ -1,0 +1,120 @@
+# Relationships
+
+Define [relationship fields](https://jsonapi.org/format/#document-resource-object-relationships) on your resource using the `hasOne` and `hasMany` methods.
+
+```php
+$type->hasOne('user');
+$type->hasMany('comments');
+```
+
+By default, the resource type that the relationship corresponds to will be the pluralized form of the relationship name. In the example above, the `user` relationship would correspond to the `users` resource type, while `comments` would correspond to `comments`. If you'd like to use a different resource type, call the `type` method:
+
+```php
+$type->hasOne('author')
+    ->type('people');
+```
+
+By default, the relationship will read and write to the relation on your model with the same name. If you'd like it to correspond to a different relation, use the `property` method:
+
+```php
+$type->hasOne('author')
+    ->property('user');
+```
+
+## Resource Linkage
+
+By default, to-one relationships will have [resource linkage](https://jsonapi.org/format/#document-resource-object-linkage), but to-many relationships will not. You can toggle this by calling the `withLinkage` or `withoutLinkage` methods.
+
+```php
+$type->hasMany('users')
+    ->withLinkage();
+```
+
+::: danger
+Be careful when enabling linkage on to-many relationships as pagination is not supported.
+:::
+
+## Relationship Inclusion
+
+To make a relationship available for [inclusion](https://jsonapi.org/format/#fetching-includes) via the `include` query parameter, call the `includable` method.
+
+```php
+$type->hasOne('user')
+    ->includable();
+```
+
+::: danger
+Be careful when making to-many relationships includable as pagination is not supported.
+:::
+
+Relationships included via the `include` query parameter are automatically [eager-loaded](https://laravel.com/docs/8.x/eloquent-relationships#eager-loading) by the adapter, and any type [scopes](scopes) are applied automatically. You can also apply additional scopes at the relationship level using the `scope` method:
+
+```php
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Tobyz\JsonApiServer\Schema\HasOne;
+
+$type->hasOne('users')
+    ->includable()
+    ->scope(function ($query, Request $request, HasOne $field) {
+        $query->where('is_listed', true);
+    });
+```
+
+To prevent a relationship from being eager-loaded, use the `dontLoad` method:
+
+```php
+$type->hasOne('user')
+    ->includable()
+    ->dontLoad();
+```
+
+### Custom Loading Logic
+
+Instead of using the adapter's eager-loading logic, you may wish to define your own for a relationship. You can do so using the `load` method. 
+
+Beware that this can be complicated as eager-loading always takes place on the set of models at the root level of the document; these are passed as the first parameter. The second parameter is an array of the `Relationship` objects that make up the nested inclusion trail leading to the current relationship. 
+
+So, for example, if a request was made to `GET /categories?include=latestPost.user`, then the custom loading logic for the `user` relationship might look like this:
+
+```php
+$api->resource('categories', new EloquentAdapter(Models\Category::class), function (Type $type) {
+    $type->hasOne('latestPost')->type('posts')->includable(); // 1
+});
+
+$api->resource('posts', new EloquentAdapter(Models\Post::class), function (Type $type) {
+    $type->hasOne('user') // 2
+        ->includable()
+        ->load(function (array $models, array $relationships, Request $request, HasOne $field) {
+            // Since this request is to the `GET /categories` endpoint, $models
+            // will be an array of Category models, and $relationships will be
+            // an array containing the objects [1, 2] above.
+        });
+});
+```
+
+## Polymorphic Relationships
+
+Define a polymorphic relationship using the `polymorphic` method. Optionally you may provide an array of allowed resource types:
+
+```php
+$type->hasOne('commentable')
+    ->polymorphic();
+
+$type->hasMany('taggable')
+    ->polymorphic(['photos', 'videos']);
+```
+
+::: warning
+Note that nested includes cannot be requested on polymorphic relationships.
+:::
+
+## Meta Information
+
+You can add meta information to a relationship using the `meta` method:
+
+```php
+$type->hasOne('user')
+    ->meta('updatedAt', function ($model, $user, Request $request) {
+        return $user->updated_at;
+    });
+```

@@ -23,12 +23,12 @@ class MockAdapter implements AdapterInterface
         $this->type = $type;
     }
 
-    public function create()
+    public function newModel()
     {
         return $this->createdModel = (object) [];
     }
 
-    public function query()
+    public function newQuery()
     {
         return $this->query = (object) [];
     }
@@ -97,9 +97,9 @@ class MockAdapter implements AdapterInterface
         $query->filter[] = ['ids', $ids];
     }
 
-    public function filterByAttribute($query, Attribute $attribute, $value): void
+    public function filterByAttribute($query, Attribute $attribute, $value, string $operator = '='): void
     {
-        $query->filter[] = [$attribute, $value];
+        $query->filter[] = [$attribute, $operator, $value];
     }
 
     public function filterByHasOne($query, HasOne $relationship, array $ids): void
@@ -122,8 +122,16 @@ class MockAdapter implements AdapterInterface
         $query->paginate[] = [$limit, $offset];
     }
 
-    public function load(array $models, array $relationships, Closure $scope, bool $linkage): void
+    public function load(array $models, array $relationships, $scope, bool $linkage): void
     {
+        if (is_array($scope)) {
+            foreach ($scope as $type => $apply) {
+                $apply((object) []);
+            }
+        } else {
+            $scope((object) []);
+        }
+
         foreach ($models as $model) {
             $model->load[] = $relationships;
         }
