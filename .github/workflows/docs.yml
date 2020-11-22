@@ -1,0 +1,22 @@
+name: Deploy Docs
+
+on:
+  push:
+     branches: [ master ]
+
+jobs:
+  build-and-deploy:
+    
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: vuepress-deploy
+      uses: jenkey2011/vuepress-deploy@master
+      env:
+        ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        TARGET_REPO: tobyzerner/json-api-server
+        TARGET_BRANCH: gh-pages
+        BUILD_SCRIPT: npm i && npm run docs:build
+        BUILD_DIR: docs/.vuepress/dist/
