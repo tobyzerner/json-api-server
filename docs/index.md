@@ -1,6 +1,6 @@
 # Introduction
 
-json-api-server is a comprehensive [JSON:API](http://jsonapi.org) server implementation in PHP.
+json-api-server is a [JSON:API](http://jsonapi.org) server implementation in PHP.
 
 It allows you to define your API's schema, and then use an [adapter](adapters.md) to connect it to your application's models and database layer, without having to worry about any of the server boilerplate, routing, query parameters, or JSON:API document formatting.
 
