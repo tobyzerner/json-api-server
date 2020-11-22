@@ -8,8 +8,8 @@ For example, the following schema will make an email attribute that is only writ
 
 ```php
 $type->attribute('email')
-    ->writable(function ($model, Request $request, Attribute $field) {
-        return $model->id === $request->getAttribute('userId');
+    ->writable(function ($model, Context $context) {
+        return $model->id === $context->getRequest()->getAttribute('userId');
     });
 ```
 
@@ -31,8 +31,8 @@ $type->attribute('joinedAt')
     ->default(new DateTime);
 
 $type->attribute('ipAddress')
-    ->default(function (Request $request, Attribute $attribute) {
-        return $request->getServerParams()['REMOTE_ADDR'] ?? null;
+    ->default(function (Context $context) {
+        return $context->getRequest()->getServerParams()['REMOTE_ADDR'] ?? null;
     });
 ```
 
@@ -46,7 +46,7 @@ You can ensure that data provided for a field is valid before the resource is sa
 
 ```php
 $type->attribute('email')
-    ->validate(function (callable $fail, $value, $model, Request $request, Attribute $attribute) {
+    ->validate(function (callable $fail, $value, $model, Context $context) {
         if (! filter_var($value, FILTER_VALIDATE_EMAIL)) {
             $fail('Invalid email');
         }
@@ -61,7 +61,7 @@ This works for relationships, too. The related models will be retrieved via your
 
 ```php
 $type->hasMany('groups')
-    ->validate(function (callable $fail, array $groups, $model, Request $request, Attribute $attribute) {
+    ->validate(function (callable $fail, array $groups, $model, Context $context) {
         foreach ($groups as $group) {
             if ($group->id === 1) {
                 $fail('You cannot assign this group');
@@ -76,7 +76,7 @@ Use the `transform` method on an attribute to mutate any incoming value before i
 
 ```php
 $type->attribute('firstName')
-    ->transform(function ($value, Request $request, Attribute $attribute) {
+    ->transform(function ($value, Context $context) {
         return ucfirst($value);
     });
 ```
@@ -91,7 +91,7 @@ Use the `set` method to define custom mutation logic for your field, instead of 
 
 ```php
 $type->attribute('firstName')
-    ->set(function ($value, $model, Request $request, Attribute $attribute) {
+    ->set(function ($value, $model, Context $context) {
         $model->first_name = ucfirst($value);
         if ($model->first_name === 'Toby') {
             $model->last_name = 'Zerner';
@@ -105,7 +105,7 @@ If your field corresponds to some other form of data storage rather than a simpl
 
 ```php
 $type->attribute('locale')
-    ->save(function ($value, $model, Request $request, Attribute $attribute) {
+    ->save(function ($value, $model, Context $context) {
         $model->preferences()
             ->where('key', 'locale')
             ->update(['value' => $value]);
@@ -120,7 +120,7 @@ Run after a field has been successfully saved.
 
 ```php
 $type->attribute('email')
-    ->onSaved(function ($value, $model, Request $request, Attribute $attribute) {
+    ->onSaved(function ($value, $model, Context $context) {
         event(new EmailWasChanged($model));
     });
 ```

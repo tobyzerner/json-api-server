@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of tobyz/json-api-server.
  *
@@ -10,74 +11,29 @@
 
 namespace Tobyz\JsonApiServer;
 
-
 use Psr\Http\Message\ServerRequestInterface;
+use Tobyz\JsonApiServer\Schema\Concerns\HasListeners;
+use Tobyz\JsonApiServer\Schema\Concerns\HasMeta;
 
 class Context
 {
-    private $api;
+    use HasMeta;
+    use HasListeners;
+
     private $request;
-    private $resource;
-    private $model;
-    private $field;
 
-    public function __construct(JsonApi $api, ResourceType $resource)
+    public function __construct(ServerRequestInterface $request)
     {
-        $this->api = $api;
-        $this->resource = $resource;
+        $this->request = $request;
     }
 
-    public function getApi(): JsonApi
-    {
-        return $this->api;
-    }
-
-    public function getRequest(): ?ServerRequestInterface
+    public function getRequest(): ServerRequestInterface
     {
         return $this->request;
     }
 
-    public function forRequest(ServerRequestInterface $request)
+    public function response(callable $callback)
     {
-        $new = clone $this;
-        $new->request = $request;
-        return $new;
-    }
-
-    public function getResource(): ?ResourceType
-    {
-        return $this->resource;
-    }
-
-    public function forResource(ResourceType $resource)
-    {
-        $new = clone $this;
-        $new->resource = $resource;
-        $new->model = null;
-        return $new;
-    }
-
-    public function getModel()
-    {
-        return $this->model;
-    }
-
-    public function forModel($model)
-    {
-        $new = clone $this;
-        $new->model = $model;
-        return $new;
-    }
-
-    public function getField(): ?Field
-    {
-        return $this->field;
-    }
-
-    public function forField(Field $field)
-    {
-        $new = clone $this;
-        $new->field = $field;
-        return $new;
+        $this->listeners['response'][] = $callback;
     }
 }

@@ -4,11 +4,13 @@ You can add meta information at various levels of the document using the `meta` 
 
 ## Document Meta
 
-To add meta information at the top-level, call `meta` on the `JsonApi` instance:
+To add meta information at the top-level of a document, you can call the `meta` method on the `Context` instance which is available inside any of your schema's callbacks.
+
+For example, to add meta information to a resource listing, you might call this inside of an `onListed` listener:
 
 ```php
-$api->meta('requestTime', function (Request $request) {
-    return new DateTime;
+$type->onListed(function ($models, Context $context) {
+    $context->meta('foo', 'bar');
 });
 ```
 
@@ -17,7 +19,7 @@ $api->meta('requestTime', function (Request $request) {
 To add meta information at the resource-level, call `meta` on the schema builder.
 
 ```php
-$type->meta('updatedAt', function ($model, Request $request) {
+$type->meta('updatedAt', function ($model, Context $context) {
     return $model->updated_at;
 });
 ```

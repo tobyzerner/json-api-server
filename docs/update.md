@@ -7,7 +7,7 @@ Optionally pass a closure that returns a boolean value.
 ```php
 $type->updatable();
 
-$type->updatable(function (Request $request) {
+$type->updatable(function (Context $context) {
     return $request->getAttribute('user')->isAdmin();
 });
 ```
@@ -19,7 +19,7 @@ $type->updatable(function (Request $request) {
 Run before the model is saved.
 
 ```php
-$type->onUpdating(function ($model, Request $request) {
+$type->onUpdating(function ($model, Context $context) {
     // do something
 });
 ```
@@ -29,7 +29,7 @@ $type->onUpdating(function ($model, Request $request) {
 Run after the model is saved.
 
 ```php
-$type->onUpdated(function ($model, Request $request) {
+$type->onUpdated(function ($model, Context $context) {
     // do something
 });
 ```

@@ -15,6 +15,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Tobyz\JsonApiServer\Adapter\AdapterInterface;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockAdapter;
@@ -105,9 +106,9 @@ class DeleteTest extends AbstractTestCase
         $adapter->delete($deletingModel);
 
         $this->api->resource('users', $adapter->reveal(), function (Type $type) use ($deletingModel, &$called) {
-            $type->deletable(function ($model, $request) use ($deletingModel, &$called) {
+            $type->deletable(function ($model, $context) use ($deletingModel, &$called) {
                 $this->assertSame($deletingModel, $model);
-                $this->assertInstanceOf(ServerRequestInterface::class, $request);
+                $this->assertInstanceOf(Context::class, $context);
                 return $called = true;
             });
         });
@@ -142,9 +143,9 @@ class DeleteTest extends AbstractTestCase
 
         $this->api->resource('users', $adapter->reveal(), function (Type $type) use ($deletingModel, &$called) {
             $type->deletable();
-            $type->delete(function ($model, $request) use ($deletingModel, &$called) {
+            $type->delete(function ($model, $context) use ($deletingModel, &$called) {
                 $this->assertSame($deletingModel, $model);
-                $this->assertInstanceOf(ServerRequestInterface::class, $request);
+                $this->assertInstanceOf(Context::class, $context);
                 return $called = true;
             });
         });
@@ -165,15 +166,15 @@ class DeleteTest extends AbstractTestCase
 
         $this->api->resource('users', $adapter->reveal(), function (Type $type) use ($adapter, $deletingModel, &$called) {
             $type->deletable();
-            $type->onDeleting(function ($model, $request) use ($adapter, $deletingModel, &$called) {
+            $type->onDeleting(function ($model, $context) use ($adapter, $deletingModel, &$called) {
                 $this->assertSame($deletingModel, $model);
-                $this->assertInstanceOf(ServerRequestInterface::class, $request);
+                $this->assertInstanceOf(Context::class, $context);
                 $adapter->delete($deletingModel)->shouldNotHaveBeenCalled();
                 $called++;
             });
-            $type->onDeleted(function ($model, $request) use ($adapter, $deletingModel, &$called) {
+            $type->onDeleted(function ($model, $context) use ($adapter, $deletingModel, &$called) {
                 $this->assertSame($deletingModel, $model);
-                $this->assertInstanceOf(ServerRequestInterface::class, $request);
+                $this->assertInstanceOf(Context::class, $context);
                 $adapter->delete($deletingModel)->shouldHaveBeenCalled();
                 $called++;
             });

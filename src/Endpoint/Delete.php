@@ -13,15 +13,14 @@ namespace Tobyz\JsonApiServer\Endpoint;
 
 use Nyholm\Psr7\Response;
 use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface as Request;
-use Psr\Http\Server\RequestHandlerInterface;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\ResourceType;
+use Tobyz\JsonApiServer\Context;
 use function Tobyz\JsonApiServer\evaluate;
 use function Tobyz\JsonApiServer\run_callbacks;
 
-class Delete implements RequestHandlerInterface
+class Delete
 {
     private $api;
     private $resource;
@@ -35,27 +34,25 @@ class Delete implements RequestHandlerInterface
     }
 
     /**
-     * Handle a request to delete a resource.
-     *
      * @throws ForbiddenException if the resource is not deletable.
      */
-    public function handle(Request $request): ResponseInterface
+    public function handle(Context $context): ResponseInterface
     {
         $schema = $this->resource->getSchema();
 
-        if (! evaluate($schema->isDeletable(), [$this->model, $request])) {
+        if (! evaluate($schema->isDeletable(), [$this->model, $context])) {
             throw new ForbiddenException;
         }
 
-        run_callbacks($schema->getListeners('deleting'), [$this->model, $request]);
+        run_callbacks($schema->getListeners('deleting'), [$this->model, $context]);
 
         if ($deleteCallback = $schema->getDeleteCallback()) {
-            $deleteCallback($this->model, $request);
+            $deleteCallback($this->model, $context);
         } else {
             $this->resource->getAdapter()->delete($this->model);
         }
 
-        run_callbacks($schema->getListeners('deleted'), [$this->model, $request]);
+        run_callbacks($schema->getListeners('deleted'), [$this->model, $context]);
 
         return new Response(204);
     }

@@ -21,7 +21,7 @@ $type->defaultSort('-updatedAt,-createdAt');
 To define sort fields with custom logic, or ones that do not correspond to an attribute, use the `sort` method:
 
 ```php
-$type->sort('relevance', function ($query, string $direction, Request $request) {
+$type->sort('relevance', function ($query, string $direction, Context $context) {
     $query->orderBy('relevance', $direction);
 });
 ```

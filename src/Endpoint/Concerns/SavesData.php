@@ -16,6 +16,7 @@ use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
 use Tobyz\JsonApiServer\ResourceType;
 use Tobyz\JsonApiServer\Schema\Attribute;
+use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Schema\HasMany;
 use Tobyz\JsonApiServer\Schema\HasOne;
 use Tobyz\JsonApiServer\Schema\Relationship;
@@ -77,7 +78,7 @@ trait SavesData
      *
      * @throws BadRequestException if the identifier is invalid.
      */
-    private function getModelForIdentifier(ServerRequestInterface $request, array $identifier, array $validTypes = null)
+    private function getModelForIdentifier(Context $context, array $identifier, array $validTypes = null)
     {
         if (! isset($identifier['type'])) {
             throw new BadRequestException('type not specified');
@@ -93,16 +94,16 @@ trait SavesData
 
         $resource = $this->api->getResource($identifier['type']);
 
-        return $this->findResource($request, $resource, $identifier['id']);
+        return $this->findResource($resource, $identifier['id'], $context);
     }
 
     /**
      * Assert that the fields contained within a data object are valid.
      */
-    private function validateFields(array $data, $model, ServerRequestInterface $request)
+    private function validateFields(array $data, $model, Context $context)
     {
         $this->assertFieldsExist($data);
-        $this->assertFieldsWritable($data, $model, $request);
+        $this->assertFieldsWritable($data, $model, $context);
     }
 
     /**
@@ -128,11 +129,21 @@ trait SavesData
      *
      * @throws BadRequestException if a field is not writable.
      */
-    private function assertFieldsWritable(array $data, $model, ServerRequestInterface $request)
+    private function assertFieldsWritable(array $data, $model, Context $context)
     {
 
         foreach ($this->resource->getSchema()->getFields() as $field) {
-            if (has_value($data, $field) && ! evaluate($field->getWritable(), [$model, $request])) {
+            if (! has_value($data, $field)) {
+                continue;
+            }
+
+            if (
+                ! evaluate($field->getWritable(), [$model, $context])
+                || (
+                    $context->getRequest()->getMethod() !== 'POST'
+                    && $field->isWritableOnce()
+                )
+            ) {
                 throw new BadRequestException("Field [{$field->getName()}] is not writable");
             }
         }
@@ -141,7 +152,7 @@ trait SavesData
     /**
      * Replace relationship linkage within a data object with models.
      */
-    private function loadRelatedResources(array &$data, ServerRequestInterface $request)
+    private function loadRelatedResources(array &$data, Context $context)
     {
         foreach ($this->resource->getSchema()->getFields() as $field) {
             if (! $field instanceof Relationship || ! has_value($data, $field)) {
@@ -154,10 +165,10 @@ trait SavesData
                 $allowedTypes = (array) $field->getType();
 
                 if ($field instanceof HasOne) {
-                    set_value($data, $field, $this->getModelForIdentifier($request, $value['data'], $allowedTypes));
+                    set_value($data, $field, $this->getModelForIdentifier($context, $value['data'], $allowedTypes));
                 } elseif ($field instanceof HasMany) {
-                    set_value($data, $field, array_map(function ($identifier) use ($request, $allowedTypes) {
-                        return $this->getModelForIdentifier($request, $identifier, $allowedTypes);
+                    set_value($data, $field, array_map(function ($identifier) use ($context, $allowedTypes) {
+                        return $this->getModelForIdentifier($context, $identifier, $allowedTypes);
                     }, $value['data']));
                 }
             } else {
@@ -171,7 +182,7 @@ trait SavesData
      *
      * @throws UnprocessableEntityException if any fields do not pass validation.
      */
-    private function assertDataValid(array $data, $model, ServerRequestInterface $request, bool $validateAll): void
+    private function assertDataValid(array $data, $model, Context $context, bool $validateAll): void
     {
         $failures = [];
 
@@ -186,7 +197,7 @@ trait SavesData
 
             run_callbacks(
                 $field->getListeners('validate'),
-                [$fail, get_value($data, $field), $model, $request]
+                [$fail, get_value($data, $field), $model, $context]
             );
         }
 
@@ -198,7 +209,7 @@ trait SavesData
     /**
      * Set field values from a data object to the model instance.
      */
-    private function setValues(array $data, $model, ServerRequestInterface $request)
+    private function setValues(array $data, $model, Context $context)
     {
         $adapter = $this->resource->getAdapter();
 
@@ -210,7 +221,7 @@ trait SavesData
             $value = get_value($data, $field);
 
             if ($setCallback = $field->getSetCallback()) {
-                $setCallback($model, $value, $request);
+                $setCallback($model, $value, $context);
                 continue;
             }
 
@@ -229,19 +240,19 @@ trait SavesData
     /**
      * Save the model and its fields.
      */
-    private function save(array $data, $model, ServerRequestInterface $request)
+    private function save(array $data, $model, Context $context)
     {
-        $this->saveModel($model, $request);
-        $this->saveFields($data, $model, $request);
+        $this->saveModel($model, $context);
+        $this->saveFields($data, $model, $context);
     }
 
     /**
      * Save the model.
      */
-    private function saveModel($model, ServerRequestInterface $request)
+    private function saveModel($model, Context $context)
     {
         if ($saveCallback = $this->resource->getSchema()->getSaveCallback()) {
-            $saveCallback($model, $request);
+            $saveCallback($model, $context);
         } else {
             $this->resource->getAdapter()->save($model);
         }
@@ -250,7 +261,7 @@ trait SavesData
     /**
      * Save any fields that were not saved with the model.
      */
-    private function saveFields(array $data, $model, ServerRequestInterface $request)
+    private function saveFields(array $data, $model, Context $context)
     {
         $adapter = $this->resource->getAdapter();
 
@@ -262,19 +273,19 @@ trait SavesData
             $value = get_value($data, $field);
 
             if ($saveCallback = $field->getSaveCallback()) {
-                $saveCallback($model, $value, $request);
+                $saveCallback($model, $value, $context);
             } elseif ($field instanceof HasMany) {
                 $adapter->saveHasMany($model, $field, $value);
             }
         }
 
-        $this->runSavedCallbacks($data, $model, $request);
+        $this->runSavedCallbacks($data, $model, $context);
     }
 
     /**
      * Run field saved listeners.
      */
-    private function runSavedCallbacks(array $data, $model, ServerRequestInterface $request)
+    private function runSavedCallbacks(array $data, $model, Context $context)
     {
 
         foreach ($this->resource->getSchema()->getFields() as $field) {
@@ -284,7 +295,7 @@ trait SavesData
 
             run_callbacks(
                 $field->getListeners('saved'),
-                [$model, get_value($data, $field), $request]
+                [$model, get_value($data, $field), $context]
             );
         }
     }

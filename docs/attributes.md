@@ -18,11 +18,10 @@ $type->attribute('firstName')
 Use the `get` method to define custom retrieval logic for your attribute, instead of just reading the value straight from the model property.
 
 ```php
-use Psr\Http\Message\ServerRequestInterface as Request;
-use Tobyz\JsonApiServer\Schema\Attribute;
+use Tobyz\JsonApiServer\Context;
 
 $type->attribute('firstName')
-    ->get(function ($model, Request $request, Attribute $attribute) {
+    ->get(function ($model, Context $context) {
         return ucfirst($model->first_name);
     });
 ```

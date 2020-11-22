@@ -7,7 +7,7 @@ Optionally pass a closure that returns a boolean value.
 ```php
 $type->creatable();
 
-$type->creatable(function (Request $request) {
+$type->creatable(function (Context $context) {
     return $request->getAttribute('user')->isAdmin();
 });
 ```
@@ -17,7 +17,7 @@ $type->creatable(function (Request $request) {
 When creating a resource, an empty model is supplied by the adapter. You may wish to override this and provide a custom model in special circumstances. You can do so using the `newModel` method:
 
 ```php
-$type->newModel(function (Request $request) {
+$type->newModel(function (Context $context) {
     return new CustomModel;
 });
 ```
@@ -29,7 +29,7 @@ $type->newModel(function (Request $request) {
 Run before the model is saved.
 
 ```php
-$type->onCreating(function ($model, Request $request) {
+$type->onCreating(function ($model, Context $context) {
     // do something
 });
 ```
@@ -39,7 +39,7 @@ $type->onCreating(function ($model, Request $request) {
 Run after the model is saved.
 
 ```php
-$type->onCreated(function ($model, Request $request) {
-    // do something
+$type->onCreated(function ($model, Context $context) {
+    $context->meta('foo', 'bar');
 });
 ```

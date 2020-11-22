@@ -26,6 +26,7 @@ abstract class Field
     private $visible = true;
     private $single = false;
     private $writable = false;
+    private $writableOnce = false;
     private $getCallback;
     private $setCallback;
     private $saveCallback;
@@ -89,6 +90,16 @@ abstract class Field
     public function readonly(callable $condition = null)
     {
         $this->writable = $condition ? negate($condition) : false;
+
+        return $this;
+    }
+
+    /**
+     * Only allow this field to be written on creation.
+     */
+    public function once()
+    {
+        $this->writableOnce = true;
 
         return $this;
     }
@@ -211,6 +222,11 @@ abstract class Field
     public function getWritable()
     {
         return $this->writable;
+    }
+
+    public function isWritableOnce(): bool
+    {
+        return $this->writableOnce;
     }
 
     public function getGetCallback()

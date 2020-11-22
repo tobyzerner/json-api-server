@@ -8,7 +8,7 @@ For example, the following schema will make an email attribute that only appears
 
 ```php
 $type->attribute('email')
-    ->visible(function ($model, Request $request, Attribute $field) {
+    ->visible(function ($model, Context $context) {
         return $model->id === $request->getAttribute('userId');
     });
 ```

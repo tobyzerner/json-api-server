@@ -15,14 +15,14 @@ use JsonApiPhp\JsonApi as Structure;
 use JsonApiPhp\JsonApi\Link\LastLink;
 use JsonApiPhp\JsonApi\Link\NextLink;
 use JsonApiPhp\JsonApi\Link\PrevLink;
-use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use Psr\Http\Server\RequestHandlerInterface;
 use Tobyz\JsonApiServer\Adapter\AdapterInterface;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\ResourceType;
 use Tobyz\JsonApiServer\Schema\Attribute;
+use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Schema\HasMany;
 use Tobyz\JsonApiServer\Schema\HasOne;
 use Tobyz\JsonApiServer\Serializer;
@@ -30,7 +30,7 @@ use function Tobyz\JsonApiServer\evaluate;
 use function Tobyz\JsonApiServer\json_api_response;
 use function Tobyz\JsonApiServer\run_callbacks;
 
-class Index implements RequestHandlerInterface
+class Index
 {
     use Concerns\IncludesData;
 
@@ -46,30 +46,30 @@ class Index implements RequestHandlerInterface
     /**
      * Handle a request to show a resource listing.
      */
-    public function handle(Request $request): Response
+    public function handle(Context $context): ResponseInterface
     {
         $adapter = $this->resource->getAdapter();
         $schema = $this->resource->getSchema();
 
         $query = $adapter->newQuery();
 
-        run_callbacks($schema->getListeners('listing'), [$query, $request]);
-        run_callbacks($schema->getListeners('scope'), [$query, $request]);
+        run_callbacks($schema->getListeners('listing'), [$query, $context]);
+        run_callbacks($schema->getListeners('scope'), [$query, $context]);
 
-        $include = $this->getInclude($request);
+        $include = $this->getInclude($context);
 
-        [$offset, $limit] = $this->paginate($query, $request);
-        $this->sort($query, $request);
-        $this->filter($query, $request);
+        [$offset, $limit] = $this->paginate($query, $context);
+        $this->sort($query, $context);
+        $this->filter($query, $context);
 
         $total = $schema->isCountable() ? $adapter->count($query) : null;
         $models = $adapter->get($query);
 
-        $this->loadRelationships($models, $include, $request);
+        $this->loadRelationships($models, $include, $context);
 
-        run_callbacks($schema->getListeners('listed'), [$models, $request]);
+        run_callbacks($schema->getListeners('listed'), [$models, $context]);
 
-        $serializer = new Serializer($this->api, $request);
+        $serializer = new Serializer($this->api, $context);
 
         foreach ($models as $model) {
             $serializer->add($this->resource, $model, $include);
@@ -78,11 +78,11 @@ class Index implements RequestHandlerInterface
         return json_api_response(
             new Structure\CompoundDocument(
                 new Structure\PaginatedCollection(
-                    new Structure\Pagination(...$this->buildPaginationLinks($request, $offset, $limit, count($models), $total)),
+                    new Structure\Pagination(...$this->buildPaginationLinks($context->getRequest(), $offset, $limit, count($models), $total)),
                     new Structure\ResourceCollection(...$serializer->primary())
                 ),
                 new Structure\Included(...$serializer->included()),
-                new Structure\Link\SelfLink($this->buildUrl($request)),
+                new Structure\Link\SelfLink($this->buildUrl($context->getRequest())),
                 new Structure\Meta('offset', $offset),
                 new Structure\Meta('limit', $limit),
                 ...($total !== null ? [new Structure\Meta('total', $total)] : [])
@@ -141,11 +141,11 @@ class Index implements RequestHandlerInterface
         return $paginationLinks;
     }
 
-    private function sort($query, Request $request)
+    private function sort($query, Context $context)
     {
         $schema = $this->resource->getSchema();
 
-        if (! $sort = $request->getQueryParams()['sort'] ?? $schema->getDefaultSort()) {
+        if (! $sort = $context->getRequest()->getQueryParams()['sort'] ?? $schema->getDefaultSort()) {
             return;
         }
 
@@ -155,14 +155,14 @@ class Index implements RequestHandlerInterface
 
         foreach ($this->parseSort($sort) as $name => $direction) {
             if (isset($sortFields[$name])) {
-                $sortFields[$name]($query, $direction, $request);
+                $sortFields[$name]($query, $direction, $context);
                 continue;
             }
 
             if (
                 isset($fields[$name])
                 && $fields[$name] instanceof Attribute
-                && evaluate($fields[$name]->getSortable(), [$request])
+                && evaluate($fields[$name]->getSortable(), [$context])
             ) {
                 $adapter->sortByAttribute($query, $fields[$name], $direction);
                 continue;
@@ -190,10 +190,10 @@ class Index implements RequestHandlerInterface
         return $sort;
     }
 
-    private function paginate($query, Request $request)
+    private function paginate($query, Context $context)
     {
         $schema = $this->resource->getSchema();
-        $queryParams = $request->getQueryParams();
+        $queryParams = $context->getRequest()->getQueryParams();
         $limit = $schema->getPerPage();
 
         if (isset($queryParams['page']['limit'])) {
@@ -223,9 +223,9 @@ class Index implements RequestHandlerInterface
         return [$offset, $limit];
     }
 
-    private function filter($query, Request $request)
+    private function filter($query, Context $context)
     {
-        if (! $filter = $request->getQueryParams()['filter'] ?? null) {
+        if (! $filter = $context->getRequest()->getQueryParams()['filter'] ?? null) {
             return;
         }
 
@@ -245,11 +245,11 @@ class Index implements RequestHandlerInterface
             }
 
             if (isset($filters[$name])) {
-                $filters[$name]->getCallback()($query, $value, $request);
+                $filters[$name]->getCallback()($query, $value, $context);
                 continue;
             }
 
-            if (isset($fields[$name]) && evaluate($fields[$name]->getFilterable(), [$request])) {
+            if (isset($fields[$name]) && evaluate($fields[$name]->getFilterable(), [$context])) {
                 if ($fields[$name] instanceof Attribute) {
                     $this->filterByAttribute($adapter, $query, $fields[$name], $value);
                 } elseif ($fields[$name] instanceof HasOne) {

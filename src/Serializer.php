@@ -14,19 +14,20 @@ namespace Tobyz\JsonApiServer;
 use DateTime;
 use DateTimeInterface;
 use JsonApiPhp\JsonApi as Structure;
-use Psr\Http\Message\ServerRequestInterface as Request;
 use RuntimeException;
+use Tobyz\JsonApiServer\Context;
 
 final class Serializer
 {
     private $api;
+    private $context;
     private $map = [];
     private $primary = [];
 
-    public function __construct(JsonApi $api, Request $request)
+    public function __construct(JsonApi $api, Context $context)
     {
         $this->api = $api;
-        $this->request = $request;
+        $this->context = $context;
     }
 
     /**
@@ -77,7 +78,7 @@ final class Serializer
         $key = $this->key($data);
         $url = $this->api->getBasePath()."/$type/$id";
         $fields = $schema->getFields();
-        $queryParams = $this->request->getQueryParams();
+        $queryParams = $this->context->getRequest()->getQueryParams();
 
         if (isset($queryParams['fields'][$type])) {
             $fields = array_intersect_key($fields, array_flip(explode(',', $queryParams['fields'][$type])));
@@ -88,7 +89,7 @@ final class Serializer
                 continue;
             }
 
-            if (! evaluate($field->getVisible(), [$model, $this->request])) {
+            if (! evaluate($field->getVisible(), [$model, $this->context])) {
                 continue;
             }
 
@@ -139,7 +140,7 @@ final class Serializer
     private function attribute(Schema\Attribute $field, ResourceType $resource, $model): Structure\Attribute
     {
         if ($getCallback = $field->getGetCallback()) {
-            $value = $getCallback($model, $this->request);
+            $value = $getCallback($model, $this->context);
         } else {
             $value = $resource->getAdapter()->getAttribute($model, $field);
         }
@@ -156,7 +157,7 @@ final class Serializer
         $included = $include !== null;
 
         $model = ($getCallback = $field->getGetCallback())
-            ? $getCallback($model, $this->request)
+            ? $getCallback($model, $this->context)
             : $resource->getAdapter()->getHasOne($model, $field, ! $included);
 
         if (! $model) {
@@ -175,7 +176,7 @@ final class Serializer
         $included = $include !== null;
 
         $models = ($getCallback = $field->getGetCallback())
-            ? $getCallback($model, $this->request)
+            ? $getCallback($model, $this->context)
             : $resource->getAdapter()->getHasMany($model, $field, ! $included);
 
         $identifiers = [];
@@ -283,7 +284,7 @@ final class Serializer
         ksort($items);
 
         return array_map(function (Schema\Meta $meta) use ($model) {
-            return new Structure\Meta($meta->getName(), ($meta->getValue())($model, $this->request));
+            return new Structure\Meta($meta->getName(), ($meta->getValue())($model, $this->context));
         }, $items);
     }
 

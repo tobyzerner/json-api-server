@@ -13,6 +13,7 @@ namespace Tobyz\Tests\JsonApiServer\feature;
 
 use Psr\Http\Message\ServerRequestInterface;
 use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockAdapter;
@@ -34,9 +35,9 @@ class MetaTest extends AbstractTestCase
         $adapter = new MockAdapter(['1' => (object) ['id' => '1']]);
 
         $this->api->resource('users', $adapter, function (Type $type) use ($adapter) {
-            $type->meta('foo', function ($model, $request) use ($adapter) {
+            $type->meta('foo', function ($model, $context) use ($adapter) {
                 $this->assertSame($adapter->models['1'], $model);
-                $this->assertInstanceOf(ServerRequestInterface::class, $request);
+                $this->assertInstanceOf(Context::class, $context);
                 return 'bar';
             });
         });

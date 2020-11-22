@@ -7,7 +7,7 @@ Optionally pass a closure that returns a boolean value.
 ```php
 $type->deletable();
 
-$type->deletable(function (Request $request) {
+$type->deletable(function (Context $context) {
     return $request->getAttribute('user')->isAdmin();
 });
 ```
@@ -19,7 +19,7 @@ $type->deletable(function (Request $request) {
 Run before the model is deleted.
 
 ```php
-$type->onDeleting(function ($model, Request $request) {
+$type->onDeleting(function ($model, Context $context) {
     // do something
 });
 ```
@@ -29,7 +29,7 @@ $type->onDeleting(function ($model, Request $request) {
 Run after the model is deleted.
 
 ```php
-$type->onDeleted(function ($model, Request $request) {
+$type->onDeleted(function ($model, Context $context) {
     // do something
 });
 ```

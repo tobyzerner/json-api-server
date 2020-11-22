@@ -24,7 +24,7 @@ GET /users?filter[postCount]=5..15
 To define filters with custom logic, or ones that do not correspond to an attribute, use the `filter` method:
 
 ```php
-$type->filter('minPosts', function ($query, $value, Request $request) {
+$type->filter('minPosts', function ($query, $value, Context $context) {
     $query->where('postCount', '>=', $value);
 });
 ```

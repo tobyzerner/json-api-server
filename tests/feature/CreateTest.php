@@ -15,6 +15,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Tobyz\JsonApiServer\Adapter\AdapterInterface;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockAdapter;
@@ -106,8 +107,8 @@ class CreateTest extends AbstractTestCase
         $called = false;
 
         $this->api->resource('users', new MockAdapter(), function (Type $type) use (&$called) {
-            $type->creatable(function ($request) use (&$called) {
-                $this->assertInstanceOf(ServerRequestInterface::class, $request);
+            $type->creatable(function ($context) use (&$called) {
+                $this->assertInstanceOf(Context::class, $context);
                 return $called = true;
             });
         });
@@ -142,8 +143,8 @@ class CreateTest extends AbstractTestCase
 
         $this->api->resource('users', $adapter->reveal(), function (Type $type) use ($createdModel) {
             $type->creatable();
-            $type->newModel(function ($request) use ($createdModel) {
-                $this->assertInstanceOf(ServerRequestInterface::class, $request);
+            $type->newModel(function ($context) use ($createdModel) {
+                $this->assertInstanceOf(Context::class, $context);
                 return $createdModel;
             });
         });
@@ -162,10 +163,10 @@ class CreateTest extends AbstractTestCase
 
         $this->api->resource('users', $adapter->reveal(), function (Type $type) use ($createdModel, &$called) {
             $type->creatable();
-            $type->save(function ($model, $request) use ($createdModel, &$called) {
+            $type->save(function ($model, $context) use ($createdModel, &$called) {
                 $model->id = '1';
                 $this->assertSame($createdModel, $model);
-                $this->assertInstanceOf(ServerRequestInterface::class, $request);
+                $this->assertInstanceOf(Context::class, $context);
                 return $called = true;
             });
         });
@@ -185,15 +186,15 @@ class CreateTest extends AbstractTestCase
 
         $this->api->resource('users', $adapter->reveal(), function (Type $type) use ($adapter, $createdModel, &$called) {
             $type->creatable();
-            $type->onCreating(function ($model, $request) use ($adapter, $createdModel, &$called) {
+            $type->onCreating(function ($model, $context) use ($adapter, $createdModel, &$called) {
                 $this->assertSame($createdModel, $model);
-                $this->assertInstanceOf(ServerRequestInterface::class, $request);
+                $this->assertInstanceOf(Context::class, $context);
                 $adapter->save($createdModel)->shouldNotHaveBeenCalled();
                 $called++;
             });
-            $type->onCreated(function ($model, $request) use ($adapter, $createdModel, &$called) {
+            $type->onCreated(function ($model, $context) use ($adapter, $createdModel, &$called) {
                 $this->assertSame($createdModel, $model);
-                $this->assertInstanceOf(ServerRequestInterface::class, $request);
+                $this->assertInstanceOf(Context::class, $context);
                 $adapter->save($createdModel)->shouldHaveBeenCalled();
                 $called++;
             });

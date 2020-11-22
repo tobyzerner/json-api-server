@@ -7,7 +7,7 @@ If you want to restrict the ability to list a resource type, use the `listable` 
 ```php
 $type->notListable();
 
-$type->listable(function (Request $request) {
+$type->listable(function (Context $context) {
     return $request->getAttribute('user')->isAdmin();
 });
 ```
@@ -19,7 +19,7 @@ $type->listable(function (Request $request) {
 Run before [scopes](scopes.md) are applied to the `$query` and results are retrieved.
 
 ```php
-$type->onListing(function ($query, Request $request) {
+$type->onListing(function ($query, Context $context) {
     // do something
 });
 ```
@@ -29,7 +29,7 @@ $type->onListing(function ($query, Request $request) {
 Run after models and relationships have been retrieved, but before they are serialized into a JSON:API document.
 
 ```php
-$type->onListed(function ($models, Request $request) {
+$type->onListed(function ($models, Context $context) {
     // do something
 });
 ```

@@ -26,6 +26,7 @@ use Tobyz\JsonApiServer\Exception\UnsupportedMediaTypeException;
 use Tobyz\JsonApiServer\Endpoint\Concerns\FindsResources;
 use Tobyz\JsonApiServer\Http\MediaTypes;
 use Tobyz\JsonApiServer\Schema\Concerns\HasMeta;
+use Tobyz\JsonApiServer\Context;
 
 final class JsonApi implements RequestHandlerInterface
 {
@@ -93,13 +94,14 @@ final class JsonApi implements RequestHandlerInterface
 
         $segments = explode('/', trim($path, '/'));
         $resource = $this->getResource($segments[0]);
+        $context = new Context($request);
 
         switch (count($segments)) {
             case 1:
-                return $this->handleCollection($request, $resource);
+                return $this->handleCollection($context, $resource);
 
             case 2:
-                return $this->handleResource($request, $resource, $segments[1]);
+                return $this->handleResource($context, $resource, $segments[1]);
 
             case 3:
                 throw new NotImplementedException;
@@ -164,33 +166,33 @@ final class JsonApi implements RequestHandlerInterface
         return $path;
     }
 
-    private function handleCollection(Request $request, ResourceType $resource): Response
+    private function handleCollection(Context $context, ResourceType $resource): Response
     {
-        switch ($request->getMethod()) {
+        switch ($context->getRequest()->getMethod()) {
             case 'GET':
-                return (new Endpoint\Index($this, $resource))->handle($request);
+                return (new Endpoint\Index($this, $resource))->handle($context);
 
             case 'POST':
-                return (new Endpoint\Create($this, $resource))->handle($request);
+                return (new Endpoint\Create($this, $resource))->handle($context);
 
             default:
                 throw new MethodNotAllowedException;
         }
     }
 
-    private function handleResource(Request $request, ResourceType $resource, string $id): Response
+    private function handleResource(Context $context, ResourceType $resource, string $id): Response
     {
-        $model = $this->findResource($resource, $id, $request);
+        $model = $this->findResource($resource, $id, $context);
 
-        switch ($request->getMethod()) {
+        switch ($context->getRequest()->getMethod()) {
             case 'PATCH':
-                return (new Endpoint\Update($this, $resource, $model))->handle($request);
+                return (new Endpoint\Update($this, $resource, $model))->handle($context);
 
             case 'GET':
-                return (new Endpoint\Show($this, $resource, $model))->handle($request);
+                return (new Endpoint\Show($this, $resource, $model))->handle($context);
 
             case 'DELETE':
-                return (new Endpoint\Delete($this, $resource, $model))->handle($request);
+                return (new Endpoint\Delete($this, $resource, $model))->handle($context);
 
             default:
                 throw new MethodNotAllowedException;
@@ -212,9 +214,7 @@ final class JsonApi implements RequestHandlerInterface
         $errors = $e->getJsonApiErrors();
         $status = $e->getJsonApiStatus();
 
-        $document = new ErrorDocument(
-            ...$errors
-        );
+        $document = new ErrorDocument(...$errors);
 
         return json_api_response($document, $status);
     }

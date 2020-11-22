@@ -50,12 +50,11 @@ Be careful when making to-many relationships includable as pagination is not sup
 Relationships included via the `include` query parameter are automatically [eager-loaded](https://laravel.com/docs/8.x/eloquent-relationships#eager-loading) by the adapter, and any type [scopes](scopes) are applied automatically. You can also apply additional scopes at the relationship level using the `scope` method:
 
 ```php
-use Psr\Http\Message\ServerRequestInterface as Request;
-use Tobyz\JsonApiServer\Schema\HasOne;
+use Tobyz\JsonApiServer\Context;
 
 $type->hasOne('users')
     ->includable()
-    ->scope(function ($query, Request $request, HasOne $field) {
+    ->scope(function ($query, Context $context) {
         $query->where('is_listed', true);
     });
 ```
@@ -84,7 +83,7 @@ $api->resource('categories', new EloquentAdapter(Models\Category::class), functi
 $api->resource('posts', new EloquentAdapter(Models\Post::class), function (Type $type) {
     $type->hasOne('user') // 2
         ->includable()
-        ->load(function (array $models, array $relationships, Request $request, HasOne $field) {
+        ->load(function (array $models, array $relationships, Context $context) {
             // Since this request is to the `GET /categories` endpoint, $models
             // will be an array of Category models, and $relationships will be
             // an array containing the objects [1, 2] above.
@@ -114,7 +113,7 @@ You can add meta information to a relationship using the `meta` method:
 
 ```php
 $type->hasOne('user')
-    ->meta('updatedAt', function ($model, $user, Request $request) {
+    ->meta('updatedAt', function ($model, $user, Context $context) {
         return $user->updated_at;
     });
 ```

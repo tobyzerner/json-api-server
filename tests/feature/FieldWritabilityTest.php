@@ -12,9 +12,9 @@
 namespace Tobyz\Tests\JsonApiServer\feature;
 
 use Psr\Http\Message\RequestInterface;
-use Psr\Http\Message\ServerRequestInterface;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockAdapter;
@@ -119,9 +119,9 @@ class FieldWritabilityTest extends AbstractTestCase
         $this->api->resource('users', $this->adapter, function (Type $type) use (&$called) {
             $type->updatable();
             $type->attribute('writable')
-                ->writable(function ($model, $request) use (&$called) {
+                ->writable(function ($model, $context) use (&$called) {
                     $this->assertSame($this->adapter->models['1'], $model);
-                    $this->assertInstanceOf(ServerRequestInterface::class, $request);
+                    $this->assertInstanceOf(Context::class, $context);
 
                     return $called = true;
                 });
@@ -197,11 +197,11 @@ class FieldWritabilityTest extends AbstractTestCase
         $this->api->resource('users', $this->adapter, function (Type $type) use (&$called) {
             $type->updatable();
             $type->attribute('readonly')
-                ->readonly(function ($model, $request) use (&$called) {
+                ->readonly(function ($model, $context) use (&$called) {
                     $called = true;
 
                     $this->assertSame($this->adapter->models['1'], $model);
-                    $this->assertInstanceOf(RequestInterface::class, $request);
+                    $this->assertInstanceOf(Context::class, $context);
 
                     return false;
                 });
@@ -221,6 +221,39 @@ class FieldWritabilityTest extends AbstractTestCase
         );
 
         $this->assertTrue($called);
+    }
+
+    public function test_field_is_only_writable_once_on_creation()
+    {
+        $this->api->resource('users', $this->adapter, function (Type $type) {
+            $type->creatable();
+            $type->updatable();
+            $type->attribute('writableOnce')->writable()->once();
+        });
+
+        $payload = [
+            'data' => [
+                'type' => 'users',
+                'attributes' => [
+                    'writableOnce' => 'value',
+                ]
+            ]
+        ];
+
+        $response = $this->api->handle(
+            $this->buildRequest('POST', '/users')
+                ->withParsedBody($payload)
+        );
+
+        $this->assertEquals(201, $response->getStatusCode());
+
+        $this->expectException(BadRequestException::class);
+
+        $payload['data']['id'] = '1';
+        $this->api->handle(
+            $this->buildRequest('PATCH', '/users/1')
+                ->withParsedBody($payload)
+        );
     }
 
     // to_one, to_many...

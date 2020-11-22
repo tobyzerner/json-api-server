@@ -11,9 +11,9 @@
 
 namespace Tobyz\JsonApiServer\Endpoint\Concerns;
 
-use Psr\Http\Message\ServerRequestInterface;
 use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\ResourceType;
+use Tobyz\JsonApiServer\Context;
 use function Tobyz\JsonApiServer\run_callbacks;
 
 trait FindsResources
@@ -23,12 +23,12 @@ trait FindsResources
      *
      * @throws ResourceNotFoundException if the resource is not found.
      */
-    private function findResource(ResourceType $resource, string $id, ServerRequestInterface $request)
+    private function findResource(ResourceType $resource, string $id, Context $context)
     {
         $adapter = $resource->getAdapter();
         $query = $adapter->newQuery();
 
-        run_callbacks($resource->getSchema()->getListeners('scope'), [$query, $request]);
+        run_callbacks($resource->getSchema()->getListeners('scope'), [$query, $context]);
 
         $model = $adapter->find($query, $id);
 

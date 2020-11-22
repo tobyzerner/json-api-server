@@ -13,6 +13,7 @@ namespace Tobyz\Tests\JsonApiServer\feature;
 
 use Psr\Http\Message\ServerRequestInterface;
 use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockAdapter;
@@ -40,7 +41,7 @@ class ScopesTest extends AbstractTestCase
         $this->api->resource('users', $this->adapter, function (Type $type) {
             $type->updatable();
             $type->deletable();
-            $type->scope(function ($query, ServerRequestInterface $request) {
+            $type->scope(function ($query, Context $context) {
                 $this->scopeWasCalled = true;
             });
         });
@@ -114,7 +115,7 @@ class ScopesTest extends AbstractTestCase
 
         $organisationScopeWasCalled = false;
         $this->api->resource('organisations', new MockAdapter, function (Type $type) use (&$organisationScopeWasCalled) {
-            $type->scope(function ($query, ServerRequestInterface $request) use (&$organisationScopeWasCalled) {
+            $type->scope(function ($query, Context $context) use (&$organisationScopeWasCalled) {
                 $organisationScopeWasCalled = true;
             });
         });

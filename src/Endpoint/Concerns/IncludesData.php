@@ -11,10 +11,10 @@
 
 namespace Tobyz\JsonApiServer\Endpoint\Concerns;
 
-use Psr\Http\Message\ServerRequestInterface;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\ResourceType;
+use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Schema\Relationship;
 use function Tobyz\JsonApiServer\run_callbacks;
 
@@ -24,9 +24,9 @@ use function Tobyz\JsonApiServer\run_callbacks;
  */
 trait IncludesData
 {
-    private function getInclude(ServerRequestInterface $request): array
+    private function getInclude(Context $context): array
     {
-        $queryParams = $request->getQueryParams();
+        $queryParams = $context->getRequest()->getQueryParams();
 
         if (! empty($queryParams['include'])) {
             $include = $this->parseInclude($queryParams['include']);
@@ -81,12 +81,12 @@ trait IncludesData
         }
     }
 
-    private function loadRelationships(array $models, array $include, ServerRequestInterface $request)
+    private function loadRelationships(array $models, array $include, Context $context)
     {
-        $this->loadRelationshipsAtLevel($models, [], $this->resource, $include, $request);
+        $this->loadRelationshipsAtLevel($models, [], $this->resource, $include, $context);
     }
 
-    private function loadRelationshipsAtLevel(array $models, array $relationshipPath, ResourceType $resource, array $include, ServerRequestInterface $request)
+    private function loadRelationshipsAtLevel(array $models, array $relationshipPath, ResourceType $resource, array $include, Context $context)
     {
         $adapter = $resource->getAdapter();
         $schema = $resource->getSchema();
@@ -107,13 +107,13 @@ trait IncludesData
                 $type = $field->getType();
 
                 if (is_callable($load)) {
-                    $load($models, $nextRelationshipPath, $field->hasLinkage(), $request);
+                    $load($models, $nextRelationshipPath, $field->hasLinkage(), $context);
                 } else {
                     if (is_string($type)) {
                         $relatedResource = $this->api->getResource($type);
-                        $scope = function ($query) use ($request, $field, $relatedResource) {
-                            run_callbacks($relatedResource->getSchema()->getListeners('scope'), [$query, $request]);
-                            run_callbacks($field->getListeners('scope'), [$query, $request]);
+                        $scope = function ($query) use ($context, $field, $relatedResource) {
+                            run_callbacks($relatedResource->getSchema()->getListeners('scope'), [$query, $context]);
+                            run_callbacks($field->getListeners('scope'), [$query, $context]);
                         };
                     } else {
                         $relatedResources = is_array($type) ? array_map(function ($type) {
@@ -125,10 +125,10 @@ trait IncludesData
                                 return $relatedResource->getType();
                             }, $relatedResources),
 
-                            array_map(function ($relatedResource) use ($request, $field) {
-                                return function ($query) use ($request, $field, $relatedResource) {
-                                    run_callbacks($relatedResource->getSchema()->getListeners('scope'), [$query, $request]);
-                                    run_callbacks($field->getListeners('scope'), [$query, $request]);
+                            array_map(function ($relatedResource) use ($context, $field) {
+                                return function ($query) use ($context, $field, $relatedResource) {
+                                    run_callbacks($relatedResource->getSchema()->getListeners('scope'), [$query, $context]);
+                                    run_callbacks($field->getListeners('scope'), [$query, $context]);
                                 };
                             }, $relatedResources)
                         );
@@ -140,7 +140,7 @@ trait IncludesData
                 if (isset($include[$name]) && is_string($type)) {
                     $relatedResource = $this->api->getResource($type);
 
-                    $this->loadRelationshipsAtLevel($models, $nextRelationshipPath, $relatedResource, $include[$name] ?? [], $request);
+                    $this->loadRelationshipsAtLevel($models, $nextRelationshipPath, $relatedResource, $include[$name] ?? [], $context);
                 }
             }
         }

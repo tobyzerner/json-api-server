@@ -13,6 +13,7 @@ namespace Tobyz\Tests\JsonApiServer\feature;
 
 use Psr\Http\Message\ServerRequestInterface;
 use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockAdapter;
@@ -75,7 +76,7 @@ class FieldFiltersTest extends AbstractTestCase
             $type->filter('name', function (...$args) use (&$called) {
                 $this->assertSame($this->adapter->query, $args[0]);
                 $this->assertEquals('value', $args[1]);
-                $this->assertInstanceOf(ServerRequestInterface::class, $args[2]);
+                $this->assertInstanceOf(Context::class, $args[2]);
 
                 $called = true;
             });

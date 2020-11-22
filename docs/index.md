@@ -1,8 +1,8 @@
 # Introduction
 
-**json-api-server** is an automated [JSON:API](http://jsonapi.org) server implementation in PHP.
+json-api-server is a comprehensive [JSON:API](http://jsonapi.org) server implementation in PHP.
 
-It allows you to define your API's schema, and then use an [Adapter](adapters.md) to connect it to your application's models and database layer, without having to worry about any of the server boilerplate, routing, query parameters, or JSON:API document formatting.
+It allows you to define your API's schema, and then use an [adapter](adapters.md) to connect it to your application's models and database layer, without having to worry about any of the server boilerplate, routing, query parameters, or JSON:API document formatting.
 
 Based on your schema definition, the package will serve a **complete JSON:API that conforms to the [spec](https://jsonapi.org/format/)**, including support for:
 
@@ -19,7 +19,7 @@ The schema definition is extremely powerful and lets you easily apply [permissio
 
 ### Example
 
-The following example uses Eloquent models in a Laravel application. However, json-api-server can be used with any framework that can deal in PSR-7 Requests and Responses. Custom [Adapters](adapters.md) can be used to support other ORMs and data persistence layers.
+The following example uses Eloquent models in a Laravel application. However, json-api-server can be used with any framework that can deal in PSR-7 Requests and Responses. Custom [adapters](adapters.md) can be used to support other ORMs and data persistence layers.
 
 ```php
 use App\Models\{Article, Comment, User};

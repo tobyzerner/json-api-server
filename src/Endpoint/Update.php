@@ -11,16 +11,15 @@
 
 namespace Tobyz\JsonApiServer\Endpoint;
 
-use Psr\Http\Message\ResponseInterface as Response;
-use Psr\Http\Message\ServerRequestInterface as Request;
-use Psr\Http\Server\RequestHandlerInterface;
+use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\ResourceType;
+use Tobyz\JsonApiServer\Context;
 use function Tobyz\JsonApiServer\evaluate;
 use function Tobyz\JsonApiServer\run_callbacks;
 
-class Update implements RequestHandlerInterface
+class Update
 {
     use Concerns\SavesData;
 
@@ -36,32 +35,30 @@ class Update implements RequestHandlerInterface
     }
 
     /**
-     * Handle a request to update a resource.
-     *
      * @throws ForbiddenException if the resource is not updatable.
      */
-    public function handle(Request $request): Response
+    public function handle(Context $context): ResponseInterface
     {
         $schema = $this->resource->getSchema();
 
-        if (! evaluate($schema->isUpdatable(), [$this->model, $request])) {
+        if (! evaluate($schema->isUpdatable(), [$this->model, $context])) {
             throw new ForbiddenException;
         }
 
-        $data = $this->parseData($request->getParsedBody(), $this->model);
+        $data = $this->parseData($context->getRequest()->getParsedBody(), $this->model);
 
-        $this->validateFields($data, $this->model, $request);
-        $this->loadRelatedResources($data, $request);
-        $this->assertDataValid($data, $this->model, $request, false);
-        $this->setValues($data, $this->model, $request);
+        $this->validateFields($data, $this->model, $context);
+        $this->loadRelatedResources($data, $context);
+        $this->assertDataValid($data, $this->model, $context, false);
+        $this->setValues($data, $this->model, $context);
 
-        run_callbacks($schema->getListeners('updating'), [$this->model, $request]);
+        run_callbacks($schema->getListeners('updating'), [$this->model, $context]);
 
-        $this->save($data, $this->model, $request);
+        $this->save($data, $this->model, $context);
 
-        run_callbacks($schema->getListeners('updated'), [$this->model, $request]);
+        run_callbacks($schema->getListeners('updated'), [$this->model, $context]);
 
         return (new Show($this->api, $this->resource, $this->model))
-            ->handle($request);
+            ->handle($context);
     }
 }
