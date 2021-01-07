@@ -12,6 +12,7 @@
 namespace Tobyz\JsonApiServer\Schema\Concerns;
 
 use Tobyz\JsonApiServer\Schema\Meta;
+use function Tobyz\JsonApiServer\wrap;
 
 trait HasMeta
 {
@@ -20,9 +21,9 @@ trait HasMeta
     /**
      * Add a meta attribute.
      */
-    public function meta(string $name, callable $value): Meta
+    public function meta(string $name, $value): Meta
     {
-        return $this->meta[$name] = new Meta($name, $value);
+        return $this->meta[$name] = new Meta($name, wrap($value));
     }
 
     /**
