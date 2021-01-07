@@ -15,7 +15,6 @@ use DateTime;
 use DateTimeInterface;
 use JsonApiPhp\JsonApi as Structure;
 use RuntimeException;
-use Tobyz\JsonApiServer\Context;
 
 final class Serializer
 {

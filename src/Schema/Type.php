@@ -30,7 +30,6 @@ final class Type
     private $countable = true;
     private $listable = true;
     private $defaultSort;
-    private $defaultFilter;
     private $saveCallback;
     private $newModelCallback;
     private $creatable = false;

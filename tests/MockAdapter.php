@@ -2,13 +2,11 @@
 
 namespace Tobyz\Tests\JsonApiServer;
 
-use Closure;
 use Tobyz\JsonApiServer\Adapter\AdapterInterface;
 use Tobyz\JsonApiServer\Schema\Attribute;
 use Tobyz\JsonApiServer\Schema\Field;
 use Tobyz\JsonApiServer\Schema\HasMany;
 use Tobyz\JsonApiServer\Schema\HasOne;
-use Tobyz\JsonApiServer\Schema\Relationship;
 
 class MockAdapter implements AdapterInterface
 {

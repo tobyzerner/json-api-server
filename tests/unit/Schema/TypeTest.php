@@ -25,7 +25,7 @@ class TypeTest extends TestCase
         $fields = $type->getFields();
 
         $this->assertSame($attribute, $attributeAgain);
-        $this->assertEquals(1, count($fields));
+        $this->assertCount(1, $fields);
     }
 
     public function test_overwrites_an_existing_field_with_the_same_name_of_a_different_type()
@@ -37,7 +37,7 @@ class TypeTest extends TestCase
         $fields = $type->getFields();
 
         $this->assertNotSame($attribute, $hasOne);
-        $this->assertEquals(1, count($fields));
+        $this->assertCount(1, $fields);
         $this->assertSame($hasOne, $fields['dogs']);
     }
 }

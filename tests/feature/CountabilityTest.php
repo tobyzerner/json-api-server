@@ -30,7 +30,7 @@ class CountabilityTest extends AbstractTestCase
 
     public function setUp(): void
     {
-        $this->api = new JsonApi('http://example.com');
+        $this->api = new JsonApi('/');
 
         $models = [];
         for ($i = 1; $i <= 100; $i++) {

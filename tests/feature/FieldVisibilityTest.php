@@ -12,7 +12,6 @@
 namespace Tobyz\Tests\JsonApiServer\feature;
 
 use Psr\Http\Message\RequestInterface;
-use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
@@ -39,7 +38,7 @@ class FieldVisibilityTest extends AbstractTestCase
         ]);
     }
 
-    public function test_attributes_are_visible_by_default()
+    public function test_fields_are_visible_by_default()
     {
         $this->api->resource('users', new MockAdapter, function (Type $type) {
             $type->attribute('visible');
@@ -55,7 +54,7 @@ class FieldVisibilityTest extends AbstractTestCase
         $this->assertArrayHasKey('visible', $attributes);
     }
 
-    public function test_attributes_can_be_explicitly_visible()
+    public function test_fields_can_be_explicitly_visible()
     {
         $this->markTestIncomplete();
 
@@ -119,7 +118,7 @@ class FieldVisibilityTest extends AbstractTestCase
         $this->assertArrayNotHasKey('hiddenHasMany', $relationships);
     }
 
-    public function test_attribute_visible_callback_receives_correct_parameters()
+    public function test_field_visible_callback_receives_correct_parameters()
     {
         $this->markTestIncomplete();
 
@@ -149,7 +148,7 @@ class FieldVisibilityTest extends AbstractTestCase
         $this->assertEquals(3, $called);
     }
 
-    public function test_attributes_can_be_explicitly_hidden()
+    public function test_fields_can_be_explicitly_hidden()
     {
         $this->markTestIncomplete();
 
@@ -172,7 +171,7 @@ class FieldVisibilityTest extends AbstractTestCase
         $this->assertArrayNotHasKey('hiddenHasMany', $relationships);
     }
 
-    public function test_attributes_can_be_conditionally_hidden()
+    public function test_fields_can_be_conditionally_hidden()
     {
         $this->markTestIncomplete();
 
@@ -213,7 +212,7 @@ class FieldVisibilityTest extends AbstractTestCase
         $this->assertArrayNotHasKey('hiddenHasMany', $relationships);
     }
 
-    public function test_attribute_hidden_callback_receives_correct_parameters()
+    public function test_field_hidden_callback_receives_correct_parameters()
     {
         $this->markTestIncomplete();
 
@@ -242,6 +241,4 @@ class FieldVisibilityTest extends AbstractTestCase
 
         $this->assertEquals(3, $called);
     }
-
-    // to_one, to_many...
 }

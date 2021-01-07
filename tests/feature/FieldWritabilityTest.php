@@ -255,6 +255,4 @@ class FieldWritabilityTest extends AbstractTestCase
                 ->withParsedBody($payload)
         );
     }
-
-    // to_one, to_many...
 }

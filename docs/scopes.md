@@ -7,6 +7,8 @@ This `scope` method allows you to modify the query builder object provided by th
 For example, to make it so the authenticated user can only see their own posts:
 
 ```php
+use Tobyz\JsonApiServer\Context;
+
 $type->scope(function ($query, Context $context) {
     $query->where('user_id', $context->getRequest()->getAttribute('userId'));
 });

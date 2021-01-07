@@ -11,7 +11,6 @@
 
 namespace Tobyz\Tests\JsonApiServer\feature;
 
-use Psr\Http\Message\ServerRequestInterface;
 use Tobyz\JsonApiServer\Adapter\AdapterInterface;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\JsonApi;
@@ -29,7 +28,7 @@ class CreateTest extends AbstractTestCase
 
     public function setUp(): void
     {
-        $this->api = new JsonApi('http://example.com');
+        $this->api = new JsonApi('/');
     }
 
     protected function createResource(array $data = [])
