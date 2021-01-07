@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
-use Psr\Http\Message\ServerRequestInterface as Request;
+use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Schema\Field;
 
 function rules($rules, array $messages = [], array $customAttributes = [])
@@ -24,7 +24,7 @@ function rules($rules, array $messages = [], array $customAttributes = [])
         $rules = [$rules];
     }
 
-    return function (callable $fail, $value, $model, Request $request, Field $field) use ($rules, $messages, $customAttributes) {
+    return function (callable $fail, $value, $model, Context $context, Field $field) use ($rules, $messages, $customAttributes) {
         $key = $field->getName();
         $validationRules = [$key => []];
 
