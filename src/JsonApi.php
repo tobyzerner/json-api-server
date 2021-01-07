@@ -160,7 +160,7 @@ final class JsonApi implements RequestHandlerInterface
         $len = strlen($basePath);
 
         if (substr($path, 0, $len) === $basePath) {
-            $path = substr($path, $len + 1);
+            $path = substr($path, $len);
         }
 
         return $path;
