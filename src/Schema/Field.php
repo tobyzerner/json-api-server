@@ -13,6 +13,7 @@ namespace Tobyz\JsonApiServer\Schema;
 
 use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
 use Tobyz\JsonApiServer\Schema\Concerns\HasListeners;
+use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 use function Tobyz\JsonApiServer\negate;
 use function Tobyz\JsonApiServer\wrap;
 
@@ -20,11 +21,10 @@ abstract class Field
 {
     use HasListeners;
     use HasDescription;
+    use HasVisibility;
 
     private $name;
     private $property;
-    private $visible = true;
-    private $single = false;
     private $writable = false;
     private $writableOnce = false;
     private $getCallback;
@@ -50,26 +50,6 @@ abstract class Field
     public function property(string $property)
     {
         $this->property = $property;
-
-        return $this;
-    }
-
-    /**
-     * Allow this field to be seen.
-     */
-    public function visible(callable $condition = null)
-    {
-        $this->visible = $condition ?: true;
-
-        return $this;
-    }
-
-    /**
-     * Disallow this field to be seen.
-     */
-    public function hidden(callable $condition = null)
-    {
-        $this->visible = $condition ? negate($condition) : false;
 
         return $this;
     }
@@ -212,11 +192,6 @@ abstract class Field
     public function getProperty(): ?string
     {
         return $this->property;
-    }
-
-    public function getVisible()
-    {
-        return $this->visible;
     }
 
     public function getWritable()

@@ -12,10 +12,12 @@
 namespace Tobyz\JsonApiServer\Schema;
 
 use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
+use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 
 final class Filter
 {
     use HasDescription;
+    use HasVisibility;
 
     private $name;
     private $callback;
