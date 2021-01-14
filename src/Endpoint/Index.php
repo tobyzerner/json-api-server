@@ -19,6 +19,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Tobyz\JsonApiServer\Adapter\AdapterInterface;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\ResourceType;
 use Tobyz\JsonApiServer\Schema\Attribute;
@@ -50,6 +51,10 @@ class Index
     {
         $adapter = $this->resource->getAdapter();
         $schema = $this->resource->getSchema();
+
+        if (! evaluate($schema->isListable(), [$context])) {
+            throw new ForbiddenException;
+        }
 
         $query = $adapter->newQuery();
 
