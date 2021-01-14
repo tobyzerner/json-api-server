@@ -8,7 +8,7 @@ Optionally pass a closure that returns a boolean value.
 $type->creatable();
 
 $type->creatable(function (Context $context) {
-    return $request->getAttribute('user')->isAdmin();
+    return $context->getRequest()->getAttribute('user')->isAdmin();
 });
 ```
 

@@ -9,7 +9,7 @@ For example, the following schema will make an email attribute that only appears
 ```php
 $type->attribute('email')
     ->visible(function ($model, Context $context) {
-        return $model->id === $request->getAttribute('userId');
+        return $model->id === $context->getRequest()->getAttribute('userId');
     });
 ```
 

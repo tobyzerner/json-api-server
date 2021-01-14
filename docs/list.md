@@ -8,7 +8,7 @@ If you want to restrict the ability to list a resource type, use the `listable` 
 $type->notListable();
 
 $type->listable(function (Context $context) {
-    return $request->getAttribute('user')->isAdmin();
+    return $context->getRequest()->getAttribute('user')->isAdmin();
 });
 ```
 
