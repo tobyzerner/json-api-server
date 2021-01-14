@@ -17,7 +17,7 @@ use Nyholm\Psr7\Response;
 use Nyholm\Psr7\Stream;
 use Tobyz\JsonApiServer\Schema\Field;
 
-function json_api_response(JsonSerializable $document, int $status = 200)
+function json_api_response(JsonSerializable $document, int $status = 200): Response
 {
     return (new Response($status))
         ->withHeader('content-type', JsonApi::MEDIA_TYPE)
