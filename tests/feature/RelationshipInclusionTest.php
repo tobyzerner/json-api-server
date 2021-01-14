@@ -40,11 +40,6 @@ class RelationshipInclusionTest extends AbstractTestCase
         $this->markTestIncomplete();
     }
 
-    public function test_to_one_relationships_can_have_custom_preloaders()
-    {
-        $this->markTestIncomplete();
-    }
-
     public function test_to_one_relationships_can_be_not_loadable()
     {
         $this->markTestIncomplete();

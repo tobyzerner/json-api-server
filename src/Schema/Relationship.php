@@ -70,13 +70,10 @@ abstract class Relationship extends Field
 
     /**
      * Allow the relationship data to be eager-loaded into the model collection.
-     *
-     * This is used to prevent the n+1 query problem. If null, the adapter will
-     * be used to eager-load relationship data into the model collection.
      */
-    public function load(callable $callback = null)
+    public function load()
     {
-        $this->load = $callback ?: true;
+        $this->load = true;
 
         return $this;
     }
@@ -159,7 +156,7 @@ abstract class Relationship extends Field
     /**
      * @return bool|callable
      */
-    public function getLoad()
+    public function shouldLoad()
     {
         return $this->load;
     }

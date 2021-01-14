@@ -103,39 +103,35 @@ trait IncludesData
 
             $nextRelationshipPath = array_merge($relationshipPath, [$field]);
 
-            if ($load = $field->getLoad()) {
+            if ($field->shouldLoad()) {
                 $type = $field->getType();
 
-                if (is_callable($load)) {
-                    $load($models, $nextRelationshipPath, $field->hasLinkage(), $context);
+                if (is_string($type)) {
+                    $relatedResource = $this->api->getResource($type);
+                    $scope = function ($query) use ($context, $field, $relatedResource) {
+                        run_callbacks($relatedResource->getSchema()->getListeners('scope'), [$query, $context]);
+                        run_callbacks($field->getListeners('scope'), [$query, $context]);
+                    };
                 } else {
-                    if (is_string($type)) {
-                        $relatedResource = $this->api->getResource($type);
-                        $scope = function ($query) use ($context, $field, $relatedResource) {
-                            run_callbacks($relatedResource->getSchema()->getListeners('scope'), [$query, $context]);
-                            run_callbacks($field->getListeners('scope'), [$query, $context]);
-                        };
-                    } else {
-                        $relatedResources = is_array($type) ? array_map(function ($type) {
-                            return $this->api->getResource($type);
-                        }, $type) : $this->api->getResources();
+                    $relatedResources = is_array($type) ? array_map(function ($type) {
+                        return $this->api->getResource($type);
+                    }, $type) : $this->api->getResources();
 
-                        $scope = array_combine(
-                            array_map(function ($relatedResource) {
-                                return $relatedResource->getType();
-                            }, $relatedResources),
+                    $scope = array_combine(
+                        array_map(function ($relatedResource) {
+                            return $relatedResource->getType();
+                        }, $relatedResources),
 
-                            array_map(function ($relatedResource) use ($context, $field) {
-                                return function ($query) use ($context, $field, $relatedResource) {
-                                    run_callbacks($relatedResource->getSchema()->getListeners('scope'), [$query, $context]);
-                                    run_callbacks($field->getListeners('scope'), [$query, $context]);
-                                };
-                            }, $relatedResources)
-                        );
-                    }
-
-                    $adapter->load($models, $nextRelationshipPath, $scope, $field->hasLinkage());
+                        array_map(function ($relatedResource) use ($context, $field) {
+                            return function ($query) use ($context, $field, $relatedResource) {
+                                run_callbacks($relatedResource->getSchema()->getListeners('scope'), [$query, $context]);
+                                run_callbacks($field->getListeners('scope'), [$query, $context]);
+                            };
+                        }, $relatedResources)
+                    );
                 }
+
+                $adapter->load($models, $nextRelationshipPath, $scope, $field->hasLinkage());
 
                 if (isset($include[$name]) && is_string($type)) {
                     $relatedResource = $this->api->getResource($type);

@@ -67,30 +67,6 @@ $type->hasOne('user')
     ->dontLoad();
 ```
 
-### Custom Loading Logic
-
-Instead of using the adapter's eager-loading logic, you may wish to define your own for a relationship. You can do so using the `load` method. 
-
-Beware that this can be complicated as eager-loading always takes place on the set of models at the root level of the document; these are passed as the first parameter. The second parameter is an array of the `Relationship` objects that make up the nested inclusion trail leading to the current relationship. 
-
-So, for example, if a request was made to `GET /categories?include=latestPost.user`, then the custom loading logic for the `user` relationship might look like this:
-
-```php
-$api->resource('categories', new EloquentAdapter(Models\Category::class), function (Type $type) {
-    $type->hasOne('latestPost')->type('posts')->includable(); // 1
-});
-
-$api->resource('posts', new EloquentAdapter(Models\Post::class), function (Type $type) {
-    $type->hasOne('user') // 2
-        ->includable()
-        ->load(function (array $models, array $relationships, Context $context) {
-            // Since this request is to the `GET /categories` endpoint, $models
-            // will be an array of Category models, and $relationships will be
-            // an array containing the objects [1, 2] above.
-        });
-});
-```
-
 ## Polymorphic Relationships
 
 Define a polymorphic relationship using the `polymorphic` method. Optionally you may provide an array of allowed resource types:
