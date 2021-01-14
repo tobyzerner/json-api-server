@@ -44,7 +44,7 @@ class Delete
             throw new ForbiddenException;
         }
 
-        run_callbacks($schema->getListeners('deleting'), [$this->model, $context]);
+        run_callbacks($schema->getListeners('deleting'), [&$this->model, $context]);
 
         if ($deleteCallback = $schema->getDeleteCallback()) {
             $deleteCallback($this->model, $context);
@@ -52,7 +52,7 @@ class Delete
             $this->resource->getAdapter()->delete($this->model);
         }
 
-        run_callbacks($schema->getListeners('deleted'), [$this->model, $context]);
+        run_callbacks($schema->getListeners('deleted'), [&$this->model, $context]);
 
         return new Response(204);
     }

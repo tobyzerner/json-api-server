@@ -42,7 +42,7 @@ class Show
 
         $this->loadRelationships([$this->model], $include, $context);
 
-        run_callbacks($this->resource->getSchema()->getListeners('show'), [$this->model, $context]);
+        run_callbacks($this->resource->getSchema()->getListeners('show'), [&$this->model, $context]);
 
         $serializer = new Serializer($this->api, $context);
         $serializer->add($this->resource, $this->model, $include);

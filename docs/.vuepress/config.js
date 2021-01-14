@@ -39,6 +39,7 @@ module.exports = {
         collapsable: false,
         children: [
           'list',
+          'show',
           'create',
           'update',
           'delete',

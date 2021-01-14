@@ -54,11 +54,11 @@ class Create
         $this->assertDataValid($data, $model, $context, true);
         $this->setValues($data, $model, $context);
 
-        run_callbacks($schema->getListeners('creating'), [$model, $context]);
+        run_callbacks($schema->getListeners('creating'), [&$model, $context]);
 
         $this->save($data, $model, $context);
 
-        run_callbacks($schema->getListeners('created'), [$model, $context]);
+        run_callbacks($schema->getListeners('created'), [&$model, $context]);
 
         return (new Show($this->api, $this->resource, $model))
             ->handle($context)

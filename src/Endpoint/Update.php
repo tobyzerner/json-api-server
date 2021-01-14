@@ -52,11 +52,11 @@ class Update
         $this->assertDataValid($data, $this->model, $context, false);
         $this->setValues($data, $this->model, $context);
 
-        run_callbacks($schema->getListeners('updating'), [$this->model, $context]);
+        run_callbacks($schema->getListeners('updating'), [&$this->model, $context]);
 
         $this->save($data, $this->model, $context);
 
-        run_callbacks($schema->getListeners('updated'), [$this->model, $context]);
+        run_callbacks($schema->getListeners('updated'), [&$this->model, $context]);
 
         return (new Show($this->api, $this->resource, $this->model))
             ->handle($context);

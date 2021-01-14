@@ -29,7 +29,7 @@ $type->newModel(function (Context $context) {
 Run before the model is saved.
 
 ```php
-$type->onCreating(function ($model, Context $context) {
+$type->onCreating(function (&$model, Context $context) {
     // do something
 });
 ```
@@ -39,7 +39,7 @@ $type->onCreating(function ($model, Context $context) {
 Run after the model is saved.
 
 ```php
-$type->onCreated(function ($model, Context $context) {
+$type->onCreated(function (&$model, Context $context) {
     $context->meta('foo', 'bar');
 });
 ```

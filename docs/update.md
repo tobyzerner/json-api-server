@@ -19,7 +19,7 @@ $type->updatable(function (Context $context) {
 Run before the model is saved.
 
 ```php
-$type->onUpdating(function ($model, Context $context) {
+$type->onUpdating(function (&$model, Context $context) {
     // do something
 });
 ```
@@ -29,7 +29,7 @@ $type->onUpdating(function ($model, Context $context) {
 Run after the model is saved.
 
 ```php
-$type->onUpdated(function ($model, Context $context) {
+$type->onUpdated(function (&$model, Context $context) {
     // do something
 });
 ```

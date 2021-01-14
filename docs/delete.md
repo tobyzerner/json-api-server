@@ -19,7 +19,7 @@ $type->deletable(function (Context $context) {
 Run before the model is deleted.
 
 ```php
-$type->onDeleting(function ($model, Context $context) {
+$type->onDeleting(function (&$model, Context $context) {
     // do something
 });
 ```
@@ -29,7 +29,7 @@ $type->onDeleting(function ($model, Context $context) {
 Run after the model is deleted.
 
 ```php
-$type->onDeleted(function ($model, Context $context) {
+$type->onDeleted(function (&$model, Context $context) {
     // do something
 });
 ```
