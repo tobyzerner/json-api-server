@@ -249,7 +249,7 @@ class Index
                 continue;
             }
 
-            if (isset($filters[$name]) && evaluate($filters[$name]->getVisible(), [$this->context])) {
+            if (isset($filters[$name]) && evaluate($filters[$name]->getVisible(), [$context])) {
                 $filters[$name]->getCallback()($query, $value, $context);
                 continue;
             }

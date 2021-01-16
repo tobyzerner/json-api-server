@@ -2,7 +2,7 @@
     "name": "tobyz/json-api-server",
     "description": "A fully automated JSON:API server implementation in PHP.",
     "require": {
-        "php": "^7.2",
+        "php": "^7.2|^8.0",
         "doctrine/inflector": "^1.3",
         "json-api-php/json-api": "^2.2",
         "nyholm/psr7": "^1.3",
@@ -31,9 +31,10 @@
         }
     },
     "require-dev": {
-        "dms/phpunit-arraysubset-asserts": "^0.1.0",
+        "dms/phpunit-arraysubset-asserts": "^0.2",
         "helmich/phpunit-json-assert": "^3.0",
-        "phpunit/phpunit": "^8.0"
+        "phpspec/prophecy-phpunit": "^2.0",
+        "phpunit/phpunit": "^9.0"
     },
     "scripts": {
         "test": "phpunit"

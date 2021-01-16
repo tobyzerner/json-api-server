@@ -11,7 +11,7 @@
 
 namespace Tobyz\Tests\JsonApiServer\feature;
 
-use Psr\Http\Message\ServerRequestInterface;
+use Prophecy\PhpUnit\ProphecyTrait;
 use Tobyz\JsonApiServer\Adapter\AdapterInterface;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\JsonApi;
@@ -22,6 +22,8 @@ use Tobyz\Tests\JsonApiServer\MockAdapter;
 
 class DeleteTest extends AbstractTestCase
 {
+    use ProphecyTrait;
+
     /**
      * @var JsonApi
      */
