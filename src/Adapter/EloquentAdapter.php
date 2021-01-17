@@ -11,10 +11,10 @@
 
 namespace Tobyz\JsonApiServer\Adapter;
 
-use Closure;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Database\Eloquent\Relations\MorphOneOrMany;
 use InvalidArgumentException;
@@ -116,7 +116,15 @@ class EloquentAdapter implements AdapterInterface
 
     public function setHasOne($model, HasOne $relationship, $related): void
     {
-        $this->getEloquentRelation($model, $relationship)->associate($related);
+        $relation = $this->getEloquentRelation($model, $relationship);
+
+        if ($relation instanceof BelongsTo) {
+            if ($related === null) {
+                $relation->dissociate();
+            } else {
+                $relation->associate($related);
+            }
+        }
     }
 
     public function save($model): void
@@ -126,7 +134,11 @@ class EloquentAdapter implements AdapterInterface
 
     public function saveHasMany($model, HasMany $relationship, array $related): void
     {
-        $this->getEloquentRelation($model, $relationship)->sync(new Collection($related));
+        $relation = $this->getEloquentRelation($model, $relationship);
+
+        if ($relation instanceof BelongsToMany) {
+            $relation->sync(new Collection($related));
+        }
     }
 
     public function delete($model): void
@@ -134,11 +146,7 @@ class EloquentAdapter implements AdapterInterface
         // For models that use the SoftDeletes trait, deleting the resource from
         // the API implies permanent deletion. Non-permanent deletion should be
         // achieved by manipulating a resource attribute.
-        if (method_exists($model, 'forceDelete')) {
-            $model->forceDelete();
-        } else {
-            $model->delete();
-        }
+        $model->forceDelete();
     }
 
     public function filterByIds($query, array $ids): void
@@ -158,7 +166,9 @@ class EloquentAdapter implements AdapterInterface
     public function filterByHasOne($query, HasOne $relationship, array $ids): void
     {
         $relation = $this->getEloquentRelation($query->getModel(), $relationship);
-        $column = $relation instanceof HasOneThrough ? $relation->getQualifiedParentKeyName() : $relation->getQualifiedForeignKeyName();
+        $column = $relation instanceof HasOneThrough
+            ? $relation->getQualifiedParentKeyName()
+            : $relation->getQualifiedForeignKeyName();
 
         $query->whereIn($column, $ids);
     }
@@ -199,9 +209,9 @@ class EloquentAdapter implements AdapterInterface
                 $query = $relation->getQuery();
 
                 if (is_array($scope)) {
-                    // Eloquent doesn't support polymorphic loading constraints,
-                    // so for now we just won't do anything.
-                    // https://github.com/laravel/framework/pull/35190
+                    // TODO: since https://github.com/laravel/framework/pull/35190
+                    // was merged, we can now apply loading constraints to
+                    // polymorphic relationships.
                 } else {
                     $scope($query);
                 }
