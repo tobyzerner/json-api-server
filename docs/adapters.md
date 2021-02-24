@@ -34,4 +34,4 @@ $type->attribute('name')
 
 ### Custom Adapters
 
-For other ORMs or data persistence layers, you can [implement your own adapter](https://github.com/tobyz/json-api-server/blob/master/src/Adapter/AdapterInterface.php).
+For other ORMs or data persistence layers, you can [implement your own adapter](https://github.com/tobyzerner/json-api-server/blob/master/src/Adapter/AdapterInterface.php).
