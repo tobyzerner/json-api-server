@@ -232,7 +232,7 @@ class EloquentAdapter implements AdapterInterface
 
     private function getAttributeColumn(Attribute $attribute): string
     {
-        return $this->model->getTable().'.'.$this->getAttributeProperty($attribute);
+        return $this->getAttributeProperty($attribute);
     }
 
     private function getRelationshipProperty(Relationship $relationship): string
