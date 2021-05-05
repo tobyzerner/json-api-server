@@ -31,7 +31,7 @@ trait IncludesData
         if (! empty($queryParams['include'])) {
             $include = $this->parseInclude($queryParams['include']);
 
-            $this->validateInclude($this->resource, $include);
+            $this->validateInclude([$this->resource], $include);
 
             return $include;
         }
@@ -58,26 +58,38 @@ trait IncludesData
         return $tree;
     }
 
-    private function validateInclude(ResourceType $resource, array $include, string $path = '')
+    private function validateInclude(array $resources, array $include, string $path = '')
     {
-        $fields = $resource->getSchema()->getFields();
-
         foreach ($include as $name => $nested) {
-            if (
-                ! isset($fields[$name])
-                || ! $fields[$name] instanceof Relationship
-                || ! $fields[$name]->isIncludable()
-            ) {
-                throw new BadRequestException("Invalid include [{$path}{$name}]", 'include');
+            foreach ($resources as $resource) {
+                $fields = $resource->getSchema()->getFields();
+
+                if (
+                    ! isset($fields[$name])
+                    || ! $fields[$name] instanceof Relationship
+                    || ! $fields[$name]->isIncludable()
+                ) {
+                    continue;
+                }
+
+                $type = $fields[$name]->getType();
+
+                if (is_string($type)) {
+                    $relatedResource = $this->api->getResource($type);
+
+                    $this->validateInclude([$relatedResource], $nested, $name.'.');
+                } else {
+                    $relatedResources = is_array($type) ? array_map(function ($type) {
+                        return $this->api->getResource($type);
+                    }, $type) : array_values($this->api->getResources());
+
+                    $this->validateInclude($relatedResources, $nested, $name.'.');
+                }
+
+                continue 2;
             }
 
-            if (($type = $fields[$name]->getType()) && is_string($type)) {
-                $relatedResource = $this->api->getResource($type);
-
-                $this->validateInclude($relatedResource, $nested, $name.'.');
-            } elseif ($nested) {
-                throw new BadRequestException("Invalid include [{$path}{$name}.*]", 'include');
-            }
+            throw new BadRequestException("Invalid include [{$path}{$name}]", 'include');
         }
     }
 
@@ -123,10 +135,13 @@ trait IncludesData
                         }, $relatedResources),
 
                         array_map(function ($relatedResource) use ($context, $field) {
-                            return function ($query) use ($context, $field, $relatedResource) {
-                                run_callbacks($relatedResource->getSchema()->getListeners('scope'), [$query, $context]);
-                                run_callbacks($field->getListeners('scope'), [$query, $context]);
-                            };
+                            return [
+                                'resource' => $relatedResource,
+                                'scope' => function ($query) use ($context, $field, $relatedResource) {
+                                    run_callbacks($relatedResource->getSchema()->getListeners('scope'), [$query, $context]);
+                                    run_callbacks($field->getListeners('scope'), [$query, $context]);
+                                }
+                            ];
                         }, $relatedResources)
                     );
                 }

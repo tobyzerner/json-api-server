@@ -211,13 +211,19 @@ class EloquentAdapter implements AdapterInterface
         // to load anything as the related ID is store directly on the model.
 
         (new Collection($models))->loadMissing([
-            $this->getRelationshipPath($relationships) => function ($relation) use ($relationships, $scope) {
+            $this->getRelationshipPath($relationships) => function ($relation) use ($scope) {
                 $query = $relation->getQuery();
 
                 if (is_array($scope)) {
-                    // TODO: since https://github.com/laravel/framework/pull/35190
-                    // was merged, we can now apply loading constraints to
-                    // polymorphic relationships.
+                    // Requires Laravel 8.15+
+                    foreach ($scope as $v) {
+                        $adapter = $v['resource']->getAdapter();
+                        if ($adapter instanceof self) {
+                            $relation->constrain([
+                                get_class($adapter->newModel()) => $v['scope']
+                            ]);
+                        }
+                    }
                 } else {
                     $scope($query);
                 }
