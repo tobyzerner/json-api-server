@@ -146,7 +146,7 @@ class Index
             $paginationLinks[] = new LastLink($this->buildUrl($request, ['page' => ['offset' => floor(($total - 1) / $limit) * $limit]]));
         }
 
-        if (($total === null && $count === $limit) || $offset + $limit < $total) {
+        if (($total === null && $count === $limit) || $offset + $count < $total) {
             $paginationLinks[] = new NextLink($this->buildUrl($request, ['page' => ['offset' => $offset + $limit]]));
         }
 
