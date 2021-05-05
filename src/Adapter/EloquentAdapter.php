@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Database\Eloquent\Relations\MorphOneOrMany;
 use InvalidArgumentException;
+use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Schema\Attribute;
 use Tobyz\JsonApiServer\Schema\HasMany;
 use Tobyz\JsonApiServer\Schema\HasOne;
@@ -49,7 +50,7 @@ class EloquentAdapter implements AdapterInterface
         return $this->model->newInstance();
     }
 
-    public function newQuery()
+    public function newQuery(Context $context)
     {
         return $this->model->query();
     }

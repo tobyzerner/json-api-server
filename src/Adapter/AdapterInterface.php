@@ -11,6 +11,7 @@
 
 namespace Tobyz\JsonApiServer\Adapter;
 
+use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Schema\Attribute;
 use Tobyz\JsonApiServer\Schema\HasMany;
 use Tobyz\JsonApiServer\Schema\HasOne;
@@ -27,7 +28,7 @@ interface AdapterInterface
      *
      * @return mixed
      */
-    public function newQuery();
+    public function newQuery(Context $context);
 
     /**
      * Manipulate the query to only include resources with the given IDs.

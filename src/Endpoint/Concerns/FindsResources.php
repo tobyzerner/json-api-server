@@ -26,7 +26,7 @@ trait FindsResources
     private function findResource(ResourceType $resource, string $id, Context $context)
     {
         $adapter = $resource->getAdapter();
-        $query = $adapter->newQuery();
+        $query = $adapter->newQuery($context);
 
         run_callbacks($resource->getSchema()->getListeners('scope'), [$query, $context]);
 

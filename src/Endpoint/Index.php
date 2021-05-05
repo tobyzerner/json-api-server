@@ -57,7 +57,7 @@ class Index
             throw new ForbiddenException;
         }
 
-        $query = $adapter->newQuery();
+        $query = $adapter->newQuery($context);
 
         run_callbacks($schema->getListeners('listing'), [$query, $context]);
         run_callbacks($schema->getListeners('scope'), [$query, $context]);
