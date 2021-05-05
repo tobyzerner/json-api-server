@@ -184,9 +184,11 @@ class EloquentAdapter implements AdapterInterface
         $relatedKey = $relation->getRelated()->getQualifiedKeyName();
 
         if (count($ids)) {
-            $query->whereHas($property, function ($query) use ($relatedKey, $ids) {
-                $query->whereIn($relatedKey, $ids);
-            });
+            foreach ($ids as $id) {
+                $query->whereHas($property, function ($query) use ($relatedKey, $id) {
+                    $query->where($relatedKey, $id);
+                });
+            }
         } else {
             $query->whereDoesntHave($property);
         }
