@@ -167,11 +167,14 @@ class EloquentAdapter implements AdapterInterface
     public function filterByHasOne($query, HasOne $relationship, array $ids): void
     {
         $relation = $this->getEloquentRelation($query->getModel(), $relationship);
-        $column = $relation instanceof HasOneThrough
-            ? $relation->getQualifiedParentKeyName()
-            : $relation->getQualifiedForeignKeyName();
 
-        $query->whereIn($column, $ids);
+        if ($relation instanceof HasOneThrough) {
+            $query->whereHas($this->getRelationshipProperty($relationship), function ($query) use ($relation, $ids) {
+                $query->whereIn($relation->getQualifiedParentKeyName(), $ids);
+            });
+        } else {
+            $query->whereIn($relation->getQualifiedForeignKeyName(), $ids);
+        }
     }
 
     public function filterByHasMany($query, HasMany $relationship, array $ids): void
