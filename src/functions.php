@@ -33,7 +33,7 @@ function negate(Closure $condition)
 
 function wrap($value)
 {
-    if (! $value instanceof Closure) {
+    if (! is_callable($value)) {
         $value = function () use ($value) {
             return $value;
         };
