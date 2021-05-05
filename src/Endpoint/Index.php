@@ -59,7 +59,6 @@ class Index
 
         $query = $adapter->newQuery($context);
 
-        run_callbacks($schema->getListeners('listing'), [$query, $context]);
         run_callbacks($schema->getListeners('scope'), [$query, $context]);
 
         $include = $this->getInclude($context);
@@ -67,6 +66,8 @@ class Index
         [$offset, $limit] = $this->paginate($query, $context);
         $this->sort($query, $context);
         $this->filter($query, $context);
+
+        run_callbacks($schema->getListeners('listing'), [$query, $context]);
 
         $total = $schema->isCountable() ? $adapter->count($query) : null;
         $models = $adapter->get($query);
