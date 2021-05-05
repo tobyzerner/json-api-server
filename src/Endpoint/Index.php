@@ -26,6 +26,7 @@ use Tobyz\JsonApiServer\Schema\Attribute;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Schema\HasMany;
 use Tobyz\JsonApiServer\Schema\HasOne;
+use Tobyz\JsonApiServer\Schema\Meta;
 use Tobyz\JsonApiServer\Serializer;
 use function Tobyz\JsonApiServer\evaluate;
 use function Tobyz\JsonApiServer\json_api_response;
@@ -79,7 +80,11 @@ class Index
         foreach ($models as $model) {
             $serializer->add($this->resource, $model, $include);
         }
-        
+
+        $meta = array_values(array_map(function (Meta $meta) use ($context) {
+            return new Structure\Meta($meta->getName(), $meta->getValue()($context));
+        }, $context->getMeta()));
+
         return json_api_response(
             new Structure\CompoundDocument(
                 new Structure\PaginatedCollection(
@@ -90,7 +95,8 @@ class Index
                 new Structure\Link\SelfLink($this->buildUrl($context->getRequest())),
                 new Structure\Meta('offset', $offset),
                 new Structure\Meta('limit', $limit),
-                ...($total !== null ? [new Structure\Meta('total', $total)] : [])
+                ...($total !== null ? [new Structure\Meta('total', $total)] : []),
+                ...$meta
             )
         );
     }
