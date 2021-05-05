@@ -27,6 +27,7 @@ function rules($rules, array $messages = [], array $customAttributes = [])
     return function (callable $fail, $value, $model, Context $context, Field $field) use ($rules, $messages, $customAttributes) {
         $key = $field->getName();
         $validationRules = [$key => []];
+        $validationMessages = [$key => []];
 
         foreach ($rules as $k => $v) {
             if (! is_numeric($k)) {
@@ -36,7 +37,15 @@ function rules($rules, array $messages = [], array $customAttributes = [])
             }
         }
 
-        $validation = Validator::make($value !== null ? [$key => $value] : [], $validationRules, $messages, $customAttributes);
+        foreach ($messages as $k => $v) {
+            if (! is_numeric($k)) {
+                $validationMessages[$key.'.'.$k] = $v;
+            } else {
+                $validationMessages[$key][] = $v;
+            }
+        }
+
+        $validation = Validator::make($value !== null ? [$key => $value] : [], $validationRules, $validationMessages, $customAttributes);
 
         if ($validation->fails()) {
             foreach ($validation->errors()->all() as $message) {
