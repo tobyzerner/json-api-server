@@ -38,11 +38,13 @@ class Show
 
     public function handle(Context $context): ResponseInterface
     {
+        run_callbacks($this->resource->getSchema()->getListeners('showing'), [&$this->model, $context]);
+
         $include = $this->getInclude($context);
 
         $this->loadRelationships([$this->model], $include, $context);
 
-        run_callbacks($this->resource->getSchema()->getListeners('show'), [&$this->model, $context]);
+        run_callbacks($this->resource->getSchema()->getListeners('shown'), [&$this->model, $context]);
 
         $serializer = new Serializer($this->api, $context);
         $serializer->add($this->resource, $this->model, $include);

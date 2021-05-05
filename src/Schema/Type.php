@@ -220,7 +220,7 @@ final class Type
     }
 
     /**
-     * Run a callback when a resource is shown.
+     * Run a callback after a resource is shown.
      */
     public function onShown(callable $callback): void
     {
