@@ -174,7 +174,7 @@ final class Type
      * Get the maximum number of records that can be listed, or null if there
      * is no limit.
      */
-    public function getLimit(): int
+    public function getLimit(): ?int
     {
         return $this->limit;
     }

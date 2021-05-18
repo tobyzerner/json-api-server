@@ -142,7 +142,7 @@ class Index
             $paginationLinks[] = new PrevLink($this->buildUrl($request, $params));
         }
 
-        if ($schema->isCountable() && $schema->getPerPage() && $offset + $limit < $total) {
+        if ($schema->isCountable() && $schema->getPerPage() && $limit && $offset + $limit < $total) {
             $paginationLinks[] = new LastLink($this->buildUrl($request, ['page' => ['offset' => floor(($total - 1) / $limit) * $limit]]));
         }
 
