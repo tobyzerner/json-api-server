@@ -58,7 +58,10 @@ class Update
 
         run_callbacks($schema->getListeners('updated'), [&$this->model, $context]);
 
-        return (new Show($this->api, $this->resource, $this->model))
+        $adapter = $this->resource->getAdapter();
+        $freshModel = $this->findResource($this->resource, $adapter->getId($this->model), $context);
+
+        return (new Show($this->api, $this->resource, $freshModel))
             ->handle($context);
     }
 }
