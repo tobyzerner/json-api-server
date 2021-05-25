@@ -32,8 +32,19 @@ class Context
         return $this->request;
     }
 
-    public function response(callable $callback)
+    public function response(callable $callback): void
     {
         $this->listeners['response'][] = $callback;
+    }
+
+    public function fieldRequested(string $type, string $field, bool $default = true): bool
+    {
+        $queryParams = $this->request->getQueryParams();
+
+        if (! isset($queryParams['fields'][$type])) {
+            return $default;
+        }
+
+        return in_array($field, explode(',', $queryParams['fields'][$type]));
     }
 }
