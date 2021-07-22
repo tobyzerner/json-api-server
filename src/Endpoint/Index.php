@@ -17,6 +17,8 @@ use JsonApiPhp\JsonApi\Link\NextLink;
 use JsonApiPhp\JsonApi\Link\PrevLink;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use ReflectionClass;
+use Tobyz\JsonApiServer\Adapter\AdapterInterface;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
@@ -24,6 +26,7 @@ use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\ResourceType;
 use Tobyz\JsonApiServer\Schema\Attribute;
 use Tobyz\JsonApiServer\Schema\Meta;
+use Tobyz\JsonApiServer\Schema\Relationship;
 use Tobyz\JsonApiServer\Serializer;
 use function Tobyz\JsonApiServer\evaluate;
 use function Tobyz\JsonApiServer\json_api_response;
@@ -64,7 +67,7 @@ class Index
         $this->sort($query, $context);
 
         if ($filter = $context->getRequest()->getQueryParams()['filter'] ?? null) {
-            $this->resource->filter($query, $filter, $context);
+            $this->filter($this->resource, $query, $filter, $context);
         }
 
         run_callbacks($schema->getListeners('listing'), [$query, $context]);
@@ -233,5 +236,73 @@ class Index
         }
 
         return [$offset, $limit];
+    }
+
+    private function filter(ResourceType $resource, $query, $filter, Context $context): void
+    {
+        if (! is_array($filter)) {
+            throw new BadRequestException('filter must be an array', 'filter');
+        }
+
+        $schema = $resource->getSchema();
+        $adapter = $resource->getAdapter();
+        $filters = $schema->getFilters();
+        $fields = $schema->getFields();
+
+        foreach ($filter as $name => $value) {
+            if ($name === 'id') {
+                $adapter->filterByIds($query, explode(',', $value));
+                continue;
+            }
+
+            if (isset($filters[$name]) && evaluate($filters[$name]->getVisible(), [$context])) {
+                $filters[$name]->getCallback()($query, $value, $context);
+                continue;
+            }
+
+            [$name, $sub] = explode('.', $name, 2) + [null, null];
+
+            if (isset($fields[$name]) && evaluate($fields[$name]->getFilterable(), [$context])) {
+                if ($fields[$name] instanceof Attribute && $sub === null) {
+                    $this->filterByAttribute($adapter, $query, $fields[$name], $value);
+                    continue;
+                } elseif ($fields[$name] instanceof Relationship) {
+                    if (is_string($relatedType = $fields[$name]->getType())) {
+                        $relatedResource = $this->api->getResource($relatedType);
+                        $method = 'filterBy'.(new ReflectionClass($fields[$name]))->getShortName();
+                        $adapter->$method($query, $fields[$name], function ($query) use ($relatedResource, $sub, $value, $context) {
+                            $this->filter($relatedResource, $query, [($sub ?? 'id') => $value], $context);
+                        });
+                    }
+                    continue;
+                }
+            }
+
+            throw new BadRequestException("Invalid filter [$name]", "filter[$name]");
+        }
+    }
+
+    private function filterByAttribute(AdapterInterface $adapter, $query, Attribute $attribute, $value): void
+    {
+        if (preg_match('/(.+)\.\.(.+)/', $value, $matches)) {
+            if ($matches[1] !== '*') {
+                $adapter->filterByAttribute($query, $attribute, $value, '>=');
+            }
+            if ($matches[2] !== '*') {
+                $adapter->filterByAttribute($query, $attribute, $value, '<=');
+            }
+
+            return;
+        }
+
+        foreach (['>=', '>', '<=', '<'] as $operator) {
+            if (strpos($value, $operator) === 0) {
+                $adapter->filterByAttribute($query, $attribute, substr($value, strlen($operator)), $operator);
+
+                return;
+            }
+        }
+
+        $adapter->filterByAttribute($query, $attribute, $value);
     }
 }

@@ -53,26 +53,26 @@ interface AdapterInterface
     public function filterByAttribute($query, Attribute $attribute, $value, string $operator = '='): void;
 
     /**
-     * Manipulate the query to only include resources with any one of the given
-     * resource IDs in a has-one relationship.
+     * Manipulate the query to only include resources with a has-one
+     * relationship within the given scope.
      *
      * @param $query
      * @param HasOne $relationship
-     * @param array $ids
+     * @param Closure $scope
      * @return mixed
      */
-    public function filterByHasOne($query, HasOne $relationship, array $ids): void;
+    public function filterByHasOne($query, HasOne $relationship, Closure $scope): void;
 
     /**
-     * Manipulate the query to only include resources with any one of the given
-     * resource IDs in a has-many relationship.
+     * Manipulate the query to only include resources with a has-many
+     * relationship within the given scope.
      *
      * @param $query
      * @param HasMany $relationship
-     * @param array $ids
+     * @param Closure $scope
      * @return mixed
      */
-    public function filterByHasMany($query, HasMany $relationship, array $ids): void;
+    public function filterByHasMany($query, HasMany $relationship, Closure $scope): void;
 
     /**
      * Manipulate the query to sort by the given attribute in the given direction.

@@ -11,6 +11,7 @@
 
 namespace Tobyz\JsonApiServer\Adapter;
 
+use Closure;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -164,34 +165,21 @@ class EloquentAdapter implements AdapterInterface
         $query->where($column, $operator, $value);
     }
 
-    public function filterByHasOne($query, HasOne $relationship, array $ids): void
+    public function filterByHasOne($query, HasOne $relationship, Closure $scope): void
     {
-        $relation = $this->getEloquentRelation($query->getModel(), $relationship);
-
-        if ($relation instanceof HasOneThrough) {
-            $query->whereHas($this->getRelationshipProperty($relationship), function ($query) use ($relation, $ids) {
-                $query->whereIn($relation->getQualifiedParentKeyName(), $ids);
-            });
-        } else {
-            $query->whereIn($relation->getQualifiedForeignKeyName(), $ids);
-        }
+        $this->filterByRelationship($query, $relationship, $scope);
     }
 
-    public function filterByHasMany($query, HasMany $relationship, array $ids): void
+    public function filterByHasMany($query, HasMany $relationship, Closure $scope): void
+    {
+        $this->filterByRelationship($query, $relationship, $scope);
+    }
+
+    private function filterByRelationship($query, Relationship $relationship, Closure $scope): void
     {
         $property = $this->getRelationshipProperty($relationship);
-        $relation = $this->getEloquentRelation($query->getModel(), $relationship);
-        $relatedKey = $relation->getRelated()->getQualifiedKeyName();
 
-        if (count($ids)) {
-            foreach ($ids as $id) {
-                $query->whereHas($property, function ($query) use ($relatedKey, $id) {
-                    $query->where($relatedKey, $id);
-                });
-            }
-        } else {
-            $query->whereDoesntHave($property);
-        }
+        $query->whereHas($property, $scope);
     }
 
     public function sortByAttribute($query, Attribute $attribute, string $direction): void
