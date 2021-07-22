@@ -262,7 +262,7 @@ final class Serializer
         return new Structure\ResourceIdentifier($data['type'], $data['id']);
     }
 
-    private function relatedResourceIdentifier(Schema\Relationship $field, $model)
+    private function relatedResourceIdentifier(Schema\Relationship $field, $model): Structure\ResourceIdentifier
     {
         $type = $field->getType();
         $relatedResource = is_string($type)
@@ -287,7 +287,7 @@ final class Serializer
         }, $items);
     }
 
-    private function key(array $data)
+    private function key(array $data): string
     {
         return $data['type'].':'.$data['id'];
     }
