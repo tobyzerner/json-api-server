@@ -215,10 +215,10 @@ class EloquentAdapter implements AdapterInterface
                 $query = $relation->getQuery();
 
                 if (is_array($scope)) {
-                    // Requires Laravel 8.15+
                     foreach ($scope as $v) {
+                        // Requires Laravel 8.15+
                         $adapter = $v['resource']->getAdapter();
-                        if ($adapter instanceof self) {
+                        if ($adapter instanceof self && method_exists($relation, 'constrain')) {
                             $relation->constrain([
                                 get_class($adapter->newModel()) => $v['scope']
                             ]);
