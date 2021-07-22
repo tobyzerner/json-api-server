@@ -131,7 +131,6 @@ trait SavesData
      */
     private function assertFieldsWritable(array $data, $model, Context $context)
     {
-
         foreach ($this->resource->getSchema()->getFields() as $field) {
             if (! has_value($data, $field)) {
                 continue;

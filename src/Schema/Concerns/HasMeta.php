@@ -1,7 +1,7 @@
 <?php
 
 /*
- * This file is part of Forust.
+ * This file is part of tobyz/json-api-server.
  *
  * (c) Toby Zerner <toby.zerner@gmail.com>
  *

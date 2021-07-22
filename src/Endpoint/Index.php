@@ -123,7 +123,7 @@ class Index
         return $selfUrl.($queryString ? '?'.$queryString : '');
     }
 
-    private function buildPaginationLinks(Request $request, int $offset, ?int $limit, int $count, ?int $total)
+    private function buildPaginationLinks(Request $request, int $offset, ?int $limit, int $count, ?int $total): array
     {
         $paginationLinks = [];
         $schema = $this->resource->getSchema();
@@ -153,7 +153,7 @@ class Index
         return $paginationLinks;
     }
 
-    private function sort($query, Context $context)
+    private function sort($query, Context $context): void
     {
         $schema = $this->resource->getSchema();
 
@@ -202,7 +202,7 @@ class Index
         return $sort;
     }
 
-    private function paginate($query, Context $context)
+    private function paginate($query, Context $context): array
     {
         $schema = $this->resource->getSchema();
         $queryParams = $context->getRequest()->getQueryParams();
