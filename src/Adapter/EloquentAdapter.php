@@ -204,7 +204,7 @@ class EloquentAdapter implements AdapterInterface
         $query->take($limit)->skip($offset);
     }
 
-    public function load(array $models, array $relationships, $scope, bool $linkage): void
+    public function load(array $models, array $relationships, Closure $scope, bool $linkage): void
     {
         // TODO: Find the relation on the model that we're after. If it's a
         // belongs-to relation, and we only need linkage, then we won't need
