@@ -54,7 +54,7 @@ module.exports = {
         ]
       }
     ],
-    repo: 'tobyz/json-api-server',
+    repo: 'tobyzerner/json-api-server',
     editLinks: true,
     docsDir: 'docs'
   }
