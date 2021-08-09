@@ -17,17 +17,15 @@ use JsonApiPhp\JsonApi\Link\NextLink;
 use JsonApiPhp\JsonApi\Link\PrevLink;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use ReflectionClass;
 use Tobyz\JsonApiServer\Adapter\AdapterInterface;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
-use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\ResourceType;
 use Tobyz\JsonApiServer\Schema\Attribute;
 use Tobyz\JsonApiServer\Schema\Meta;
-use Tobyz\JsonApiServer\Schema\Relationship;
 use Tobyz\JsonApiServer\Serializer;
+
 use function Tobyz\JsonApiServer\evaluate;
 use function Tobyz\JsonApiServer\json_api_response;
 use function Tobyz\JsonApiServer\run_callbacks;
@@ -36,38 +34,29 @@ class Index
 {
     use Concerns\IncludesData;
 
-    private $api;
-    private $resource;
-
-    public function __construct(JsonApi $api, ResourceType $resource)
-    {
-        $this->api = $api;
-        $this->resource = $resource;
-    }
-
     /**
      * Handle a request to show a resource listing.
      */
-    public function handle(Context $context): ResponseInterface
+    public function handle(Context $context, ResourceType $resourceType): ResponseInterface
     {
-        $adapter = $this->resource->getAdapter();
-        $schema = $this->resource->getSchema();
+        $adapter = $resourceType->getAdapter();
+        $schema = $resourceType->getSchema();
 
         if (! evaluate($schema->isListable(), [$context])) {
-            throw new ForbiddenException;
+            throw new ForbiddenException();
         }
 
-        $query = $adapter->newQuery($context);
+        $query = $adapter->query();
 
-        $this->resource->scope($query, $context);
+        $resourceType->scope($query, $context);
 
-        $include = $this->getInclude($context);
+        $include = $this->getInclude($context, $resourceType);
 
-        [$offset, $limit] = $this->paginate($query, $context);
-        $this->sort($query, $context);
+        [$offset, $limit] = $this->paginate($resourceType, $query, $context);
+        $this->sort($resourceType, $query, $context);
 
         if ($filter = $context->getRequest()->getQueryParams()['filter'] ?? null) {
-            $this->filter($this->resource, $query, $filter, $context);
+            $resourceType->filter($query, $filter, $context);
         }
 
         run_callbacks($schema->getListeners('listing'), [$query, $context]);
@@ -75,15 +64,15 @@ class Index
         $total = $schema->isCountable() ? $adapter->count($query) : null;
         $models = $adapter->get($query);
 
-        $this->loadRelationships($models, $include, $context);
-
         run_callbacks($schema->getListeners('listed'), [$models, $context]);
 
-        $serializer = new Serializer($this->api, $context);
+        $serializer = new Serializer($context);
 
         foreach ($models as $model) {
-            $serializer->add($this->resource, $model, $include);
+            $serializer->add($resourceType, $model, $include);
         }
+
+        [$primary, $included] = $serializer->serialize();
 
         $meta = array_values(array_map(function (Meta $meta) use ($context) {
             return new Structure\Meta($meta->getName(), $meta->getValue()($context));
@@ -92,10 +81,10 @@ class Index
         return json_api_response(
             new Structure\CompoundDocument(
                 new Structure\PaginatedCollection(
-                    new Structure\Pagination(...$this->buildPaginationLinks($context->getRequest(), $offset, $limit, count($models), $total)),
-                    new Structure\ResourceCollection(...$serializer->primary())
+                    new Structure\Pagination(...$this->buildPaginationLinks($resourceType, $context->getRequest(), $offset, $limit, count($models), $total)),
+                    new Structure\ResourceCollection(...$primary)
                 ),
-                new Structure\Included(...$serializer->included()),
+                new Structure\Included(...$included),
                 new Structure\Link\SelfLink($this->buildUrl($context->getRequest())),
                 new Structure\Meta('offset', $offset),
                 new Structure\Meta('limit', $limit),
@@ -126,10 +115,10 @@ class Index
         return $selfUrl.($queryString ? '?'.$queryString : '');
     }
 
-    private function buildPaginationLinks(Request $request, int $offset, ?int $limit, int $count, ?int $total): array
+    private function buildPaginationLinks(ResourceType $resourceType, Request $request, int $offset, ?int $limit, int $count, ?int $total): array
     {
         $paginationLinks = [];
-        $schema = $this->resource->getSchema();
+        $schema = $resourceType->getSchema();
 
         if ($offset > 0) {
             $paginationLinks[] = new Structure\Link\FirstLink($this->buildUrl($request, ['page' => ['offset' => 0]]));
@@ -156,21 +145,21 @@ class Index
         return $paginationLinks;
     }
 
-    private function sort($query, Context $context): void
+    private function sort(ResourceType $resourceType, $query, Context $context): void
     {
-        $schema = $this->resource->getSchema();
+        $schema = $resourceType->getSchema();
 
         if (! $sort = $context->getRequest()->getQueryParams()['sort'] ?? $schema->getDefaultSort()) {
             return;
         }
 
-        $adapter = $this->resource->getAdapter();
-        $sortFields = $schema->getSortFields();
+        $adapter = $resourceType->getAdapter();
+        $sorts = $schema->getSorts();
         $fields = $schema->getFields();
 
         foreach ($this->parseSort($sort) as $name => $direction) {
-            if (isset($sortFields[$name])) {
-                $sortFields[$name]($query, $direction, $context);
+            if (isset($sorts[$name]) && evaluate($sorts[$name]->getVisible(), [$context])) {
+                $sorts[$name]->getCallback()($query, $direction, $context);
                 continue;
             }
 
@@ -183,7 +172,7 @@ class Index
                 continue;
             }
 
-            throw new BadRequestException("Invalid sort field [$name]", 'sort');
+            throw (new BadRequestException("Invalid sort field [$name]"))->setSourceParameter('sort');
         }
     }
 
@@ -205,9 +194,9 @@ class Index
         return $sort;
     }
 
-    private function paginate($query, Context $context): array
+    private function paginate(ResourceType $resourceType, $query, Context $context): array
     {
-        $schema = $this->resource->getSchema();
+        $schema = $resourceType->getSchema();
         $queryParams = $context->getRequest()->getQueryParams();
         $limit = $schema->getPerPage();
 
@@ -215,7 +204,7 @@ class Index
             $limit = $queryParams['page']['limit'];
 
             if (! ctype_digit(strval($limit)) || $limit < 1) {
-                throw new BadRequestException('page[limit] must be a positive integer', 'page[limit]');
+                throw (new BadRequestException('page[limit] must be a positive integer'))->setSourceParameter('page[limit]');
             }
 
             $limit = min($schema->getLimit(), $limit);
@@ -227,82 +216,14 @@ class Index
             $offset = $queryParams['page']['offset'];
 
             if (! ctype_digit(strval($offset)) || $offset < 0) {
-                throw new BadRequestException('page[offset] must be a non-negative integer', 'page[offset]');
+                throw (new BadRequestException('page[offset] must be a non-negative integer'))->setSourceParameter('page[offset]');
             }
         }
 
         if ($limit || $offset) {
-            $this->resource->getAdapter()->paginate($query, $limit, $offset);
+            $resourceType->getAdapter()->paginate($query, $limit, $offset);
         }
 
         return [$offset, $limit];
-    }
-
-    private function filter(ResourceType $resource, $query, $filter, Context $context): void
-    {
-        if (! is_array($filter)) {
-            throw new BadRequestException('filter must be an array', 'filter');
-        }
-
-        $schema = $resource->getSchema();
-        $adapter = $resource->getAdapter();
-        $filters = $schema->getFilters();
-        $fields = $schema->getFields();
-
-        foreach ($filter as $name => $value) {
-            if ($name === 'id') {
-                $adapter->filterByIds($query, explode(',', $value));
-                continue;
-            }
-
-            if (isset($filters[$name]) && evaluate($filters[$name]->getVisible(), [$context])) {
-                $filters[$name]->getCallback()($query, $value, $context);
-                continue;
-            }
-
-            [$name, $sub] = explode('.', $name, 2) + [null, null];
-
-            if (isset($fields[$name]) && evaluate($fields[$name]->getFilterable(), [$context])) {
-                if ($fields[$name] instanceof Attribute && $sub === null) {
-                    $this->filterByAttribute($adapter, $query, $fields[$name], $value);
-                    continue;
-                } elseif ($fields[$name] instanceof Relationship) {
-                    if (is_string($relatedType = $fields[$name]->getType())) {
-                        $relatedResource = $this->api->getResource($relatedType);
-                        $method = 'filterBy'.(new ReflectionClass($fields[$name]))->getShortName();
-                        $adapter->$method($query, $fields[$name], function ($query) use ($relatedResource, $sub, $value, $context) {
-                            $this->filter($relatedResource, $query, [($sub ?? 'id') => $value], $context);
-                        });
-                    }
-                    continue;
-                }
-            }
-
-            throw new BadRequestException("Invalid filter [$name]", "filter[$name]");
-        }
-    }
-
-    private function filterByAttribute(AdapterInterface $adapter, $query, Attribute $attribute, $value): void
-    {
-        if (preg_match('/(.+)\.\.(.+)/', $value, $matches)) {
-            if ($matches[1] !== '*') {
-                $adapter->filterByAttribute($query, $attribute, $value, '>=');
-            }
-            if ($matches[2] !== '*') {
-                $adapter->filterByAttribute($query, $attribute, $value, '<=');
-            }
-
-            return;
-        }
-
-        foreach (['>=', '>', '<=', '<'] as $operator) {
-            if (strpos($value, $operator) === 0) {
-                $adapter->filterByAttribute($query, $attribute, substr($value, strlen($operator)), $operator);
-
-                return;
-            }
-        }
-
-        $adapter->filterByAttribute($query, $attribute, $value);
     }
 }

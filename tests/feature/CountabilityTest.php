@@ -42,7 +42,7 @@ class CountabilityTest extends AbstractTestCase
 
     public function test_total_number_of_resources_and_last_pagination_link_is_included_by_default()
     {
-        $this->api->resource('users', $this->adapter);
+        $this->api->resourceType('users', $this->adapter);
 
         $response = $this->api->handle(
             $this->buildRequest('GET', '/users')
@@ -56,7 +56,7 @@ class CountabilityTest extends AbstractTestCase
 
     public function test_types_can_be_made_uncountable()
     {
-        $this->api->resource('users', $this->adapter, function (Type $type) {
+        $this->api->resourceType('users', $this->adapter, function (Type $type) {
             $type->uncountable();
         });
 
@@ -72,7 +72,7 @@ class CountabilityTest extends AbstractTestCase
 
     public function test_types_can_be_made_countable()
     {
-        $this->api->resource('users', $this->adapter, function (Type $type) {
+        $this->api->resourceType('users', $this->adapter, function (Type $type) {
             $type->uncountable();
             $type->countable();
         });

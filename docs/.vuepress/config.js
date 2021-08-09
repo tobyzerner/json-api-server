@@ -50,6 +50,7 @@ module.exports = {
         collapsable: false,
         children: [
           'errors',
+          'extensions',
           'laravel',
         ]
       }

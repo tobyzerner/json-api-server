@@ -135,7 +135,7 @@ abstract class Field
     /**
      * Run a callback after this field has been saved.
      */
-    public function onSaved(callable $callback)
+    public function saved(callable $callback)
     {
         $this->listeners['saved'][] = $callback;
 

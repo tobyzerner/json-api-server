@@ -6,10 +6,10 @@ You can add meta information at various levels of the document using the `meta` 
 
 To add meta information at the top-level of a document, you can call the `meta` method on the `Context` instance which is available inside any of your schema's callbacks.
 
-For example, to add meta information to a resource listing, you might call this inside of an `onListed` listener:
+For example, to add meta information to a resource listing, you might call this inside of an `listed` listener:
 
 ```php
-$type->onListed(function ($models, Context $context) {
+$type->listed(function ($models, Context $context) {
     $context->meta('foo', 'bar');
 });
 ```

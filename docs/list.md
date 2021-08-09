@@ -14,22 +14,22 @@ $type->listable(function (Context $context) {
 
 ## Events
 
-### `onListing`
+### `listing`
 
 Run before [scopes](scopes.md) are applied to the `$query` and results are retrieved.
 
 ```php
-$type->onListing(function ($query, Context $context) {
+$type->listing(function ($query, Context $context) {
     // do something
 });
 ```
 
-### `onListed`
+### `listed`
 
 Run after models and relationships have been retrieved, but before they are serialized into a JSON:API document.
 
 ```php
-$type->onListed(function ($models, Context $context) {
+$type->listed(function ($models, Context $context) {
     // do something
 });
 ```

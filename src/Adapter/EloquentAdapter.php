@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Database\Eloquent\Relations\MorphOneOrMany;
 use InvalidArgumentException;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Deferred;
 use Tobyz\JsonApiServer\Schema\Attribute;
 use Tobyz\JsonApiServer\Schema\HasMany;
 use Tobyz\JsonApiServer\Schema\HasOne;
@@ -41,19 +42,34 @@ class EloquentAdapter implements AdapterInterface
         }
     }
 
-    public function represents($model): bool
-    {
-        return $model instanceof $this->model;
-    }
-
-    public function newModel()
-    {
-        return $this->model->newInstance();
-    }
-
-    public function newQuery(Context $context)
+    public function query()
     {
         return $this->model->query();
+    }
+
+    public function filterByIds($query, array $ids): void
+    {
+        $query->whereIn($query->getModel()->getQualifiedKeyName(), $ids);
+    }
+
+    public function filterByAttribute($query, Attribute $attribute, $value, string $operator = '='): void
+    {
+        $query->where($this->getAttributeProperty($attribute), $operator, $value);
+    }
+
+    public function filterByRelationship($query, Relationship $relationship, Closure $scope): void
+    {
+        $query->whereHas($this->getRelationshipProperty($relationship), $scope);
+    }
+
+    public function sortByAttribute($query, Attribute $attribute, string $direction): void
+    {
+        $query->orderBy($this->getAttributeProperty($attribute), $direction);
+    }
+
+    public function paginate($query, int $limit, int $offset): void
+    {
+        $query->take($limit)->skip($offset);
     }
 
     public function find($query, string $id)
@@ -78,54 +94,82 @@ class EloquentAdapter implements AdapterInterface
 
     public function getAttribute($model, Attribute $attribute)
     {
-        return $model->{$this->getAttributeProperty($attribute)};
+        return $model->getAttribute($this->getAttributeProperty($attribute));
     }
 
-    public function getHasOne($model, HasOne $relationship, bool $linkage)
+    public function getHasOne($model, HasOne $relationship, bool $linkage, Context $context)
     {
-        // If it's a belongs-to relationship and we only need to get the ID,
-        // then we don't have to actually load the relation because the ID is
-        // stored in a column directly on the model. We will mock up a related
-        // model with the value of the ID filled.
+        // If this is a belongs-to relationship, and we only need to get the ID
+        // for linkage, then we don't have to actually load the relation because
+        // the ID is stored in a column directly on the model. We will mock up a
+        // related model with the value of the ID filled.
         if ($linkage) {
             $relation = $this->getEloquentRelation($model, $relationship);
 
             if ($relation instanceof BelongsTo) {
-                if ($key = $model->{$relation->getForeignKeyName()}) {
+                if ($key = $model->getAttribute($relation->getForeignKeyName())) {
                     $related = $relation->getRelated();
 
-                    return $related->newInstance()->forceFill([$related->getKeyName() => $key]);
+                    return $related->newInstance()->forceFill([
+                        $related->getKeyName() => $key
+                    ]);
                 }
 
                 return null;
             }
         }
 
-        return $this->getRelationValue($model, $relationship);
+        return $this->getRelationship($model, $relationship, $context);
     }
 
-    public function getHasMany($model, HasMany $relationship, bool $linkage): array
+    public function getHasMany($model, HasMany $relationship, bool $linkage, Context $context)
     {
-        $collection = $this->getRelationValue($model, $relationship);
+        return $this->getRelationship($model, $relationship, $context);
+    }
 
-        return $collection ? $collection->all() : [];
+    protected function getRelationship($model, Relationship $relationship, Context $context): Deferred
+    {
+        $name = $this->getRelationshipProperty($relationship);
+
+        EloquentBuffer::add($model, $name);
+
+        return new Deferred(function () use ($model, $name, $relationship, $context) {
+            EloquentBuffer::load($model, $name, $relationship, $context);
+
+            $data = $model->getRelation($name);
+
+            return $data instanceof Collection ? $data->all() : $data;
+        });
+    }
+
+    public function represents($model): bool
+    {
+        return $model instanceof $this->model;
+    }
+
+    public function model()
+    {
+        return $this->model->newInstance();
+    }
+
+    public function setId($model, string $id): void
+    {
+        $model->setAttribute($model->getKeyName(), $id);
     }
 
     public function setAttribute($model, Attribute $attribute, $value): void
     {
-        $model->{$this->getAttributeProperty($attribute)} = $value;
+        $model->setAttribute($this->getAttributeProperty($attribute), $value);
     }
 
     public function setHasOne($model, HasOne $relationship, $related): void
     {
         $relation = $this->getEloquentRelation($model, $relationship);
 
+        // If this is a belongs-to relationship, then the ID is stored on the
+        // model itself so we can set it here.
         if ($relation instanceof BelongsTo) {
-            if ($related === null) {
-                $relation->dissociate();
-            } else {
-                $relation->associate($related);
-            }
+            $relation->associate($related);
         }
     }
 
@@ -151,82 +195,9 @@ class EloquentAdapter implements AdapterInterface
         $model->forceDelete();
     }
 
-    public function filterByIds($query, array $ids): void
-    {
-        $key = $query->getModel()->getQualifiedKeyName();
-
-        $query->whereIn($key, $ids);
-    }
-
-    public function filterByAttribute($query, Attribute $attribute, $value, string $operator = '='): void
-    {
-        $column = $this->getAttributeColumn($attribute);
-
-        $query->where($column, $operator, $value);
-    }
-
-    public function filterByHasOne($query, HasOne $relationship, Closure $scope): void
-    {
-        $this->filterByRelationship($query, $relationship, $scope);
-    }
-
-    public function filterByHasMany($query, HasMany $relationship, Closure $scope): void
-    {
-        $this->filterByRelationship($query, $relationship, $scope);
-    }
-
-    private function filterByRelationship($query, Relationship $relationship, Closure $scope): void
-    {
-        $property = $this->getRelationshipProperty($relationship);
-
-        $query->whereHas($property, $scope);
-    }
-
-    public function sortByAttribute($query, Attribute $attribute, string $direction): void
-    {
-        $query->orderBy($this->getAttributeColumn($attribute), $direction);
-    }
-
-    public function paginate($query, int $limit, int $offset): void
-    {
-        $query->take($limit)->skip($offset);
-    }
-
-    public function load(array $models, array $relationships, $scope, bool $linkage): void
-    {
-        // TODO: Find the relation on the model that we're after. If it's a
-        // belongs-to relation, and we only need linkage, then we won't need
-        // to load anything as the related ID is store directly on the model.
-
-        (new Collection($models))->loadMissing([
-            $this->getRelationshipPath($relationships) => function ($relation) use ($scope) {
-                $query = $relation->getQuery();
-
-                if (is_array($scope)) {
-                    foreach ($scope as $v) {
-                        // Requires Laravel 8.15+
-                        $adapter = $v['resource']->getAdapter();
-                        if ($adapter instanceof self && method_exists($relation, 'constrain')) {
-                            $relation->constrain([
-                                get_class($adapter->newModel()) => $v['scope']
-                            ]);
-                        }
-                    }
-                } else {
-                    $scope($query);
-                }
-            }
-        ]);
-    }
-
     private function getAttributeProperty(Attribute $attribute): string
     {
         return $attribute->getProperty() ?: strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $attribute->getName()));
-    }
-
-    private function getAttributeColumn(Attribute $attribute): string
-    {
-        return $this->getAttributeProperty($attribute);
     }
 
     private function getRelationshipProperty(Relationship $relationship): string
@@ -234,18 +205,8 @@ class EloquentAdapter implements AdapterInterface
         return $relationship->getProperty() ?: $relationship->getName();
     }
 
-    private function getRelationshipPath(array $trail): string
-    {
-        return implode('.', array_map([$this, 'getRelationshipProperty'], $trail));
-    }
-
     private function getEloquentRelation($model, Relationship $relationship)
     {
         return $model->{$this->getRelationshipProperty($relationship)}();
-    }
-
-    private function getRelationValue($model, Relationship $relationship)
-    {
-        return $model->{$this->getRelationshipProperty($relationship)};
     }
 }

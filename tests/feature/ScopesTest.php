@@ -38,7 +38,7 @@ class ScopesTest extends AbstractTestCase
         $this->scopeWasCalled = false;
 
         $this->api = new JsonApi('http://example.com');
-        $this->api->resource('users', $this->adapter, function (Type $type) {
+        $this->api->resourceType('users', $this->adapter, function (Type $type) {
             $type->updatable();
             $type->deletable();
             $type->scope(function ($query, Context $context) {
@@ -91,7 +91,7 @@ class ScopesTest extends AbstractTestCase
 
     public function test_scopes_are_applied_to_related_resources()
     {
-        $this->api->resource('pets', new MockAdapter, function (Type $type) {
+        $this->api->resourceType('pets', new MockAdapter, function (Type $type) {
             $type->hasOne('owner')
                 ->type('users')
                 ->includable();
@@ -107,14 +107,14 @@ class ScopesTest extends AbstractTestCase
 
     public function test_scopes_are_applied_to_polymorphic_related_resources()
     {
-        $this->api->resource('pets', new MockAdapter, function (Type $type) {
+        $this->api->resourceType('pets', new MockAdapter, function (Type $type) {
             $type->hasOne('owner')
                 ->polymorphic(['users', 'organisations'])
                 ->includable();
         });
 
         $organisationScopeWasCalled = false;
-        $this->api->resource('organisations', new MockAdapter, function (Type $type) use (&$organisationScopeWasCalled) {
+        $this->api->resourceType('organisations', new MockAdapter, function (Type $type) use (&$organisationScopeWasCalled) {
             $type->scope(function ($query, Context $context) use (&$organisationScopeWasCalled) {
                 $organisationScopeWasCalled = true;
             });

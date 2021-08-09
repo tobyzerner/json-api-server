@@ -38,7 +38,7 @@ class SortingTest extends AbstractTestCase
 
     public function test_attributes_are_not_sortable_by_default()
     {
-        $this->api->resource('users', $this->adapter, function (Type $type) {
+        $this->api->resourceType('users', $this->adapter, function (Type $type) {
             $type->attribute('name');
         });
 
@@ -54,7 +54,7 @@ class SortingTest extends AbstractTestCase
     {
         $attribute = null;
 
-        $this->api->resource('users', $this->adapter, function (Type $type) use (&$attribute) {
+        $this->api->resourceType('users', $this->adapter, function (Type $type) use (&$attribute) {
             $attribute = $type->attribute('name')->sortable();
         });
 
@@ -73,7 +73,7 @@ class SortingTest extends AbstractTestCase
 
     public function test_attributes_can_be_explicitly_not_sortable()
     {
-        $this->api->resource('users', $this->adapter, function (Type $type) {
+        $this->api->resourceType('users', $this->adapter, function (Type $type) {
             $type->attribute('name')->notSortable();
         });
 

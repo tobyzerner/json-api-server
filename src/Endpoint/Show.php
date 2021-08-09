@@ -14,10 +14,10 @@ namespace Tobyz\JsonApiServer\Endpoint;
 use JsonApiPhp\JsonApi\CompoundDocument;
 use JsonApiPhp\JsonApi\Included;
 use Psr\Http\Message\ResponseInterface;
-use Tobyz\JsonApiServer\JsonApi;
-use Tobyz\JsonApiServer\ResourceType;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\ResourceType;
 use Tobyz\JsonApiServer\Serializer;
+
 use function Tobyz\JsonApiServer\json_api_response;
 use function Tobyz\JsonApiServer\run_callbacks;
 
@@ -25,34 +25,21 @@ class Show
 {
     use Concerns\IncludesData;
 
-    private $api;
-    private $resource;
-    private $model;
-
-    public function __construct(JsonApi $api, ResourceType $resource, $model)
+    public function handle(Context $context, ResourceType $resourceType, $model): ResponseInterface
     {
-        $this->api = $api;
-        $this->resource = $resource;
-        $this->model = $model;
-    }
+        run_callbacks($resourceType->getSchema()->getListeners('show'), [&$model, $context]);
 
-    public function handle(Context $context): ResponseInterface
-    {
-        run_callbacks($this->resource->getSchema()->getListeners('showing'), [&$this->model, $context]);
+        $include = $this->getInclude($context, $resourceType);
 
-        $include = $this->getInclude($context);
+        $serializer = new Serializer($context);
+        $serializer->add($resourceType, $model, $include);
 
-        $this->loadRelationships([$this->model], $include, $context);
-
-        run_callbacks($this->resource->getSchema()->getListeners('shown'), [&$this->model, $context]);
-
-        $serializer = new Serializer($this->api, $context);
-        $serializer->add($this->resource, $this->model, $include);
+        [$primary, $included] = $serializer->serialize();
 
         return json_api_response(
             new CompoundDocument(
-                $serializer->primary()[0],
-                new Included(...$serializer->included())
+                $primary[0],
+                new Included(...$included)
             )
         );
     }

@@ -31,7 +31,7 @@ class ContentNegotiationTest extends AbstractTestCase
     public function setUp(): void
     {
         $this->api = new JsonApi('http://example.com');
-        $this->api->resource('users', new MockAdapter(), function (Type $type) {
+        $this->api->resourceType('users', new MockAdapter(), function (Type $type) {
             // no fields
         });
     }

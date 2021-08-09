@@ -14,8 +14,8 @@ namespace Tobyz\JsonApiServer\Endpoint;
 use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
-use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\ResourceType;
+
 use function Tobyz\JsonApiServer\evaluate;
 use function Tobyz\JsonApiServer\has_value;
 use function Tobyz\JsonApiServer\run_callbacks;
@@ -25,59 +25,49 @@ class Create
 {
     use Concerns\SavesData;
 
-    private $api;
-    private $resource;
-
-    public function __construct(JsonApi $api, ResourceType $resource)
-    {
-        $this->api = $api;
-        $this->resource = $resource;
-    }
-
     /**
      * @throws ForbiddenException if the resource is not creatable.
      */
-    public function handle(Context $context): ResponseInterface
+    public function handle(Context $context, ResourceType $resourceType): ResponseInterface
     {
-        $schema = $this->resource->getSchema();
+        $schema = $resourceType->getSchema();
 
         if (! evaluate($schema->isCreatable(), [$context])) {
-            throw new ForbiddenException;
+            throw new ForbiddenException();
         }
 
-        $model = $this->newModel($context);
-        $data = $this->parseData($context->getRequest()->getParsedBody());
+        $model = $this->newModel($resourceType, $context);
+        $data = $this->parseData($resourceType, $context->getRequest()->getParsedBody());
 
-        $this->validateFields($data, $model, $context);
-        $this->fillDefaultValues($data, $context);
-        $this->loadRelatedResources($data, $context);
-        $this->assertDataValid($data, $model, $context, true);
-        $this->setValues($data, $model, $context);
+        $this->validateFields($resourceType, $data, $model, $context);
+        $this->fillDefaultValues($resourceType, $data, $context);
+        $this->loadRelatedResources($resourceType, $data, $context);
+        $this->assertDataValid($resourceType, $data, $model, $context, true);
+        $this->setValues($resourceType, $data, $model, $context);
 
         run_callbacks($schema->getListeners('creating'), [&$model, $context]);
 
-        $this->save($data, $model, $context);
+        $this->save($resourceType, $data, $model, $context);
 
         run_callbacks($schema->getListeners('created'), [&$model, $context]);
 
-        return (new Show($this->api, $this->resource, $model))
-            ->handle($context)
+        return (new Show())
+            ->handle($context, $resourceType, $model)
             ->withStatus(201);
     }
 
-    private function newModel(Context $context)
+    private function newModel(ResourceType $resourceType, Context $context)
     {
-        $resource = $this->resource;
-        $newModel = $resource->getSchema()->getNewModelCallback();
+        $newModel = $resourceType->getSchema()->getNewModelCallback();
 
         return $newModel
             ? $newModel($context)
-            : $resource->getAdapter()->newModel();
+            : $resourceType->getAdapter()->model();
     }
 
-    private function fillDefaultValues(array &$data, Context $context)
+    private function fillDefaultValues(ResourceType $resourceType, array &$data, Context $context)
     {
-        foreach ($this->resource->getSchema()->getFields() as $field) {
+        foreach ($resourceType->getSchema()->getFields() as $field) {
             if (! has_value($data, $field) && ($defaultCallback = $field->getDefaultCallback())) {
                 set_value($data, $field, $defaultCallback($context));
             }

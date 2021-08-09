@@ -4,12 +4,12 @@ For each resource type, a `GET /{type}/{id}` endpoint is exposed to show an indi
 
 ## Events
 
-### `onShow`
+### `show`
 
-Run after models and relationships have been retrieved, but before they are serialized into a JSON:API document.
+Run after the model has been retrieved, but before it is serialized into a JSON:API document.
 
 ```php
-$type->onShow(function (&$model, Context $context) {
+$type->show(function (&$model, Context $context) {
     // do something
 });
 ```

@@ -43,7 +43,7 @@ class DeleteTest extends AbstractTestCase
 
     public function test_resources_are_not_deletable_by_default()
     {
-        $this->api->resource('users', new MockAdapter());
+        $this->api->resourceType('users', new MockAdapter());
 
         $this->expectException(ForbiddenException::class);
 
@@ -52,7 +52,7 @@ class DeleteTest extends AbstractTestCase
 
     public function test_resource_deletion_can_be_explicitly_enabled()
     {
-        $this->api->resource('users', new MockAdapter(), function (Type $type) {
+        $this->api->resourceType('users', new MockAdapter(), function (Type $type) {
             $type->deletable();
         });
 
@@ -63,7 +63,7 @@ class DeleteTest extends AbstractTestCase
 
     public function test_resource_deletion_can_be_conditionally_enabled()
     {
-        $this->api->resource('users', new MockAdapter(), function (Type $type) {
+        $this->api->resourceType('users', new MockAdapter(), function (Type $type) {
             $type->deletable(function () {
                 return true;
             });
@@ -76,7 +76,7 @@ class DeleteTest extends AbstractTestCase
 
     public function test_resource_deletion_can_be_explicitly_disabled()
     {
-        $this->api->resource('users', new MockAdapter(), function (Type $type) {
+        $this->api->resourceType('users', new MockAdapter(), function (Type $type) {
             $type->notDeletable();
         });
 
@@ -87,7 +87,7 @@ class DeleteTest extends AbstractTestCase
 
     public function test_resource_deletion_can_be_conditionally_disabled()
     {
-        $this->api->resource('users', new MockAdapter(), function (Type $type) {
+        $this->api->resourceType('users', new MockAdapter(), function (Type $type) {
             $type->deletable(function () {
                 return false;
             });
@@ -107,7 +107,7 @@ class DeleteTest extends AbstractTestCase
         $adapter->find($query, '1')->willReturn($deletingModel = (object) []);
         $adapter->delete($deletingModel);
 
-        $this->api->resource('users', $adapter->reveal(), function (Type $type) use ($deletingModel, &$called) {
+        $this->api->resourceType('users', $adapter->reveal(), function (Type $type) use ($deletingModel, &$called) {
             $type->deletable(function ($model, $context) use ($deletingModel, &$called) {
                 $this->assertSame($deletingModel, $model);
                 $this->assertInstanceOf(Context::class, $context);
@@ -127,7 +127,7 @@ class DeleteTest extends AbstractTestCase
         $adapter->find($query, '1')->willReturn($model = (object) []);
         $adapter->delete($model)->shouldBeCalled();
 
-        $this->api->resource('users', $adapter->reveal(), function (Type $type) {
+        $this->api->resourceType('users', $adapter->reveal(), function (Type $type) {
             $type->deletable();
         });
 
@@ -143,7 +143,7 @@ class DeleteTest extends AbstractTestCase
         $adapter->find($query, '1')->willReturn($deletingModel = (object) []);
         $adapter->delete($deletingModel)->shouldNotBeCalled();
 
-        $this->api->resource('users', $adapter->reveal(), function (Type $type) use ($deletingModel, &$called) {
+        $this->api->resourceType('users', $adapter->reveal(), function (Type $type) use ($deletingModel, &$called) {
             $type->deletable();
             $type->delete(function ($model, $context) use ($deletingModel, &$called) {
                 $this->assertSame($deletingModel, $model);
@@ -166,15 +166,15 @@ class DeleteTest extends AbstractTestCase
         $adapter->find($query, '1')->willReturn($deletingModel = (object) []);
         $adapter->delete($deletingModel)->shouldBeCalled();
 
-        $this->api->resource('users', $adapter->reveal(), function (Type $type) use ($adapter, $deletingModel, &$called) {
+        $this->api->resourceType('users', $adapter->reveal(), function (Type $type) use ($adapter, $deletingModel, &$called) {
             $type->deletable();
-            $type->onDeleting(function ($model, $context) use ($adapter, $deletingModel, &$called) {
+            $type->deleting(function ($model, $context) use ($adapter, $deletingModel, &$called) {
                 $this->assertSame($deletingModel, $model);
                 $this->assertInstanceOf(Context::class, $context);
                 $adapter->delete($deletingModel)->shouldNotHaveBeenCalled();
                 $called++;
             });
-            $type->onDeleted(function ($model, $context) use ($adapter, $deletingModel, &$called) {
+            $type->deleted(function ($model, $context) use ($adapter, $deletingModel, &$called) {
                 $this->assertSame($deletingModel, $model);
                 $this->assertInstanceOf(Context::class, $context);
                 $adapter->delete($deletingModel)->shouldHaveBeenCalled();

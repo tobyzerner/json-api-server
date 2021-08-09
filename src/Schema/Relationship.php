@@ -69,26 +69,6 @@ abstract class Relationship extends Field
     }
 
     /**
-     * Allow the relationship data to be eager-loaded into the model collection.
-     */
-    public function load()
-    {
-        $this->load = true;
-
-        return $this;
-    }
-
-    /**
-     * Do not eager-load relationship data into the model collection.
-     */
-    public function dontLoad()
-    {
-        $this->load = false;
-
-        return $this;
-    }
-
-    /**
      * Allow the relationship data to be included in a compound document.
      */
     public function includable()
@@ -152,14 +132,6 @@ abstract class Relationship extends Field
     // {
     //     return $this->urls;
     // }
-
-    /**
-     * @return bool|callable
-     */
-    public function shouldLoad()
-    {
-        return $this->load;
-    }
 
     public function isIncludable(): bool
     {

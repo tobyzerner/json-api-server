@@ -24,22 +24,22 @@ $type->newModel(function (Context $context) {
 
 ## Events
 
-### `onCreating`
+### `creating`
 
-Run before the model is saved.
+Run after values have been set on the model, but before it is saved.
 
 ```php
-$type->onCreating(function (&$model, Context $context) {
+$type->creating(function (&$model, Context $context) {
     // do something
 });
 ```
 
-### `onCreated`
+### `created`
 
-Run after the model is saved.
+Run after the model is saved, and before it is shown in a JSON:API document.
 
 ```php
-$type->onCreated(function (&$model, Context $context) {
+$type->created(function (&$model, Context $context) {
     $context->meta('foo', 'bar');
 });
 ```

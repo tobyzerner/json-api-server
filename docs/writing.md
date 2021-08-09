@@ -114,13 +114,13 @@ $type->attribute('locale')
 
 ## Events
 
-### `onSaved`
+### `saved`
 
 Run after a field has been successfully saved.
 
 ```php
 $type->attribute('email')
-    ->onSaved(function ($value, $model, Context $context) {
+    ->saved(function ($value, $model, Context $context) {
         event(new EmailWasChanged($model));
     });
 ```

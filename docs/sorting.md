@@ -18,10 +18,21 @@ You can set a default sort string to be used when the consumer has not supplied 
 $type->defaultSort('-updatedAt,-createdAt');
 ```
 
+## Custom Sorts
+
 To define sort fields with custom logic, or ones that do not correspond to an attribute, use the `sort` method:
 
 ```php
 $type->sort('relevance', function ($query, string $direction, Context $context) {
     $query->orderBy('relevance', $direction);
 });
+```
+
+Just like [fields](visibility.md), sorts can be made conditionally `visible` or `hidden`:
+
+```php
+$type->sort('relevance', $callback)
+    ->visible(function (Context $context) {
+        return $context->getRequest()->getAttribute('isAdmin');
+    });
 ```

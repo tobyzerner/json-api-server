@@ -1,5 +1,7 @@
 # Laravel Helpers
 
+These helpers improve the ergonomics of your API resource definitions when using the Laravel framework.
+
 ## Validation
 
 ### `rules`
@@ -10,10 +12,20 @@ Use Laravel's [Validation component](https://laravel.com/docs/8.x/validation) as
 use Tobyz\JsonApiServer\Laravel;
 
 $type->attribute('name')
-    ->validate(Laravel\rules('required|min:3|max:20'));
+    ->validate(Laravel\rules(['required', 'min:3', 'max:20']));
 ```
 
-Pass a string or array of validation rules to be applied to the value. You can also pass an array of custom messages and custom attribute names as the second and third arguments.
+Pass a string or array of validation rules to be applied to the value. Validating array contents is also supported:
+
+```php
+$type->attribute('jobs')
+    ->validate(Laravel\rules([
+        'required', 'array',
+        '*' => ['string', 'min:3', 'max:255']
+    ]));
+```
+
+You can also pass an array of custom messages and custom attribute names as the second and third arguments.
 
 ## Authentication
 
