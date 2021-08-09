@@ -59,14 +59,6 @@ $type->hasOne('users')
     });
 ```
 
-To prevent a relationship from being eager-loaded, use the `dontLoad` method:
-
-```php
-$type->hasOne('user')
-    ->includable()
-    ->dontLoad();
-```
-
 ## Polymorphic Relationships
 
 Define a polymorphic relationship using the `polymorphic` method. Optionally you may provide an array of allowed resource types:
@@ -78,10 +70,6 @@ $type->hasOne('commentable')
 $type->hasMany('taggable')
     ->polymorphic(['photos', 'videos']);
 ```
-
-::: warning
-Note that nested includes cannot be requested on polymorphic relationships.
-:::
 
 ## Meta Information
 

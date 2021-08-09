@@ -17,16 +17,23 @@ use Tobyz\JsonApiServer\ErrorProviderInterface;
 
 class BadRequestException extends DomainException implements ErrorProviderInterface
 {
-    /**
-     * @var string
-     */
-    private $sourceParameter;
+    private $sourceType;
+    private $source;
 
-    public function __construct(string $message = '', string $sourceParameter = '')
+    public function setSourceParameter(string $parameter)
     {
-        parent::__construct($message);
+        $this->sourceType = 'parameter';
+        $this->source = $parameter;
 
-        $this->sourceParameter = $sourceParameter;
+        return $this;
+    }
+
+    public function setSourcePointer(string $pointer)
+    {
+        $this->sourceType = 'pointer';
+        $this->source = $pointer;
+
+        return $this;
     }
 
     public function getJsonApiErrors(): array
@@ -37,8 +44,10 @@ class BadRequestException extends DomainException implements ErrorProviderInterf
             $members[] = new Error\Detail($this->message);
         }
 
-        if ($this->sourceParameter) {
-            $members[] = new Error\SourceParameter($this->sourceParameter);
+        if ($this->sourceType === 'parameter') {
+            $members[] = new Error\SourceParameter($this->source);
+        } elseif ($this->sourceType === 'pointer') {
+            $members[] = new Error\SourcePointer($this->source);
         }
 
         return [

@@ -24,7 +24,7 @@ final class Type
 
     private $fields = [];
     private $filters = [];
-    private $sortFields = [];
+    private $sorts = [];
     private $perPage = 20;
     private $limit = 50;
     private $countable = true;
@@ -118,15 +118,15 @@ final class Type
      */
     public function sort(string $name, callable $callback): void
     {
-        $this->sortFields[$name] = $callback;
+        $this->sorts[$name] = new Sort($name, $callback);
     }
 
     /**
      * Get the resource type's sort fields.
      */
-    public function getSortFields(): array
+    public function getSorts(): array
     {
-        return $this->sortFields;
+        return $this->sorts;
     }
 
     /**
@@ -214,17 +214,9 @@ final class Type
     /**
      * Run a callback before a resource is shown.
      */
-    public function onShowing(callable $callback): void
+    public function show(callable $callback): void
     {
-        $this->listeners['showing'][] = $callback;
-    }
-
-    /**
-     * Run a callback after a resource is shown.
-     */
-    public function onShown(callable $callback): void
-    {
-        $this->listeners['shown'][] = $callback;
+        $this->listeners['show'][] = $callback;
     }
 
     /**
@@ -254,7 +246,7 @@ final class Type
     /**
      * Run a callback before the resource type is listed.
      */
-    public function onListing(callable $callback): void
+    public function listing(callable $callback): void
     {
         $this->listeners['listing'][] = $callback;
     }
@@ -262,7 +254,7 @@ final class Type
     /**
      * Run a callback when the resource type is listed.
      */
-    public function onListed(callable $callback): void
+    public function listed(callable $callback): void
     {
         $this->listeners['listed'][] = $callback;
     }
@@ -312,7 +304,7 @@ final class Type
     /**
      * Run a callback before a resource is created.
      */
-    public function onCreating(callable $callback): void
+    public function creating(callable $callback): void
     {
         $this->listeners['creating'][] = $callback;
     }
@@ -320,7 +312,7 @@ final class Type
     /**
      * Run a callback after a resource has been created.
      */
-    public function onCreated(callable $callback): void
+    public function created(callable $callback): void
     {
         $this->listeners['created'][] = $callback;
     }
@@ -352,7 +344,7 @@ final class Type
     /**
      * Run a callback before a resource has been updated.
      */
-    public function onUpdating(callable $callback): void
+    public function updating(callable $callback): void
     {
         $this->listeners['updating'][] = $callback;
     }
@@ -360,7 +352,7 @@ final class Type
     /**
      * Run a callback after a resource has been updated.
      */
-    public function onUpdated(callable $callback): void
+    public function updated(callable $callback): void
     {
         $this->listeners['updated'][] = $callback;
     }
@@ -428,7 +420,7 @@ final class Type
     /**
      * Run a callback before a resource has been deleted.
      */
-    public function onDeleting(callable $callback): void
+    public function deleting(callable $callback): void
     {
         $this->listeners['deleting'][] = $callback;
     }
@@ -436,7 +428,7 @@ final class Type
     /**
      * Run a callback after a resource has been deleted.
      */
-    public function onDeleted(callable $callback): void
+    public function deleted(callable $callback): void
     {
         $this->listeners['deleted'][] = $callback;
     }

@@ -40,7 +40,7 @@ class FieldVisibilityTest extends AbstractTestCase
 
     public function test_fields_are_visible_by_default()
     {
-        $this->api->resource('users', new MockAdapter, function (Type $type) {
+        $this->api->resourceType('users', new MockAdapter, function (Type $type) {
             $type->attribute('visible');
         });
 
@@ -58,7 +58,7 @@ class FieldVisibilityTest extends AbstractTestCase
     {
         $this->markTestIncomplete();
 
-        $this->api->resource('users', new MockAdapter, function (Type $type) {
+        $this->api->resourceType('users', new MockAdapter, function (Type $type) {
             $type->attribute('visibleAttribute')->visible();
             $type->hasOne('visibleHasOne')->visible();
             $type->hasMany('visibleHasMany')->visible();
@@ -81,7 +81,7 @@ class FieldVisibilityTest extends AbstractTestCase
     {
         $this->markTestIncomplete();
 
-        $this->api->resource('users', new MockAdapter, function (Type $type) {
+        $this->api->resourceType('users', new MockAdapter, function (Type $type) {
             $type->attribute('visibleAttribute')
                 ->visible(function () { return true; });
 
@@ -124,7 +124,7 @@ class FieldVisibilityTest extends AbstractTestCase
 
         $called = 0;
 
-        $this->api->resource('users', $this->adapter, function (Type $type) use (&$called) {
+        $this->api->resourceType('users', $this->adapter, function (Type $type) use (&$called) {
             $callback = function ($model, $request) use (&$called) {
                 $this->assertSame($this->adapter->models['1'], $model);
                 $this->assertInstanceOf(RequestInterface::class, $request);
@@ -152,7 +152,7 @@ class FieldVisibilityTest extends AbstractTestCase
     {
         $this->markTestIncomplete();
 
-        $this->api->resource('users', new MockAdapter, function (Type $type) {
+        $this->api->resourceType('users', new MockAdapter, function (Type $type) {
             $type->attribute('hiddenAttribute')->hidden();
             $type->hasOne('hiddenHasOne')->hidden();
             $type->hasMany('hiddenHasMany')->hidden();
@@ -175,7 +175,7 @@ class FieldVisibilityTest extends AbstractTestCase
     {
         $this->markTestIncomplete();
 
-        $this->api->resource('users', new MockAdapter, function (Type $type) {
+        $this->api->resourceType('users', new MockAdapter, function (Type $type) {
             $type->attribute('visibleAttribute')
                 ->hidden(function () { return false; });
 
@@ -218,7 +218,7 @@ class FieldVisibilityTest extends AbstractTestCase
 
         $called = 0;
 
-        $this->api->resource('users', $this->adapter, function (Type $type) use (&$called) {
+        $this->api->resourceType('users', $this->adapter, function (Type $type) use (&$called) {
             $callback = function ($model, $request) use (&$called) {
                 $this->assertSame($this->adapter->models['1'], $model);
                 $this->assertInstanceOf(RequestInterface::class, $request);

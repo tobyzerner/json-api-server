@@ -11,6 +11,7 @@
 
 namespace Tobyz\JsonApiServer\Laravel;
 
+use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -18,7 +19,7 @@ use Illuminate\Support\Facades\Validator;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Schema\Field;
 
-function rules($rules, array $messages = [], array $customAttributes = [])
+function rules($rules, array $messages = [], array $customAttributes = []): Closure
 {
     if (is_string($rules)) {
         $rules = [$rules];
@@ -55,14 +56,14 @@ function rules($rules, array $messages = [], array $customAttributes = [])
     };
 }
 
-function authenticated()
+function authenticated(): Closure
 {
     return function () {
         return Auth::check();
     };
 }
 
-function can(string $ability)
+function can(string $ability): Closure
 {
     return function ($arg) use ($ability) {
         return Gate::allows($ability, $arg instanceof Model ? $arg : null);

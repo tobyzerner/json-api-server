@@ -31,3 +31,34 @@ Often you will need to access information about the authenticated user inside of
 ```php
 $request = $request->withAttribute('user', $user);
 ```
+
+## Context
+
+An instance of `Tobyz\JsonApi\Context` is passed into callbacks throughout your API's resource definitions – for example, when defining [scopes](scopes):
+
+```php
+use Tobyz\JsonApiServer\Context;
+
+$type->scope(function ($query, Context $context) {
+    $user = $context->getRequest()->getAttribute('user');
+    
+    $query->where('user_id', $user?->id);
+});
+```
+
+This object contains a number of useful methods:
+
+* `getApi(): Tobyz\JsonApi\JsonApi`  
+  Get the JsonApi instance.
+
+* `getRequest(): Psr\Http\Message\ServerRequestInterface`  
+  Get the PSR-7 request instance.
+
+* `getPath(): string`  
+  Get the request path relative to the API's base path.
+
+* `fieldRequested(string $type, string $field, bool $default = true): bool`  
+  Determine whether a field has been requested in a [sparse fieldset](https://jsonapi.org/format/1.1/#fetching-sparse-fieldsets).
+
+* `meta(string $name, $value): Tobyz\JsonApi\Schema\Meta`  
+  Add a meta attribute to the response document.

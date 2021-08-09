@@ -23,17 +23,17 @@ trait FindsResources
      *
      * @throws ResourceNotFoundException if the resource is not found.
      */
-    private function findResource(ResourceType $resource, string $id, Context $context)
+    private function findResource(ResourceType $resourceType, string $id, Context $context)
     {
-        $adapter = $resource->getAdapter();
-        $query = $adapter->newQuery($context);
+        $adapter = $resourceType->getAdapter();
+        $query = $adapter->query();
 
-        run_callbacks($resource->getSchema()->getListeners('scope'), [$query, $context]);
+        run_callbacks($resourceType->getSchema()->getListeners('scope'), [$query, $context]);
 
         $model = $adapter->find($query, $id);
 
         if (! $model) {
-            throw new ResourceNotFoundException($resource->getType(), $id);
+            throw new ResourceNotFoundException($resourceType->getType(), $id);
         }
 
         return $model;

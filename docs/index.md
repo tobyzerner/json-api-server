@@ -2,7 +2,7 @@
 
 json-api-server is a [JSON:API](http://jsonapi.org) server implementation in PHP.
 
-It allows you to define your API's schema, and then use an [adapter](adapters.md) to connect it to your application's models and database layer, without having to worry about any of the server boilerplate, routing, query parameters, or JSON:API document formatting.
+It allows you to define your API's schema, and then use an [adapter](adapters.md) to connect it to your application's database layer. You don't have to worry about any of the server boilerplate, routing, query parameters, or JSON:API document formatting.
 
 Based on your schema definition, the package will serve a **complete JSON:API that conforms to the [spec](https://jsonapi.org/format/)**, including support for:
 
@@ -15,7 +15,7 @@ Based on your schema definition, the package will serve a **complete JSON:API th
 - **Deleting** resources (`DELETE /api/articles/1`)
 - **Error handling**
 
-The schema definition is extremely powerful and lets you easily apply [permissions](visibility.md), [transformations](writing.md#transformers), [validation](writing.md#validation), and custom [filtering](filtering.md) and [sorting](sorting.md) logic to build a fully functional API in minutes.
+The schema definition is extremely powerful and lets you easily apply [permissions](visibility.md), [transformations](writing.md#transformers), [validation](writing.md#validation), and custom [filtering](filtering.md) and [sorting](sorting.md) logic to build a fully functional API with ease.
 
 ### Example
 
@@ -25,17 +25,18 @@ The following example uses Eloquent models in a Laravel application. However, js
 use App\Models\{Article, Comment, User};
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Type;
-use Tobyz\JsonApiServer\Laravel\EloquentAdapter;
+use Tobyz\JsonApiServer\Adapter\EloquentAdapter;
 use Tobyz\JsonApiServer\Laravel;
 
 $api = new JsonApi('http://example.com/api');
 
-$api->resource('articles', new EloquentAdapter(Article::class), function (Type $type) {
+$api->resourceType('articles', new EloquentAdapter(Article::class), function (Type $type) {
     $type->attribute('title')
         ->writable()
         ->validate(Laravel\rules('required'));
 
-    $type->hasOne('author')->type('users')
+    $type->hasOne('author')
+        ->type('users')
         ->includable()
         ->filterable();
 
@@ -43,7 +44,7 @@ $api->resource('articles', new EloquentAdapter(Article::class), function (Type $
         ->includable();
 });
 
-$api->resource('comments', new EloquentAdapter(Comment::class), function (Type $type) {
+$api->resourceType('comments', new EloquentAdapter(Comment::class), function (Type $type) {
     $type->creatable(Laravel\authenticated());
     $type->updatable(Laravel\can('update-comment'));
     $type->deletable(Laravel\can('delete-comment'));
@@ -56,12 +57,13 @@ $api->resource('comments', new EloquentAdapter(Comment::class), function (Type $
         ->writable()->once()
         ->validate(Laravel\rules('required'));
 
-    $type->hasOne('author')->type('users')
+    $type->hasOne('author')
+        ->type('users')
         ->writable()->once()
         ->validate(Laravel\rules('required'));
 });
 
-$api->resource('users', new EloquentAdapter(User::class), function (Type $type) {
+$api->resourceType('users', new EloquentAdapter(User::class), function (Type $type) {
     $type->attribute('firstName')->sortable();
     $type->attribute('lastName')->sortable();
 });

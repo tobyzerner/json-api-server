@@ -11,25 +11,21 @@
 
 namespace Tobyz\JsonApiServer\Endpoint\Concerns;
 
-use Psr\Http\Message\ServerRequestInterface;
+use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
 use Tobyz\JsonApiServer\ResourceType;
 use Tobyz\JsonApiServer\Schema\Attribute;
-use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Schema\HasMany;
 use Tobyz\JsonApiServer\Schema\HasOne;
 use Tobyz\JsonApiServer\Schema\Relationship;
+
 use function Tobyz\JsonApiServer\evaluate;
 use function Tobyz\JsonApiServer\get_value;
 use function Tobyz\JsonApiServer\has_value;
 use function Tobyz\JsonApiServer\run_callbacks;
 use function Tobyz\JsonApiServer\set_value;
 
-/**
- * @property JsonApi $api
- * @property ResourceType $resource
- */
 trait SavesData
 {
     use FindsResources;
@@ -39,7 +35,7 @@ trait SavesData
      *
      * @throws BadRequestException if the `data` member is invalid.
      */
-    private function parseData($body, $model = null): array
+    private function parseData(ResourceType $resourceType, $body, $model = null): array
     {
         $body = (array) $body;
 
@@ -47,12 +43,12 @@ trait SavesData
             throw new BadRequestException('data must be an object');
         }
 
-        if (! isset($body['data']['type']) || $body['data']['type'] !== $this->resource->getType()) {
+        if (! isset($body['data']['type']) || $body['data']['type'] !== $resourceType->getType()) {
             throw new BadRequestException('data.type does not match the resource type');
         }
 
         if ($model) {
-            $id = $this->resource->getAdapter()->getId($model);
+            $id = $resourceType->getAdapter()->getId($model);
 
             if (! isset($body['data']['id']) || $body['data']['id'] !== $id) {
                 throw new BadRequestException('data.id does not match the resource ID');
@@ -92,18 +88,18 @@ trait SavesData
             throw new BadRequestException("type [{$identifier['type']}] not allowed");
         }
 
-        $resource = $this->api->getResource($identifier['type']);
+        $resourceType = $context->getApi()->getResourceType($identifier['type']);
 
-        return $this->findResource($resource, $identifier['id'], $context);
+        return $this->findResource($resourceType, $identifier['id'], $context);
     }
 
     /**
      * Assert that the fields contained within a data object are valid.
      */
-    private function validateFields(array $data, $model, Context $context)
+    private function validateFields(ResourceType $resourceType, array $data, $model, Context $context)
     {
-        $this->assertFieldsExist($data);
-        $this->assertFieldsWritable($data, $model, $context);
+        $this->assertFieldsExist($resourceType, $data);
+        $this->assertFieldsWritable($resourceType, $data, $model, $context);
     }
 
     /**
@@ -111,9 +107,9 @@ trait SavesData
      *
      * @throws BadRequestException if a field is unknown.
      */
-    private function assertFieldsExist(array $data)
+    private function assertFieldsExist(ResourceType $resourceType, array $data)
     {
-        $fields = $this->resource->getSchema()->getFields();
+        $fields = $resourceType->getSchema()->getFields();
 
         foreach (['attributes', 'relationships'] as $location) {
             foreach ($data[$location] as $name => $value) {
@@ -129,9 +125,9 @@ trait SavesData
      *
      * @throws BadRequestException if a field is not writable.
      */
-    private function assertFieldsWritable(array $data, $model, Context $context)
+    private function assertFieldsWritable(ResourceType $resourceType, array $data, $model, Context $context)
     {
-        foreach ($this->resource->getSchema()->getFields() as $field) {
+        foreach ($resourceType->getSchema()->getFields() as $field) {
             if (! has_value($data, $field)) {
                 continue;
             }
@@ -151,9 +147,9 @@ trait SavesData
     /**
      * Replace relationship linkage within a data object with models.
      */
-    private function loadRelatedResources(array &$data, Context $context)
+    private function loadRelatedResources(ResourceType $resourceType, array &$data, Context $context)
     {
-        foreach ($this->resource->getSchema()->getFields() as $field) {
+        foreach ($resourceType->getSchema()->getFields() as $field) {
             if (! $field instanceof Relationship || ! has_value($data, $field)) {
                 continue;
             }
@@ -181,11 +177,11 @@ trait SavesData
      *
      * @throws UnprocessableEntityException if any fields do not pass validation.
      */
-    private function assertDataValid(array $data, $model, Context $context, bool $validateAll): void
+    private function assertDataValid(ResourceType $resourceType, array $data, $model, Context $context, bool $validateAll): void
     {
         $failures = [];
 
-        foreach ($this->resource->getSchema()->getFields() as $field) {
+        foreach ($resourceType->getSchema()->getFields() as $field) {
             if (! $validateAll && ! has_value($data, $field)) {
                 continue;
             }
@@ -208,11 +204,11 @@ trait SavesData
     /**
      * Set field values from a data object to the model instance.
      */
-    private function setValues(array $data, $model, Context $context)
+    private function setValues(ResourceType $resourceType, array $data, $model, Context $context)
     {
-        $adapter = $this->resource->getAdapter();
+        $adapter = $resourceType->getAdapter();
 
-        foreach ($this->resource->getSchema()->getFields() as $field) {
+        foreach ($resourceType->getSchema()->getFields() as $field) {
             if (! has_value($data, $field)) {
                 continue;
             }
@@ -239,32 +235,32 @@ trait SavesData
     /**
      * Save the model and its fields.
      */
-    private function save(array $data, $model, Context $context)
+    private function save(ResourceType $resourceType, array $data, $model, Context $context)
     {
-        $this->saveModel($model, $context);
-        $this->saveFields($data, $model, $context);
+        $this->saveModel($resourceType, $model, $context);
+        $this->saveFields($resourceType, $data, $model, $context);
     }
 
     /**
      * Save the model.
      */
-    private function saveModel($model, Context $context)
+    private function saveModel(ResourceType $resourceType, $model, Context $context)
     {
-        if ($saveCallback = $this->resource->getSchema()->getSaveCallback()) {
+        if ($saveCallback = $resourceType->getSchema()->getSaveCallback()) {
             $saveCallback($model, $context);
         } else {
-            $this->resource->getAdapter()->save($model);
+            $resourceType->getAdapter()->save($model);
         }
     }
 
     /**
      * Save any fields that were not saved with the model.
      */
-    private function saveFields(array $data, $model, Context $context)
+    private function saveFields(ResourceType $resourceType, array $data, $model, Context $context)
     {
-        $adapter = $this->resource->getAdapter();
+        $adapter = $resourceType->getAdapter();
 
-        foreach ($this->resource->getSchema()->getFields() as $field) {
+        foreach ($resourceType->getSchema()->getFields() as $field) {
             if (! has_value($data, $field)) {
                 continue;
             }
@@ -278,16 +274,16 @@ trait SavesData
             }
         }
 
-        $this->runSavedCallbacks($data, $model, $context);
+        $this->runSavedCallbacks($resourceType, $data, $model, $context);
     }
 
     /**
      * Run field saved listeners.
      */
-    private function runSavedCallbacks(array $data, $model, Context $context)
+    private function runSavedCallbacks(ResourceType $resourceType, array $data, $model, Context $context)
     {
 
-        foreach ($this->resource->getSchema()->getFields() as $field) {
+        foreach ($resourceType->getSchema()->getFields() as $field) {
             if (! has_value($data, $field)) {
                 continue;
             }

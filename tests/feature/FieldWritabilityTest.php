@@ -42,7 +42,7 @@ class FieldWritabilityTest extends AbstractTestCase
 
     public function test_attributes_are_readonly_by_default()
     {
-        $this->api->resource('users', $this->adapter, function (Type $type) use (&$called) {
+        $this->api->resourceType('users', $this->adapter, function (Type $type) use (&$called) {
             $type->updatable();
             $type->attribute('readonly');
         });
@@ -65,7 +65,7 @@ class FieldWritabilityTest extends AbstractTestCase
 
     public function test_attributes_can_be_explicitly_writable()
     {
-        $this->api->resource('users', $this->adapter, function (Type $type) {
+        $this->api->resourceType('users', $this->adapter, function (Type $type) {
             $type->updatable();
             $type->attribute('writable')->writable();
         });
@@ -89,7 +89,7 @@ class FieldWritabilityTest extends AbstractTestCase
 
     public function test_attributes_can_be_conditionally_writable()
     {
-        $this->api->resource('users', $this->adapter, function (Type $type) {
+        $this->api->resourceType('users', $this->adapter, function (Type $type) {
             $type->updatable();
             $type->attribute('writable')
                 ->writable(function () { return true; });
@@ -116,7 +116,7 @@ class FieldWritabilityTest extends AbstractTestCase
     {
         $called = false;
 
-        $this->api->resource('users', $this->adapter, function (Type $type) use (&$called) {
+        $this->api->resourceType('users', $this->adapter, function (Type $type) use (&$called) {
             $type->updatable();
             $type->attribute('writable')
                 ->writable(function ($model, $context) use (&$called) {
@@ -145,7 +145,7 @@ class FieldWritabilityTest extends AbstractTestCase
 
     public function test_attributes_can_be_explicitly_readonly()
     {
-        $this->api->resource('users', $this->adapter, function (Type $type) use (&$called) {
+        $this->api->resourceType('users', $this->adapter, function (Type $type) use (&$called) {
             $type->updatable();
             $type->attribute('readonly')->readonly();
         });
@@ -168,7 +168,7 @@ class FieldWritabilityTest extends AbstractTestCase
 
     public function test_attributes_can_be_conditionally_readonly()
     {
-        $this->api->resource('users', $this->adapter, function (Type $type) {
+        $this->api->resourceType('users', $this->adapter, function (Type $type) {
             $type->updatable();
             $type->attribute('readonly')
                 ->readonly(function () { return true; });
@@ -194,7 +194,7 @@ class FieldWritabilityTest extends AbstractTestCase
     {
         $called = false;
 
-        $this->api->resource('users', $this->adapter, function (Type $type) use (&$called) {
+        $this->api->resourceType('users', $this->adapter, function (Type $type) use (&$called) {
             $type->updatable();
             $type->attribute('readonly')
                 ->readonly(function ($model, $context) use (&$called) {
@@ -225,7 +225,7 @@ class FieldWritabilityTest extends AbstractTestCase
 
     public function test_field_is_only_writable_once_on_creation()
     {
-        $this->api->resource('users', $this->adapter, function (Type $type) {
+        $this->api->resourceType('users', $this->adapter, function (Type $type) {
             $type->creatable();
             $type->updatable();
             $type->attribute('writableOnce')->writable()->once();

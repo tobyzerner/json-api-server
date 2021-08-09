@@ -20,16 +20,35 @@ class Context
     use HasMeta;
     use HasListeners;
 
+    private $api;
     private $request;
 
-    public function __construct(ServerRequestInterface $request)
+    public function __construct(JsonApi $api, ServerRequestInterface $request)
     {
+        $this->api = $api;
         $this->request = $request;
+    }
+
+    public function getApi(): JsonApi
+    {
+        return $this->api;
     }
 
     public function getRequest(): ServerRequestInterface
     {
         return $this->request;
+    }
+
+    public function withRequest(ServerRequestInterface $request): Context
+    {
+        return new static($this->api, $request);
+    }
+
+    public function getPath(): string
+    {
+        return $this->api->stripBasePath(
+            $this->request->getUri()->getPath()
+        );
     }
 
     public function response(callable $callback): void

@@ -14,22 +14,22 @@ $type->deletable(function (Context $context) {
 
 ## Events
 
-### `onDeleting`
+### `deleting`
 
 Run before the model is deleted.
 
 ```php
-$type->onDeleting(function (&$model, Context $context) {
+$type->deleting(function (&$model, Context $context) {
     // do something
 });
 ```
 
-### `onDeleted`
+### `deleted`
 
 Run after the model is deleted.
 
 ```php
-$type->onDeleted(function (&$model, Context $context) {
+$type->deleted(function (&$model, Context $context) {
     // do something
 });
 ```

@@ -48,7 +48,7 @@ class FieldGettersTest extends AbstractTestCase
 
     public function test_attribute_values_are_retrieved_via_the_adapter_by_default()
     {
-        $this->api->resource('users', $this->adapter, function (Type $type) {
+        $this->api->resourceType('users', $this->adapter, function (Type $type) {
             $type->attribute('test');
         });
 
@@ -63,7 +63,7 @@ class FieldGettersTest extends AbstractTestCase
 
     public function test_attribute_getters_allow_a_custom_value_to_be_used()
     {
-        $this->api->resource('users', $this->adapter, function (Type $type) {
+        $this->api->resourceType('users', $this->adapter, function (Type $type) {
             $type->attribute('test')
                 ->get(function ($model, Context $context) {
                     return 'custom';
@@ -81,11 +81,11 @@ class FieldGettersTest extends AbstractTestCase
 
     public function test_has_one_values_are_retrieved_via_the_adapter_by_default()
     {
-        $this->api->resource('users', $this->adapter, function (Type $type) {
+        $this->api->resourceType('users', $this->adapter, function (Type $type) {
             $type->hasOne('animal')->withLinkage();
         });
 
-        $this->api->resource('animals', new MockAdapter);
+        $this->api->resourceType('animals', new MockAdapter);
 
         $response = $this->api->handle(
             $this->buildRequest('GET', '/users/1')
@@ -98,14 +98,14 @@ class FieldGettersTest extends AbstractTestCase
 
     public function test_has_one_getters_allow_a_custom_value_to_be_used()
     {
-        $this->api->resource('users', $this->adapter, function (Type $type) {
+        $this->api->resourceType('users', $this->adapter, function (Type $type) {
             $type->hasOne('animal')->withLinkage()
                 ->get(function ($model, Context $context) {
                     return (object) ['id' => '2'];
                 });
         });
 
-        $this->api->resource('animals', new MockAdapter);
+        $this->api->resourceType('animals', new MockAdapter);
 
         $response = $this->api->handle(
             $this->buildRequest('GET', '/users/1')
@@ -118,11 +118,11 @@ class FieldGettersTest extends AbstractTestCase
 
     public function test_has_many_values_are_retrieved_via_the_adapter_by_default()
     {
-        $this->api->resource('users', $this->adapter, function (Type $type) {
+        $this->api->resourceType('users', $this->adapter, function (Type $type) {
             $type->hasMany('animals')->withLinkage();
         });
 
-        $this->api->resource('animals', new MockAdapter);
+        $this->api->resourceType('animals', new MockAdapter);
 
         $response = $this->api->handle(
             $this->buildRequest('GET', '/users/1')
@@ -136,7 +136,7 @@ class FieldGettersTest extends AbstractTestCase
 
     public function test_has_many_getters_allow_a_custom_value_to_be_used()
     {
-        $this->api->resource('users', $this->adapter, function (Type $type) {
+        $this->api->resourceType('users', $this->adapter, function (Type $type) {
             $type->hasMany('animals')->withLinkage()
                 ->get(function ($model, Context $context) {
                     return [
@@ -146,7 +146,7 @@ class FieldGettersTest extends AbstractTestCase
                 });
         });
 
-        $this->api->resource('animals', new MockAdapter);
+        $this->api->resourceType('animals', new MockAdapter);
 
         $response = $this->api->handle(
             $this->buildRequest('GET', '/users/1')

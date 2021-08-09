@@ -23,7 +23,7 @@ GET /users?filter[postCount]=5..15
 
 ## Custom Filters
 
-To define filters with custom logic, or ones that do not correspond to an attribute, use the `filter` method:
+To define filters with custom logic, or ones that do not correspond to a field, use the `filter` method:
 
 ```php
 $type->filter('minPosts', function ($query, $value, Context $context) {
@@ -34,7 +34,7 @@ $type->filter('minPosts', function ($query, $value, Context $context) {
 Just like [fields](visibility.md), filters can be made conditionally `visible` or `hidden`:
 
 ```php
-$type->filter('email', $callback)
+$type->filter('minPosts', $callback)
     ->visible(function (Context $context) {
         return $context->getRequest()->getAttribute('isAdmin');
     });

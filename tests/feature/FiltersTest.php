@@ -44,7 +44,7 @@ class FiltersTest extends AbstractTestCase
 
     public function test_resources_can_be_filtered_by_id()
     {
-        $this->api->resource('users', $this->adapter);
+        $this->api->resourceType('users', $this->adapter);
 
         $this->api->handle(
             $this->buildRequest('GET', '/users')
@@ -56,7 +56,7 @@ class FiltersTest extends AbstractTestCase
 
     public function test_attributes_are_not_filterable_by_default()
     {
-        $this->api->resource('users', $this->adapter, function (Type $type) {
+        $this->api->resourceType('users', $this->adapter, function (Type $type) {
             $type->attribute('test');
         });
 
@@ -70,7 +70,7 @@ class FiltersTest extends AbstractTestCase
 
     public function test_attributes_can_be_explicitly_filterable()
     {
-        $this->api->resource('users', $this->adapter, function (Type $type) use (&$attribute) {
+        $this->api->resourceType('users', $this->adapter, function (Type $type) use (&$attribute) {
             $attribute = $type->attribute('test')->filterable();
         });
 
@@ -107,7 +107,7 @@ class FiltersTest extends AbstractTestCase
     {
         $called = false;
 
-        $this->api->resource('users', $this->adapter, function (Type $type) use (&$called) {
+        $this->api->resourceType('users', $this->adapter, function (Type $type) use (&$called) {
             $type->filter('name', function ($query, $value, Context $context) use (&$called) {
                 $this->assertSame($this->adapter->query, $query);
                 $this->assertEquals('value', $value);

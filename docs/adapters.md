@@ -7,7 +7,7 @@ You'll need to supply an adapter for each [resource type](https://jsonapi.org/fo
 ```php
 use Tobyz\JsonApiServer\Schema\Type;
 
-$api->resource('users', $adapter, function (Type $type) {
+$api->resourceType('users', $adapter, function (Type $type) {
     // define your schema
 });
 ```
@@ -26,10 +26,10 @@ $adapter = new EloquentAdapter(User::class);
 When using the Eloquent Adapter, the `$model` passed around in the schema will be an instance of the given model, and the `$query` will be a `Illuminate\Database\Eloquent\Builder` instance querying the model's table:
 
 ```php
-$type->scope(function (Builder $query) { });
+$type->scope(function (Builder $query) {});
 
 $type->attribute('name')
-    ->get(function (User $user) { });
+    ->get(function (User $user) {});
 ```
 
 ### Custom Adapters

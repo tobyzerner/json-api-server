@@ -49,7 +49,7 @@ class CreateTest extends AbstractTestCase
 
     public function test_resources_are_not_creatable_by_default()
     {
-        $this->api->resource('users', new MockAdapter());
+        $this->api->resourceType('users', new MockAdapter());
 
         $this->expectException(ForbiddenException::class);
 
@@ -58,7 +58,7 @@ class CreateTest extends AbstractTestCase
 
     public function test_resource_creation_can_be_explicitly_enabled()
     {
-        $this->api->resource('users', new MockAdapter(), function (Type $type) {
+        $this->api->resourceType('users', new MockAdapter(), function (Type $type) {
             $type->creatable();
         });
 
@@ -69,7 +69,7 @@ class CreateTest extends AbstractTestCase
 
     public function test_resource_creation_can_be_conditionally_enabled()
     {
-        $this->api->resource('users', new MockAdapter(), function (Type $type) {
+        $this->api->resourceType('users', new MockAdapter(), function (Type $type) {
             $type->creatable(function () {
                 return true;
             });
@@ -82,7 +82,7 @@ class CreateTest extends AbstractTestCase
 
     public function test_resource_creation_can_be_explicitly_disabled()
     {
-        $this->api->resource('users', new MockAdapter(), function (Type $type) {
+        $this->api->resourceType('users', new MockAdapter(), function (Type $type) {
             $type->notCreatable();
         });
 
@@ -93,7 +93,7 @@ class CreateTest extends AbstractTestCase
 
     public function test_resource_creation_can_be_conditionally_disabled()
     {
-        $this->api->resource('users', new MockAdapter(), function (Type $type) {
+        $this->api->resourceType('users', new MockAdapter(), function (Type $type) {
             $type->creatable(function () {
                 return false;
             });
@@ -108,7 +108,7 @@ class CreateTest extends AbstractTestCase
     {
         $called = false;
 
-        $this->api->resource('users', new MockAdapter(), function (Type $type) use (&$called) {
+        $this->api->resourceType('users', new MockAdapter(), function (Type $type) use (&$called) {
             $type->creatable(function ($context) use (&$called) {
                 $this->assertInstanceOf(Context::class, $context);
                 return $called = true;
@@ -127,7 +127,7 @@ class CreateTest extends AbstractTestCase
         $adapter->save($createdModel)->shouldBeCalled();
         $adapter->getId($createdModel)->willReturn('1');
 
-        $this->api->resource('users', $adapter->reveal(), function (Type $type) {
+        $this->api->resourceType('users', $adapter->reveal(), function (Type $type) {
             $type->creatable();
         });
 
@@ -143,7 +143,7 @@ class CreateTest extends AbstractTestCase
         $adapter->save($createdModel)->shouldBeCalled();
         $adapter->getId($createdModel)->willReturn('1');
 
-        $this->api->resource('users', $adapter->reveal(), function (Type $type) use ($createdModel) {
+        $this->api->resourceType('users', $adapter->reveal(), function (Type $type) use ($createdModel) {
             $type->creatable();
             $type->newModel(function ($context) use ($createdModel) {
                 $this->assertInstanceOf(Context::class, $context);
@@ -163,7 +163,7 @@ class CreateTest extends AbstractTestCase
         $adapter->save($createdModel)->shouldNotBeCalled();
         $adapter->getId($createdModel)->willReturn('1');
 
-        $this->api->resource('users', $adapter->reveal(), function (Type $type) use ($createdModel, &$called) {
+        $this->api->resourceType('users', $adapter->reveal(), function (Type $type) use ($createdModel, &$called) {
             $type->creatable();
             $type->save(function ($model, $context) use ($createdModel, &$called) {
                 $model->id = '1';
@@ -186,15 +186,15 @@ class CreateTest extends AbstractTestCase
         $adapter->newModel()->willReturn($createdModel = (object) []);
         $adapter->getId($createdModel)->willReturn('1');
 
-        $this->api->resource('users', $adapter->reveal(), function (Type $type) use ($adapter, $createdModel, &$called) {
+        $this->api->resourceType('users', $adapter->reveal(), function (Type $type) use ($adapter, $createdModel, &$called) {
             $type->creatable();
-            $type->onCreating(function ($model, $context) use ($adapter, $createdModel, &$called) {
+            $type->creating(function ($model, $context) use ($adapter, $createdModel, &$called) {
                 $this->assertSame($createdModel, $model);
                 $this->assertInstanceOf(Context::class, $context);
                 $adapter->save($createdModel)->shouldNotHaveBeenCalled();
                 $called++;
             });
-            $type->onCreated(function ($model, $context) use ($adapter, $createdModel, &$called) {
+            $type->created(function ($model, $context) use ($adapter, $createdModel, &$called) {
                 $this->assertSame($createdModel, $model);
                 $this->assertInstanceOf(Context::class, $context);
                 $adapter->save($createdModel)->shouldHaveBeenCalled();

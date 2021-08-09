@@ -14,22 +14,22 @@ $type->updatable(function (Context $context) {
 
 ## Events
 
-### `onUpdating`
+### `updating`
 
-Run before the model is saved.
+Run after values have been set on the model, but before it is saved.
 
 ```php
-$type->onUpdating(function (&$model, Context $context) {
+$type->updating(function (&$model, Context $context) {
     // do something
 });
 ```
 
-### `onUpdated`
+### `updated`
 
-Run after the model is saved.
+Run after the model is saved, and before it is shown in a JSON:API document.
 
 ```php
-$type->onUpdated(function (&$model, Context $context) {
+$type->updated(function (&$model, Context $context) {
     // do something
 });
 ```
