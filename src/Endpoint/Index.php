@@ -40,7 +40,10 @@ class Index
         $schema = $resourceType->getSchema();
 
         if (! evaluate($schema->isListable(), [$context])) {
-            throw new ForbiddenException();
+            throw new ForbiddenException(sprintf(
+                'Cannot list resource type %s',
+                $resourceType->getType()
+            ));
         }
 
         $query = $adapter->query();

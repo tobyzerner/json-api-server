@@ -22,7 +22,8 @@ class ForbiddenException extends DomainException implements ErrorProviderInterfa
         return [
             new Error(
                 new Error\Title('Forbidden'),
-                new Error\Status($this->getJsonApiStatus())
+                new Error\Status($this->getJsonApiStatus()),
+                ...($this->message ? [new Error\Detail($this->message)] : [])
             )
         ];
     }

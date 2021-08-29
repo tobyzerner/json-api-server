@@ -31,7 +31,11 @@ class Update
         $schema = $resourceType->getSchema();
 
         if (! evaluate($schema->isUpdatable(), [$model, $context])) {
-            throw new ForbiddenException();
+            throw new ForbiddenException(sprintf(
+                'Cannot update resource %s:%s',
+                $resourceType->getType(),
+                $resourceType->getAdapter()->getId($model)
+            ));
         }
 
         $data = $this->parseData($resourceType, $context->getRequest()->getParsedBody(), $model);

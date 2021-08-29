@@ -30,7 +30,11 @@ class Delete
         $schema = $resourceType->getSchema();
 
         if (! evaluate($schema->isDeletable(), [$model, $context])) {
-            throw new ForbiddenException();
+            throw new ForbiddenException(sprintf(
+                'Cannot delete resource %s:%s',
+                $resourceType->getType(),
+                $resourceType->getAdapter()->getId($model)
+            ));
         }
 
         run_callbacks($schema->getListeners('deleting'), [&$model, $context]);
