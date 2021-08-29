@@ -72,9 +72,7 @@ $api->extension(new Atomic());
 /** @var Psr\Http\Message\ServerRequestInterface $request */
 /** @var Psr\Http\Message\ResponseInterface $response */
 try {
-    return DB::transaction(function () use ($api, $request) {
-        return $api->handle($request);
-    });
+    return DB::transaction(fn() => $api->handle($request));
 } catch (Exception $e) {
     $response = $api->error($e);
 }
