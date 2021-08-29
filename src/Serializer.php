@@ -19,6 +19,7 @@ use Tobyz\JsonApiServer\Schema\Attribute;
 use Tobyz\JsonApiServer\Schema\Field;
 use Tobyz\JsonApiServer\Schema\HasMany;
 use Tobyz\JsonApiServer\Schema\HasOne;
+use Tobyz\JsonApiServer\Schema\Meta;
 use Tobyz\JsonApiServer\Schema\Relationship;
 
 final class Serializer
@@ -60,21 +61,6 @@ final class Serializer
         ];
     }
 
-    private function resolveDeferred(): void
-    {
-        $i = 0;
-        while (count($this->deferred)) {
-            foreach ($this->deferred as $k => $resolve) {
-                $resolve();
-                unset($this->deferred[$k]);
-            }
-
-            if ($i++ > 10) {
-                throw new RuntimeException('Too many levels of deferred values.');
-            }
-        }
-    }
-
     private function addToMap(ResourceType $resourceType, $model, array $include): array
     {
         $adapter = $resourceType->getAdapter();
@@ -85,125 +71,57 @@ final class Serializer
             $id = $adapter->getId($model)
         );
 
-        $this->map[$key] = $this->map[$key] ?? [
-                'type' => $type,
-                'id' => $id,
-                'fields' => [],
-                'links' => [],
-                'meta' => []
-            ];
+        if (isset($this->map[$key])) {
+            return $this->map[$key];
+        }
 
-        $url = $this->context->getApi()->getBasePath()."/$type/$id";
+        $this->map[$key] = [
+            'type' => $type,
+            'id' => $id,
+            'fields' => [],
+            'links' => [
+                'self' => new Structure\Link\SelfLink($url = $this->resourceUrl($type, $id)),
+            ],
+            'meta' => $this->meta($schema->getMeta(), $model)
+        ];
+
         $fields = $this->sparseFields($type, $schema->getFields());
 
         foreach ($fields as $field) {
-            $name = $field->getName();
-
-            if (isset($this->map[$key]['fields'][$name])) {
-                continue;
-            }
-
             if (! evaluate($field->getVisible(), [$model, $this->context])) {
                 continue;
             }
 
-            if ($field instanceof Schema\Attribute) {
-                $this->setAttribute($key, $field, $resourceType, $model);
-            } elseif ($field instanceof Schema\Relationship) {
-                $this->setRelationship($key, $field, $resourceType, $model, $include, $url);
+            if ($field instanceof Attribute) {
+                $this->resolveAttribute($key, $field, $resourceType, $model);
+            } elseif ($field instanceof Relationship) {
+                $this->resolveRelationship($key, $field, $resourceType, $model, $include, $url);
             }
         }
-
-        $this->map[$key]['links']['self'] = new Structure\Link\SelfLink($url);
-        $this->map[$key]['meta'] = $this->meta($schema->getMeta(), $model);
 
         return $this->map[$key];
     }
 
-    private function setAttribute(string $key, Attribute $field, ResourceType $resourceType, $model): void
+    private function key(string $type, string $id): string
     {
-        $this->defer($this->getAttributeValue($field, $resourceType, $model), function ($value) use ($key, $field) {
-            if ($value instanceof DateTimeInterface) {
-                $value = $value->format(DateTime::RFC3339);
-            }
-
-            $this->map[$key]['fields'][$name = $field->getName()] = new Structure\Attribute($name, $value);
-        });
+        return $type.':'.$id;
     }
 
-    private function getAttributeValue(Attribute $field, ResourceType $resourceType, $model)
+    private function resourceUrl(string $type, string $id): string
     {
-        return ($getCallback = $field->getGetCallback())
-            ? $getCallback($model, $this->context)
-            : $resourceType->getAdapter()->getAttribute($model, $field);
+        return $this->context->getApi()->getBasePath()."/$type/$id";
     }
 
-    private function setRelationship(string $key, Relationship $field, ResourceType $resourceType, $model, array $include, string $url): void
+    /**
+     * @return Structure\Internal\RelationshipMember[]
+     */
+    private function meta(array $items, $model): array
     {
-        $name = $field->getName();
-        $isIncluded = isset($include[$name]);
-        $nestedInclude = $include[$name] ?? [];
+        ksort($items);
 
-        $members = array_merge(
-            $this->relationshipLinks($field, $url),
-            $this->meta($field->getMeta(), $model)
-        );
-
-        if (! $isIncluded && ! $field->hasLinkage()) {
-            if ($relationship = $this->emptyRelationship($field, $members)) {
-                $this->map[$key]['fields'][$name] = $relationship;
-            }
-            return;
-        }
-
-        $value = $this->getRelationshipValue($field, $resourceType, $model, ! $isIncluded);
-
-        if ($field instanceof Schema\HasOne) {
-            $this->defer($value, function ($value) use ($key, $field, $name, $isIncluded, $nestedInclude, $members) {
-                if (! $value) {
-                    $relationship = new Structure\ToNull($name, ...$members);
-                } else {
-                    $identifier = $isIncluded
-                        ? $this->addRelated($field, $value, $nestedInclude)
-                        : $this->relatedResourceIdentifier($field, $value);
-
-                    $relationship = new Structure\ToOne($name, $identifier, ...$members);
-                }
-
-                $this->map[$key]['fields'][$name] = $relationship;
-            });
-        } elseif ($field instanceof Schema\HasMany) {
-            $this->defer($value, function ($value) use ($key, $field, $name, $isIncluded, $nestedInclude, $members) {
-                $identifiers = array_map(function ($relatedModel) use ($field, $isIncluded, $nestedInclude) {
-                    return $isIncluded
-                        ? $this->addRelated($field, $relatedModel, $nestedInclude)
-                        : $this->relatedResourceIdentifier($field, $relatedModel);
-                }, $value);
-
-                $this->map[$key]['fields'][$name] = new Structure\ToMany(
-                    $name,
-                    new Structure\ResourceIdentifierCollection(...$identifiers),
-                    ...$members
-                );
-            });
-        }
-    }
-
-    private function getRelationshipValue(Relationship $field, ResourceType $resourceType, $model, bool $linkage)
-    {
-        if ($getCallback = $field->getGetCallback()) {
-            return $getCallback($model, $this->context);
-        }
-
-        if ($field instanceof HasOne) {
-            return $resourceType->getAdapter()->getHasOne($model, $field, $linkage, $this->context);
-        }
-
-        if ($field instanceof HasMany) {
-            return $resourceType->getAdapter()->getHasMany($model, $field, $linkage, $this->context);
-        }
-
-        return null;
+        return array_map(function (Meta $meta) use ($model) {
+            return new Structure\Meta($meta->getName(), ($meta->getValue())($model, $this->context));
+        }, $items);
     }
 
     private function sparseFields(string $type, array $fields): array
@@ -219,11 +137,60 @@ final class Serializer
         return $fields;
     }
 
-    private function defer($value, $callback): void
+    private function resolveAttribute(string $key, Attribute $field, ResourceType $resourceType, $model): void
+    {
+        $value = $this->getAttributeValue($field, $resourceType, $model);
+
+        $this->whenResolved($value, function ($value) use ($key, $field) {
+            if ($value instanceof DateTimeInterface) {
+                $value = $value->format(DateTime::RFC3339);
+            }
+
+            $this->setField($key, $field, new Structure\Attribute($field->getName(), $value));
+        });
+    }
+
+    private function resolveRelationship(string $key, Relationship $field, ResourceType $resourceType, $model, array $include, string $url): void
+    {
+        $name = $field->getName();
+        $linkageOnly = ! isset($include[$name]);
+        $nestedInclude = $include[$name] ?? null;
+
+        $members = array_merge(
+            $this->relationshipLinks($url, $field),
+            $this->meta($field->getMeta(), $model)
+        );
+
+        if ($linkageOnly && ! $field->hasLinkage()) {
+            if ($relationship = $this->emptyRelationship($field, $members)) {
+                $this->setField($key, $field, $relationship);
+            }
+            return;
+        }
+
+        $value = $this->getRelationshipValue($field, $resourceType, $model, $linkageOnly);
+
+        $this->whenResolved($value, function ($value) use ($key, $field, $nestedInclude, $members) {
+            if ($structure = $this->buildRelationship($field, $value, $nestedInclude, $members)) {
+                $this->setField($key, $field, $structure);
+            }
+        });
+    }
+
+    private function getAttributeValue(Attribute $field, ResourceType $resourceType, $model)
+    {
+        if ($getCallback = $field->getGetCallback()) {
+            return $getCallback($model, $this->context);
+        }
+
+        return $resourceType->getAdapter()->getAttribute($model, $field);
+    }
+
+    private function whenResolved($value, $callback): void
     {
         if ($value instanceof Deferred) {
             $this->deferred[] = function () use (&$data, $value, $callback) {
-                $this->defer($value->resolve(), $callback);
+                $this->whenResolved($value->resolve(), $callback);
             };
             return;
         }
@@ -231,22 +198,20 @@ final class Serializer
         $callback($value);
     }
 
-    private function emptyRelationship(Schema\Relationship $field, array $members): ?Structure\EmptyRelationship
+    private function setField(string $key, Field $field, $value): void
     {
-        if (! $members) {
-            return null;
-        }
-
-        return new Structure\EmptyRelationship($field->getName(), ...$members);
+        $this->map[$key]['fields'][$field->getName()] = $value;
     }
 
     /**
      * @return Structure\Internal\RelationshipMember[]
      */
-    private function relationshipLinks(Schema\Relationship $field, string $url): array
+    private function relationshipLinks(string $url, Relationship $field): array
     {
+        return [];
+
         // if (! $field->hasUrls()) {
-            return [];
+        //     return [];
         // }
 
         // return [
@@ -255,33 +220,117 @@ final class Serializer
         // ];
     }
 
-    private function addRelated(Schema\Relationship $field, $model, array $include): Structure\ResourceIdentifier
+    private function emptyRelationship(Relationship $field, array $members): ?Structure\EmptyRelationship
     {
-        $relatedResource = is_string($field->getType())
-            ? $this->context->getApi()->getResourceType($field->getType())
-            : $this->resourceForModel($model);
+        if (! $members) {
+            return null;
+        }
+
+        return new Structure\EmptyRelationship($field->getName(), ...$members);
+    }
+
+    private function getRelationshipValue(Relationship $field, ResourceType $resourceType, $model, bool $linkageOnly)
+    {
+        if ($getCallback = $field->getGetCallback()) {
+            return $getCallback($model, $linkageOnly, $this->context);
+        }
+
+        if ($field instanceof HasOne) {
+            return $resourceType->getAdapter()->getHasOne($model, $field, $linkageOnly, $this->context);
+        }
+
+        if ($field instanceof HasMany) {
+            return $resourceType->getAdapter()->getHasMany($model, $field, $linkageOnly, $this->context);
+        }
+
+        return null;
+    }
+
+    private function buildRelationship(Relationship $field, $value, ?array $nestedInclude, array $members): ?Structure\Internal\ResourceField
+    {
+        $name = $field->getName();
+
+        if ($field instanceof HasOne) {
+            if (! $value) {
+                return new Structure\ToNull($name, ...$members);
+            }
+
+            return new Structure\ToOne(
+                $name,
+                $this->addRelatedResource($field, $value, $nestedInclude),
+                ...$members
+            );
+        }
+
+        if ($field instanceof HasMany) {
+            $identifiers = array_map(function ($relatedModel) use ($field, $nestedInclude) {
+                return $this->addRelatedResource($field, $relatedModel, $nestedInclude);
+            }, $value);
+
+            return new Structure\ToMany(
+                $name,
+                new Structure\ResourceIdentifierCollection(...$identifiers),
+                ...$members
+            );
+        }
+
+        return null;
+    }
+
+    private function addRelatedResource(Relationship $field, $model, ?array $include): Structure\ResourceIdentifier
+    {
+        $relatedResourceType = $this->resourceTypeForModel($field, $model);
+
+        if ($include === null) {
+            return $this->resourceIdentifier([
+                'type' => $relatedResourceType->getType(),
+                'id' => $relatedResourceType->getAdapter()->getId($model)
+            ]);
+        }
 
         return $this->resourceIdentifier(
-            $this->addToMap($relatedResource, $model, $include)
+            $this->addToMap($relatedResourceType, $model, $include)
         );
     }
 
-    private function resourceForModel($model): ResourceType
+    private function resourceTypeForModel(Relationship $field, $model): ResourceType
     {
-        foreach ($this->context->getApi()->getResourceTypes() as $resource) {
-            if ($resource->getAdapter()->represents($model)) {
-                return $resource;
+        if (is_string($type = $field->getType())) {
+            return $this->context->getApi()->getResourceType($type);
+        }
+
+        foreach ($this->context->getApi()->getResourceTypes() as $resourceType) {
+            if ($resourceType->getAdapter()->represents($model)) {
+                return $resourceType;
             }
         }
 
-        throw new RuntimeException('No resource defined to represent model of type '.get_class($model));
+        throw new RuntimeException('No resource type defined to represent model '.get_class($model));
+    }
+
+    private function resourceIdentifier(array $data): Structure\ResourceIdentifier
+    {
+        return new Structure\ResourceIdentifier($data['type'], $data['id']);
+    }
+
+    private function resolveDeferred(): void
+    {
+        $i = 0;
+        while (count($this->deferred)) {
+            foreach ($this->deferred as $k => $resolve) {
+                $resolve();
+                unset($this->deferred[$k]);
+            }
+
+            if ($i++ > 10) {
+                throw new RuntimeException('Too many levels of deferred values');
+            }
+        }
     }
 
     private function resourceObjects(array $items): array
     {
-        return array_map(function ($data) {
-            return $this->resourceObject($data);
-        }, $items);
+        return array_map([$this, 'resourceObject'], $items);
     }
 
     private function resourceObject(array $data): Structure\ResourceObject
@@ -293,40 +342,5 @@ final class Serializer
             ...array_values($data['links']),
             ...array_values($data['meta'])
         );
-    }
-
-    private function resourceIdentifier(array $data): Structure\ResourceIdentifier
-    {
-        return new Structure\ResourceIdentifier($data['type'], $data['id']);
-    }
-
-    private function relatedResourceIdentifier(Schema\Relationship $field, $model): Structure\ResourceIdentifier
-    {
-        $type = $field->getType();
-        $relatedResource = is_string($type)
-            ? $this->context->getApi()->getResourceType($type)
-            : $this->resourceForModel($model);
-
-        return $this->resourceIdentifier([
-            'type' => $relatedResource->getType(),
-            'id' => $relatedResource->getAdapter()->getId($model)
-        ]);
-    }
-
-    /**
-     * @return Structure\Internal\RelationshipMember[]
-     */
-    private function meta(array $items, $model): array
-    {
-        ksort($items);
-
-        return array_map(function (Schema\Meta $meta) use ($model) {
-            return new Structure\Meta($meta->getName(), ($meta->getValue())($model, $this->context));
-        }, $items);
-    }
-
-    private function key(string $type, string $id): string
-    {
-        return $type.':'.$id;
     }
 }
