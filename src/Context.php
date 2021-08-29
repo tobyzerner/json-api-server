@@ -29,11 +29,17 @@ class Context
         $this->request = $request;
     }
 
+    /**
+     * Get the JsonApi instance.
+     */
     public function getApi(): JsonApi
     {
         return $this->api;
     }
 
+    /**
+     * Get the PSR-7 request instance.
+     */
     public function getRequest(): ServerRequestInterface
     {
         return $this->request;
@@ -44,6 +50,9 @@ class Context
         return new static($this->api, $request);
     }
 
+    /**
+     * Get the request path relative to the API's base path.
+     */
     public function getPath(): string
     {
         return $this->api->stripBasePath(
@@ -56,6 +65,9 @@ class Context
         $this->listeners['response'][] = $callback;
     }
 
+    /**
+     * Determine whether a field has been requested in a sparse fieldset.
+     */
     public function fieldRequested(string $type, string $field, bool $default = true): bool
     {
         $queryParams = $this->request->getQueryParams();
@@ -65,5 +77,13 @@ class Context
         }
 
         return in_array($field, explode(',', $queryParams['fields'][$type]));
+    }
+
+    /**
+     * Get the value of a filter.
+     */
+    public function filter(string $name): ?string
+    {
+        return $this->request->getQueryParams()['filter'][$name] ?? null;
     }
 }

@@ -60,5 +60,8 @@ This object contains a number of useful methods:
 * `fieldRequested(string $type, string $field, bool $default = true): bool`  
   Determine whether a field has been requested in a [sparse fieldset](https://jsonapi.org/format/1.1/#fetching-sparse-fieldsets).
 
+* `filter(string $name): ?string`  
+  Get the value of a filter.
+
 * `meta(string $name, $value): Tobyz\JsonApi\Schema\Meta`  
   Add a meta attribute to the response document.
