@@ -23,23 +23,26 @@ abstract class EloquentBuffer
 {
     private static $buffer = [];
 
-    public static function add(Model $model, string $relation): void
+    public static function add(Model $model, string $relationName): void
     {
-        static::$buffer[get_class($model)][$relation][] = $model;
+        static::$buffer[get_class($model)][$relationName][] = $model;
     }
 
-    public static function load(Model $model, string $relation, Relationship $relationship, Context $context): void
+    public static function load(Model $model, string $relationName, Relationship $relationship, Context $context): void
     {
-        if (! $models = static::$buffer[get_class($model)][$relation] ?? null) {
+        if (! $models = static::$buffer[get_class($model)][$relationName] ?? null) {
             return;
         }
 
         Collection::make($models)->loadMissing([
-            $relation => function ($query) use ($model, $relation, $relationship, $context) {
-                // As we're loading the relationship, we need to scope the query
-                // using the scopes defined in the related API resources. We
+            $relationName => function ($relation) use ($model, $relationName, $relationship, $context) {
+                $query = $relation->getQuery();
+
+                // When loading the relationship, we need to scope the query
+                // using the scopes defined in the related API resource – there
+                // may be multiple if this is a polymorphic relationship. We
                 // start by getting the resource types this relationship
-                // could contain.
+                // could possibly contain.
                 $resourceTypes = $context->getApi()->getResourceTypes();
 
                 if ($type = $relationship->getType()) {
@@ -50,33 +53,34 @@ abstract class EloquentBuffer
                     }
                 }
 
+                // Now, construct a map of model class names -> scoping
+                // functions. This will be provided to the MorphTo::constrain
+                // method in order to apply type-specific scoping.
                 $constrain = [];
 
                 foreach ($resourceTypes as $resourceType) {
                     if ($model = $resourceType->getAdapter()->model()) {
                         $constrain[get_class($model)] = function ($query) use ($resourceType, $context) {
-                            run_callbacks(
-                                $resourceType->getSchema()->getListeners('scope'),
-                                [$query, $context]
-                            );
+                            $resourceType->applyScopes($query, $context);
                         };
                     }
                 }
 
-                if ($query instanceof MorphTo) {
-                    $query->constrain($constrain);
+                if ($relation instanceof MorphTo) {
+                    $relation->constrain($constrain);
                 } else {
-                    reset($constrain)($query->getQuery());
+                    reset($constrain)($query);
                 }
 
-                // Also apply relationship scopes to the query.
+                // Also apply any local scopes that have been defined on this
+                // relationship.
                 run_callbacks(
                     $relationship->getListeners('scope'),
-                    [$query->getQuery(), $context]
+                    [$query, $context]
                 );
             }
         ]);
 
-        static::$buffer[get_class($model)][$relation] = [];
+        static::$buffer[get_class($model)][$relationName] = [];
     }
 }
