@@ -11,7 +11,6 @@
 
 namespace Tobyz\JsonApiServer;
 
-use ReflectionClass;
 use Tobyz\JsonApiServer\Adapter\AdapterInterface;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Schema\Attribute;
@@ -55,62 +54,116 @@ final class ResourceType
         return $this->schema;
     }
 
-    public function scope($query, Context $context)
+    /**
+     * Apply the resource type's scopes to a query.
+     */
+    public function applyScopes($query, Context $context): void
     {
-        run_callbacks($this->getSchema()->getListeners('scope'), [$query, $context]);
+        run_callbacks(
+            $this->getSchema()->getListeners('scope'),
+            [$query, $context]
+        );
     }
 
-    public function filter($query, $filter, Context $context): void
+    /**
+     * Apply the resource type's filters to a query.
+     */
+    public function applySort($query, string $sortString, Context $context): void
     {
-        if (! is_array($filter)) {
-            throw (new BadRequestException('filter must be an array'))->setSourceParameter('filter');
-        }
-
         $schema = $this->getSchema();
-        $adapter = $this->getAdapter();
-        $filters = $schema->getFilters();
+        $customSorts = $schema->getSorts();
         $fields = $schema->getFields();
 
-        foreach ($filter as $name => $value) {
-            if ($name === 'id') {
-                $adapter->filterByIds($query, explode(',', $value));
+        foreach ($this->parseSortString($sortString) as [$name, $direction]) {
+            if (
+                isset($customSorts[$name])
+                && evaluate($customSorts[$name]->getVisible(), [$context])
+            ) {
+                $customSorts[$name]->getCallback()($query, $direction, $context);
                 continue;
             }
 
-            if (isset($filters[$name]) && evaluate($filters[$name]->getVisible(), [$context])) {
-                $filters[$name]->getCallback()($query, $value, $context);
+            $field = $fields[$name] ?? null;
+
+            if (
+                $field instanceof Attribute
+                && evaluate($field->getSortable(), [$context])
+            ) {
+                $this->adapter->sortByAttribute($query, $field, $direction);
+                continue;
+            }
+
+            throw (new BadRequestException("Invalid sort field: $name"))->setSourceParameter('sort');
+        }
+    }
+
+    private function parseSortString(string $string): array
+    {
+        return array_map(function ($field) {
+            if ($field[0] === '-') {
+                return [substr($field, 1), 'desc'];
+            } else {
+                return [$field, 'asc'];
+            }
+        }, explode(',', $string));
+    }
+
+    /**
+     * Apply the resource type's filters to a query.
+     */
+    public function applyFilters($query, array $filters, Context $context): void
+    {
+        $schema = $this->getSchema();
+        $customFilters = $schema->getFilters();
+        $fields = $schema->getFields();
+
+        foreach ($filters as $name => $value) {
+            if ($name === 'id') {
+                $this->adapter->filterByIds($query, explode(',', $value));
+                continue;
+            }
+
+            if (
+                isset($customFilters[$name])
+                && evaluate($customFilters[$name]->getVisible(), [$context])
+            ) {
+                $customFilters[$name]->getCallback()($query, $value, $context);
                 continue;
             }
 
             [$name, $sub] = explode('.', $name, 2) + [null, null];
+            $field = $fields[$name] ?? null;
 
-            if (isset($fields[$name]) && evaluate($fields[$name]->getFilterable(), [$context])) {
-                if ($fields[$name] instanceof Attribute && $sub === null) {
-                    $this->filterByAttribute($adapter, $query, $fields[$name], $value);
+            if ($field && evaluate($field->getFilterable(), [$context])) {
+                if ($field instanceof Attribute && $sub === null) {
+                    $this->filterByAttribute($query, $field, $value);
                     continue;
-                } elseif ($fields[$name] instanceof Relationship) {
-                    if (is_string($relatedType = $fields[$name]->getType())) {
+                }
+
+                if ($field instanceof Relationship) {
+                    if (is_string($relatedType = $field->getType())) {
                         $relatedResource = $context->getApi()->getResourceType($relatedType);
-                        $adapter->filterByRelationship($query, $fields[$name], function ($query) use ($relatedResource, $sub, $value, $context) {
-                            $relatedResource->filter($query, [($sub ?? 'id') => $value], $context);
+
+                        $this->adapter->filterByRelationship($query, $field, function ($query) use ($relatedResource, $sub, $value, $context) {
+                            $relatedResource->applyFilters($query, [($sub ?? 'id') => $value], $context);
                         });
                     }
                     continue;
                 }
             }
 
-            throw (new BadRequestException("Invalid filter [$name]"))->setSourceParameter("filter[$name]");
+            throw (new BadRequestException("Invalid filter: $name"))->setSourceParameter("filter[$name]");
         }
     }
 
-    private function filterByAttribute(AdapterInterface $adapter, $query, Attribute $attribute, $value): void
+    private function filterByAttribute($query, Attribute $attribute, $value): void
     {
         if (preg_match('/(.+)\.\.(.+)/', $value, $matches)) {
             if ($matches[1] !== '*') {
-                $adapter->filterByAttribute($query, $attribute, $value, '>=');
+                $this->adapter->filterByAttribute($query, $attribute, $value, '>=');
             }
             if ($matches[2] !== '*') {
-                $adapter->filterByAttribute($query, $attribute, $value, '<=');
+                $this->adapter->filterByAttribute($query, $attribute, $value, '<=');
             }
 
             return;
@@ -118,12 +171,12 @@ final class ResourceType
 
         foreach (['>=', '>', '<=', '<'] as $operator) {
             if (strpos($value, $operator) === 0) {
-                $adapter->filterByAttribute($query, $attribute, substr($value, strlen($operator)), $operator);
+                $this->adapter->filterByAttribute($query, $attribute, substr($value, strlen($operator)), $operator);
 
                 return;
             }
         }
 
-        $adapter->filterByAttribute($query, $attribute, $value);
+        $this->adapter->filterByAttribute($query, $attribute, $value);
     }
 }

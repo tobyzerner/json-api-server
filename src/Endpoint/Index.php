@@ -17,13 +17,10 @@ use JsonApiPhp\JsonApi\Link\NextLink;
 use JsonApiPhp\JsonApi\Link\PrevLink;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use Tobyz\JsonApiServer\Adapter\AdapterInterface;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\ResourceType;
-use Tobyz\JsonApiServer\Schema\Attribute;
-use Tobyz\JsonApiServer\Schema\Meta;
 use Tobyz\JsonApiServer\Serializer;
 
 use function Tobyz\JsonApiServer\evaluate;
@@ -48,15 +45,22 @@ class Index
 
         $query = $adapter->query();
 
-        $resourceType->scope($query, $context);
+        $resourceType->applyScopes($query, $context);
 
         $include = $this->getInclude($context, $resourceType);
 
         [$offset, $limit] = $this->paginate($resourceType, $query, $context);
-        $this->sort($resourceType, $query, $context);
+
+        if ($sortString = $context->getRequest()->getQueryParams()['sort'] ?? $schema->getDefaultSort()) {
+            $resourceType->applySort($query, $sortString, $context);
+        }
 
         if ($filter = $context->getRequest()->getQueryParams()['filter'] ?? null) {
-            $resourceType->filter($query, $filter, $context);
+            if (! is_array($filter)) {
+                throw (new BadRequestException('filter must be an array'))->setSourceParameter('filter');
+            }
+
+            $resourceType->applyFilters($query, $filter, $context);
         }
 
         run_callbacks($schema->getListeners('listing'), [$query, $context]);
@@ -74,21 +78,36 @@ class Index
 
         [$primary, $included] = $serializer->serialize();
 
-        $meta = array_values(array_map(function (Meta $meta) use ($context) {
-            return new Structure\Meta($meta->getName(), $meta->getValue()($context));
-        }, $context->getMeta()));
+        $paginationLinks = $this->buildPaginationLinks(
+            $resourceType,
+            $context->getRequest(),
+            $offset,
+            $limit,
+            count($models),
+            $total
+        );
+
+        $meta = [
+            new Structure\Meta('offset', $offset),
+            new Structure\Meta('limit', $limit),
+        ];
+
+        if ($total !== null) {
+            $meta[] = new Structure\Meta('total', $total);
+        }
+
+        foreach ($context->getMeta() as $item) {
+            $meta[] = new Structure\Meta($item->getName(), $item->getValue()($context));
+        }
 
         return json_api_response(
             new Structure\CompoundDocument(
                 new Structure\PaginatedCollection(
-                    new Structure\Pagination(...$this->buildPaginationLinks($resourceType, $context->getRequest(), $offset, $limit, count($models), $total)),
+                    new Structure\Pagination(...$paginationLinks),
                     new Structure\ResourceCollection(...$primary)
                 ),
                 new Structure\Included(...$included),
                 new Structure\Link\SelfLink($this->buildUrl($context->getRequest())),
-                new Structure\Meta('offset', $offset),
-                new Structure\Meta('limit', $limit),
-                ...($total !== null ? [new Structure\Meta('total', $total)] : []),
                 ...$meta
             )
         );
@@ -143,55 +162,6 @@ class Index
         }
 
         return $paginationLinks;
-    }
-
-    private function sort(ResourceType $resourceType, $query, Context $context): void
-    {
-        $schema = $resourceType->getSchema();
-
-        if (! $sort = $context->getRequest()->getQueryParams()['sort'] ?? $schema->getDefaultSort()) {
-            return;
-        }
-
-        $adapter = $resourceType->getAdapter();
-        $sorts = $schema->getSorts();
-        $fields = $schema->getFields();
-
-        foreach ($this->parseSort($sort) as $name => $direction) {
-            if (isset($sorts[$name]) && evaluate($sorts[$name]->getVisible(), [$context])) {
-                $sorts[$name]->getCallback()($query, $direction, $context);
-                continue;
-            }
-
-            if (
-                isset($fields[$name])
-                && $fields[$name] instanceof Attribute
-                && evaluate($fields[$name]->getSortable(), [$context])
-            ) {
-                $adapter->sortByAttribute($query, $fields[$name], $direction);
-                continue;
-            }
-
-            throw (new BadRequestException("Invalid sort field [$name]"))->setSourceParameter('sort');
-        }
-    }
-
-    private function parseSort(string $string): array
-    {
-        $sort = [];
-
-        foreach (explode(',', $string) as $field) {
-            if ($field[0] === '-') {
-                $field = substr($field, 1);
-                $direction = 'desc';
-            } else {
-                $direction = 'asc';
-            }
-
-            $sort[$field] = $direction;
-        }
-
-        return $sort;
     }
 
     private function paginate(ResourceType $resourceType, $query, Context $context): array
