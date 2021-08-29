@@ -12,12 +12,11 @@
 namespace Tobyz\JsonApiServer\Adapter;
 
 use Closure;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasOneThrough;
-use Illuminate\Database\Eloquent\Relations\MorphOneOrMany;
 use InvalidArgumentException;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Deferred;
@@ -42,7 +41,7 @@ class EloquentAdapter implements AdapterInterface
         }
     }
 
-    public function query()
+    public function query(): Builder
     {
         return $this->model->query();
     }
@@ -97,13 +96,13 @@ class EloquentAdapter implements AdapterInterface
         return $model->getAttribute($this->getAttributeProperty($attribute));
     }
 
-    public function getHasOne($model, HasOne $relationship, bool $linkage, Context $context)
+    public function getHasOne($model, HasOne $relationship, bool $linkageOnly, Context $context)
     {
         // If this is a belongs-to relationship, and we only need to get the ID
         // for linkage, then we don't have to actually load the relation because
         // the ID is stored in a column directly on the model. We will mock up a
         // related model with the value of the ID filled.
-        if ($linkage) {
+        if ($linkageOnly) {
             $relation = $this->getEloquentRelation($model, $relationship);
 
             if ($relation instanceof BelongsTo) {
@@ -122,7 +121,7 @@ class EloquentAdapter implements AdapterInterface
         return $this->getRelationship($model, $relationship, $context);
     }
 
-    public function getHasMany($model, HasMany $relationship, bool $linkage, Context $context)
+    public function getHasMany($model, HasMany $relationship, bool $linkageOnly, Context $context)
     {
         return $this->getRelationship($model, $relationship, $context);
     }
@@ -147,7 +146,7 @@ class EloquentAdapter implements AdapterInterface
         return $model instanceof $this->model;
     }
 
-    public function model()
+    public function model(): Model
     {
         return $this->model->newInstance();
     }

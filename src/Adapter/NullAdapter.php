@@ -58,11 +58,11 @@ class NullAdapter implements AdapterInterface
     {
     }
 
-    public function getHasOne($model, HasOne $relationship, bool $linkage, Context $context)
+    public function getHasOne($model, HasOne $relationship, bool $linkageOnly, Context $context)
     {
     }
 
-    public function getHasMany($model, HasMany $relationship, bool $linkage, Context $context)
+    public function getHasMany($model, HasMany $relationship, bool $linkageOnly, Context $context)
     {
     }
 

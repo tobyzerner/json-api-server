@@ -93,14 +93,14 @@ interface AdapterInterface
      *
      * @return mixed|null|Deferred
      */
-    public function getHasOne($model, HasOne $relationship, bool $linkage, Context $context);
+    public function getHasOne($model, HasOne $relationship, bool $linkageOnly, Context $context);
 
     /**
      * Get a list of models for a has-many relationship for the model.
      *
      * @return array|Deferred
      */
-    public function getHasMany($model, HasMany $relationship, bool $linkage, Context $context);
+    public function getHasMany($model, HasMany $relationship, bool $linkageOnly, Context $context);
 
     /**
      * Determine whether this resource type represents the given model.
