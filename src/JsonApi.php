@@ -115,6 +115,8 @@ final class JsonApi implements RequestHandlerInterface
     {
         // $this->validateRequest($request);
 
+        $this->validateQueryParameters($request);
+
         $context = new Context($this, $request);
 
         foreach ($this->extensions as $extension) {
@@ -149,6 +151,18 @@ final class JsonApi implements RequestHandlerInterface
         }
 
         throw new BadRequestException();
+    }
+
+    private function validateQueryParameters(Request $request): void
+    {
+        foreach ($request->getQueryParams() as $key => $value) {
+            if (
+                ! preg_match('/[^a-z]/', $key)
+                && ! in_array($key, ['include', 'fields', 'filter', 'page', 'sort'])
+            ) {
+                throw (new BadRequestException('Invalid query parameter: '.$key))->setSourceParameter($key);
+            }
+        }
     }
 
     private function validateRequest(Request $request): void

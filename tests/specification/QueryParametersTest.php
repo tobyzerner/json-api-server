@@ -11,6 +11,7 @@
 
 namespace Tobyz\Tests\JsonApiServer\specification;
 
+use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockAdapter;
@@ -25,20 +26,29 @@ class QueryParametersTest extends AbstractTestCase
      */
     private $api;
 
-    /**
-     * @var MockAdapter
-     */
-    private $adapter;
-
     public function setUp(): void
     {
         $this->api = new JsonApi('http://example.com');
-
-        $this->adapter = new MockAdapter();
+        $this->api->resourceType('users', new MockAdapter());
     }
 
     public function test_bad_request_error_if_unknown_query_parameters()
     {
-        $this->markTestIncomplete();
+        $request = $this->buildRequest('GET', '/users/1')
+            ->withQueryParams(['unknown' => 'value']);
+
+        $this->expectException(BadRequestException::class);
+
+        $this->api->handle($request);
+    }
+
+    public function test_supports_custom_query_parameters()
+    {
+        $request = $this->buildRequest('GET', '/users/1')
+            ->withQueryParams(['camelCase' => 'value']);
+
+        $response = $this->api->handle($request);
+
+        $this->assertEquals(200, $response->getStatusCode());
     }
 }
