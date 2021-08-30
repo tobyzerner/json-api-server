@@ -63,6 +63,14 @@ final class JsonApi implements RequestHandlerInterface
     }
 
     /**
+     * Get all registered extensions.
+     */
+    public function getExtensions(): array
+    {
+        return $this->extensions;
+    }
+
+    /**
      * Define a new resource type.
      */
     public function resourceType(string $type, AdapterInterface $adapter, callable $buildSchema = null): void
