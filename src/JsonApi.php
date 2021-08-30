@@ -260,6 +260,9 @@ final class JsonApi implements RequestHandlerInterface
         return $this->basePath;
     }
 
+    /**
+     * Strip the API's base path from the start of the given path.
+     */
     public function stripBasePath(string $path): string
     {
         $basePath = parse_url($this->basePath, PHP_URL_PATH);
