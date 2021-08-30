@@ -2,11 +2,14 @@
 
 namespace Tobyz\Tests\JsonApiServer;
 
+use Closure;
 use Tobyz\JsonApiServer\Adapter\AdapterInterface;
+use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Schema\Attribute;
 use Tobyz\JsonApiServer\Schema\Field;
 use Tobyz\JsonApiServer\Schema\HasMany;
 use Tobyz\JsonApiServer\Schema\HasOne;
+use Tobyz\JsonApiServer\Schema\Relationship;
 
 class MockAdapter implements AdapterInterface
 {
@@ -21,12 +24,12 @@ class MockAdapter implements AdapterInterface
         $this->type = $type;
     }
 
-    public function newModel()
+    public function model()
     {
         return $this->createdModel = (object) [];
     }
 
-    public function newQuery()
+    public function query()
     {
         return $this->query = (object) [];
     }
@@ -51,14 +54,19 @@ class MockAdapter implements AdapterInterface
         return $model->{$this->getProperty($attribute)} ?? 'default';
     }
 
-    public function getHasOne($model, HasOne $relationship, bool $linkage)
+    public function getHasOne($model, HasOne $relationship, bool $linkageOnly, Context $context)
     {
         return $model->{$this->getProperty($relationship)} ?? null;
     }
 
-    public function getHasMany($model, HasMany $relationship, bool $linkage): array
+    public function getHasMany($model, HasMany $relationship, bool $linkageOnly, Context $context): array
     {
         return $model->{$this->getProperty($relationship)} ?? [];
+    }
+
+    public function setId($model, string $id): void
+    {
+        $model->id = $id;
     }
 
     public function setAttribute($model, Attribute $attribute, $value): void
@@ -100,14 +108,9 @@ class MockAdapter implements AdapterInterface
         $query->filter[] = [$attribute, $operator, $value];
     }
 
-    public function filterByHasOne($query, HasOne $relationship, array $ids): void
+    public function filterByRelationship($query, Relationship $relationship, Closure $scope): void
     {
-        $query->filter[] = [$relationship, $ids];
-    }
-
-    public function filterByHasMany($query, HasMany $relationship, array $ids): void
-    {
-        $query->filter[] = [$relationship, $ids];
+        $query->filter[] = [$relationship, $scope];
     }
 
     public function sortByAttribute($query, Attribute $attribute, string $direction): void
@@ -135,7 +138,7 @@ class MockAdapter implements AdapterInterface
         }
     }
 
-    private function getProperty(Field $field)
+    private function getProperty(Field $field): string
     {
         return $field->getProperty() ?: $field->getName();
     }
