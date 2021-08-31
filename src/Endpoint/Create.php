@@ -62,7 +62,7 @@ class Create
 
     private function newModel(ResourceType $resourceType, Context $context)
     {
-        $newModel = $resourceType->getSchema()->getNewModelCallback();
+        $newModel = $resourceType->getSchema()->getModelCallback();
 
         return $newModel
             ? $newModel($context)

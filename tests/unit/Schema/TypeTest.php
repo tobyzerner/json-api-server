@@ -18,7 +18,7 @@ class TypeTest extends TestCase
 {
     public function test_returns_an_existing_field_with_the_same_name_of_the_same_type()
     {
-        $type = new Type;
+        $type = new Type();
 
         $attribute = $type->attribute('dogs');
         $attributeAgain = $type->attribute('dogs');
@@ -30,7 +30,7 @@ class TypeTest extends TestCase
 
     public function test_overwrites_an_existing_field_with_the_same_name_of_a_different_type()
     {
-        $type = new Type;
+        $type = new Type();
 
         $attribute = $type->attribute('dogs');
         $hasOne = $type->hasOne('dogs');

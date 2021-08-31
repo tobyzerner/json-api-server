@@ -14,10 +14,10 @@ $type->creatable(function (Context $context) {
 
 ## Customizing the Model
 
-When creating a resource, an empty model is supplied by the adapter. You may wish to override this and provide a custom model in special circumstances. You can do so using the `newModel` method:
+When creating a resource, an empty model is supplied by the adapter. You may wish to override this and provide a custom model in special circumstances. You can do so using the `model` method:
 
 ```php
-$type->newModel(function (Context $context) {
+$type->model(function (Context $context) {
     return new CustomModel;
 });
 ```

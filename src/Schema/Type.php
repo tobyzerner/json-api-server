@@ -31,7 +31,7 @@ final class Type
     private $listable = true;
     private $defaultSort;
     private $saveCallback;
-    private $newModelCallback;
+    private $modelCallback;
     private $creatable = false;
     private $updatable = false;
     private $deletable = false;
@@ -264,17 +264,17 @@ final class Type
      *
      * If null, the adapter will be used to create new model instances.
      */
-    public function newModel(?callable $callback): void
+    public function model(?callable $callback): void
     {
-        $this->newModelCallback = $callback;
+        $this->modelCallback = $callback;
     }
 
     /**
      * Get the callback to create a new model instance.
      */
-    public function getNewModelCallback(): ?callable
+    public function getModelCallback(): ?callable
     {
-        return $this->newModelCallback;
+        return $this->modelCallback;
     }
 
     /**
