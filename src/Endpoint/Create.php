@@ -56,7 +56,8 @@ class Create
 
         return (new Show())
             ->handle($context, $resourceType, $model)
-            ->withStatus(201);
+            ->withStatus(201)
+            ->withHeader('Location', $resourceType->url($model, $context));
     }
 
     private function newModel(ResourceType $resourceType, Context $context)

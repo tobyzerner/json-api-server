@@ -54,6 +54,13 @@ final class ResourceType
         return $this->schema;
     }
 
+    public function url($model, Context $context): string
+    {
+        $id = $this->adapter->getId($model);
+
+        return $context->getApi()->getBasePath()."/$this->type/$id";
+    }
+
     /**
      * Apply the resource type's scopes to a query.
      */

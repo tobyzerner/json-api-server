@@ -13,6 +13,8 @@ namespace Tobyz\JsonApiServer\Endpoint\Concerns;
 
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Exception\ConflictException;
+use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
 use Tobyz\JsonApiServer\ResourceType;
 use Tobyz\JsonApiServer\Schema\Attribute;
@@ -43,16 +45,22 @@ trait SavesData
             throw new BadRequestException('data must be an object');
         }
 
-        if (! isset($body['data']['type']) || $body['data']['type'] !== $resourceType->getType()) {
-            throw new BadRequestException('data.type does not match the resource type');
+        if (! isset($body['data']['type'])) {
+            throw new BadRequestException('data.type must be present');
+        }
+
+        if ($body['data']['type'] !== $resourceType->getType()) {
+            throw new ConflictException('data.type does not match the resource type');
         }
 
         if ($model) {
             $id = $resourceType->getAdapter()->getId($model);
 
             if (! isset($body['data']['id']) || $body['data']['id'] !== $id) {
-                throw new BadRequestException('data.id does not match the resource ID');
+                throw new ConflictException('data.id does not match the resource ID');
             }
+        } elseif (isset($body['data']['id'])) {
+            throw new ForbiddenException('Client-generated IDs are not supported');
         }
 
         if (isset($body['data']['attributes']) && ! is_array($body['data']['attributes'])) {
@@ -156,7 +164,11 @@ trait SavesData
 
             $value = get_value($data, $field);
 
-            if (isset($value['data'])) {
+            if (! array_key_exists('data', $value)) {
+                throw new BadRequestException('relationship does not include data key');
+            }
+
+            if ($value['data'] !== null) {
                 $allowedTypes = (array) $field->getType();
 
                 if ($field instanceof HasOne) {

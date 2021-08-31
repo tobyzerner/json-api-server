@@ -80,7 +80,7 @@ final class Serializer
             'id' => $id,
             'fields' => [],
             'links' => [
-                'self' => new Structure\Link\SelfLink($url = $this->resourceUrl($type, $id)),
+                'self' => new Structure\Link\SelfLink($url = $resourceType->url($model, $this->context)),
             ],
             'meta' => $this->meta($schema->getMeta(), $model)
         ];
@@ -105,11 +105,6 @@ final class Serializer
     private function key(string $type, string $id): string
     {
         return $type.':'.$id;
-    }
-
-    private function resourceUrl(string $type, string $id): string
-    {
-        return $this->context->getApi()->getBasePath()."/$type/$id";
     }
 
     /**
