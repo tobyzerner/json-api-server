@@ -258,11 +258,8 @@ final class JsonApi implements RequestHandlerInterface
         }
 
         $mediaList = (new AcceptParser())->parse($accept);
-        $count = $mediaList->count();
 
-        for ($i = 0; $i < $count; $i++) {
-            $mediaType = $mediaList->preferredMedia($i);
-
+        foreach ($mediaList->all() as $mediaType) {
             if (! in_array($mediaType->mimetype(), [JsonApi::MEDIA_TYPE, '*/*'])) {
                 continue;
             }
