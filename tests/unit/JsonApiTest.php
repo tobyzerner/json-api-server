@@ -9,7 +9,7 @@
  * file that was distributed with this source code.
  */
 
-namespace Tobyz\Tests\JsonApiServer\unit\Http;
+namespace Tobyz\Tests\JsonApiServer\unit;
 
 use PHPUnit\Framework\TestCase;
 

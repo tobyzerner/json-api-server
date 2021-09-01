@@ -17,7 +17,7 @@ use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockAdapter;
 
 /**
- * @see https://jsonapi.org/format/#query-parameters
+ * @see https://jsonapi.org/format/1.1/#query-parameters
  */
 class QueryParametersTest extends AbstractTestCase
 {
