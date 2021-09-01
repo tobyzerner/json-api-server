@@ -54,6 +54,9 @@ final class ResourceType
         return $this->schema;
     }
 
+    /**
+     * Get the URL for a model.
+     */
     public function url($model, Context $context): string
     {
         $id = $this->adapter->getId($model);

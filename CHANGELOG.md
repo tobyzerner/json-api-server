@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Content-Type validation and Accept negotation
+- Include `jsonapi` object with `version` member in response
+- Validate implementation-specific query parameters according to specification
+- Added `Location` header to `201 Created` responses
+- Improved error repsonses when creating and updating resources
+- `Context::filter()` method to get the value of a filter
+- `ResourceType::applyScope()`, `applyFilter()` and `applySort()` methods
+- `ResourceType::url()` method to get the URL for a model
+- `Forbidden` error details for CRUD actions, useful when running Atomic Operations
+- `JsonApi::getExtensions()` method to get all registered extensions
+- `ConflictException` class
+
+### Changed
+- Renamed `$linkage` parameter in `AdapterInterface` methods to `$linkageOnly`
+- Renamed `Type::newModel()` to `model()` to be consistent with Adapter
+
+### Fixed
+- Properly respond with meta information added to `Context` instance
 
 ## [0.2.0-beta.1] - 2021-08-27
 ### Added
