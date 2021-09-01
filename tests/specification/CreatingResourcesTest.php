@@ -138,7 +138,6 @@ class CreatingResourcesTest extends AbstractTestCase
                 ->withParsedBody([
                     'data' => [
                         'type' => 'pets',
-                        'id' => '1',
                     ],
                 ])
         );
