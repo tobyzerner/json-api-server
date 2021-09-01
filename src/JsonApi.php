@@ -26,6 +26,7 @@ use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\Exception\UnsupportedMediaTypeException;
 use Tobyz\JsonApiServer\Extension\Extension;
 use Tobyz\JsonApiServer\Schema\Concerns\HasMeta;
+use Xynha\HttpAccept\AcceptParser;
 
 final class JsonApi implements RequestHandlerInterface
 {
@@ -113,33 +114,52 @@ final class JsonApi implements RequestHandlerInterface
      */
     public function handle(Request $request): Response
     {
-        // $this->validateRequest($request);
-
         $this->validateQueryParameters($request);
 
         $context = new Context($this, $request);
 
-        foreach ($this->extensions as $extension) {
+        $response = $this->runExtensions($context);
+
+        if (! $response) {
+            $response = $this->route($context);
+        }
+
+        return $response->withAddedHeader('Vary', 'Accept');
+    }
+
+    private function runExtensions(Context $context): ?Response
+    {
+        $request = $context->getRequest();
+
+        $contentTypeExtensionUris = $this->getContentTypeExtensionUris($request);
+        $acceptableExtensionUris = $this->getAcceptableExtensionUris($request);
+
+        $activeExtensions = array_intersect_key(
+            $this->extensions,
+            array_flip($contentTypeExtensionUris),
+            array_flip($acceptableExtensionUris)
+        );
+
+        foreach ($activeExtensions as $extension) {
             if ($response = $extension->handle($context)) {
-                return $response;
+                return $response->withHeader('Content-Type', self::MEDIA_TYPE.'; ext='.$extension->uri());
             }
         }
 
-        // TODO: apply Vary: Accept header to response
+        return null;
+    }
 
-        $path = $this->stripBasePath(
-            $request->getUri()->getPath()
-        );
-
-        $segments = explode('/', trim($path, '/'));
+    private function route(Context $context): Response
+    {
+        $segments = explode('/', trim($context->getPath(), '/'));
         $resourceType = $this->getResourceType($segments[0]);
 
         switch (count($segments)) {
             case 1:
-                return $this->handleCollection($context, $resourceType);
+                return $this->routeCollection($context, $resourceType);
 
             case 2:
-                return $this->handleResource($context, $resourceType, $segments[1]);
+                return $this->routeResource($context, $resourceType, $segments[1]);
 
             case 3:
                 throw new NotImplementedException();
@@ -165,63 +185,7 @@ final class JsonApi implements RequestHandlerInterface
         }
     }
 
-    private function validateRequest(Request $request): void
-    {
-        // TODO
-
-        // split content type
-        // ensure type is json-api
-        // ensure no params other than ext/profile
-        // ensure no ext other than those supported
-        // return list of ext/profiles to apply
-
-        if ($accept = $request->getHeaderLine('Accept')) {
-            $types = array_map('trim', explode(',', $accept));
-
-            foreach ($types as $type) {
-                $parts = array_map('trim', explode(';', $type));
-            }
-        }
-
-        // if accept present
-        // split accept, order by qvalue
-        // for each media type:
-        // if type is not json-api, continue
-        // if any params other than ext/profile, continue
-        // if any ext other than those supported, continue
-        // return list of ext/profiles to apply
-        // if none matching, Not Acceptable
-    }
-
-    // private function validateRequestContentType(Request $request): void
-    // {
-    //     $header = $request->getHeaderLine('Content-Type');
-    //
-    //     if ((new MediaTypes($header))->containsWithOptionalParameters(self::MEDIA_TYPE, ['ext'])) {
-    //         return;
-    //     }
-    //
-    //     throw new UnsupportedMediaTypeException;
-    // }
-    //
-    // private function getAcceptedParameters(Request $request): array
-    // {
-    //     $header = $request->getHeaderLine('Accept');
-    //
-    //     if (empty($header)) {
-    //         return [];
-    //     }
-    //
-    //     $mediaTypes = new MediaTypes($header);
-    //
-    //     if ($parameters = $mediaTypes->get(self::MEDIA_TYPE, ['ext', 'profile'])) {
-    //         return $parameters;
-    //     }
-    //
-    //     throw new NotAcceptableException;
-    // }
-
-    private function handleCollection(Context $context, ResourceType $resourceType): Response
+    private function routeCollection(Context $context, ResourceType $resourceType): Response
     {
         switch ($context->getRequest()->getMethod()) {
             case 'GET':
@@ -235,9 +199,9 @@ final class JsonApi implements RequestHandlerInterface
         }
     }
 
-    private function handleResource(Context $context, ResourceType $resourceType, string $id): Response
+    private function routeResource(Context $context, ResourceType $resourceType, string $resourceId): Response
     {
-        $model = $this->findResource($resourceType, $id, $context);
+        $model = $this->findResource($resourceType, $resourceId, $context);
 
         switch ($context->getRequest()->getMethod()) {
             case 'PATCH':
@@ -252,6 +216,82 @@ final class JsonApi implements RequestHandlerInterface
             default:
                 throw new MethodNotAllowedException();
         }
+    }
+
+    private function getContentTypeExtensionUris(Request $request): array
+    {
+        if (! $contentType = $request->getHeaderLine('Content-Type')) {
+            return [];
+        }
+
+        $mediaList = (new AcceptParser())->parse($contentType);
+
+        if ($mediaList->count() > 1) {
+            throw new UnsupportedMediaTypeException();
+        }
+
+        $mediaType = $mediaList->preferredMedia(0);
+
+        if ($mediaType->mimetype() !== JsonApi::MEDIA_TYPE) {
+            throw new UnsupportedMediaTypeException();
+        }
+
+        $parameters = $this->parseParameters($mediaType->parameters());
+
+        if (! empty(array_diff(array_keys($parameters), ['ext', 'profile']))) {
+            throw new UnsupportedMediaTypeException();
+        }
+
+        $extensionUris = isset($parameters['ext']) ? explode(' ', $parameters['ext']) : [];
+
+        if (! empty(array_diff($extensionUris, array_keys($this->extensions)))) {
+            throw new UnsupportedMediaTypeException();
+        }
+
+        return $extensionUris;
+    }
+
+    private function getAcceptableExtensionUris(Request $request): array
+    {
+        if (! $accept = $request->getHeaderLine('Accept')) {
+            return [];
+        }
+
+        $mediaList = (new AcceptParser())->parse($accept);
+        $count = $mediaList->count();
+
+        for ($i = 0; $i < $count; $i++) {
+            $mediaType = $mediaList->preferredMedia($i);
+
+            if (! in_array($mediaType->mimetype(), [JsonApi::MEDIA_TYPE, '*/*'])) {
+                continue;
+            }
+
+            $parameters = $this->parseParameters($mediaType->parameters());
+
+            if (! empty(array_diff(array_keys($parameters), ['ext', 'profile']))) {
+                continue;
+            }
+
+            $extensionUris = isset($parameters['ext']) ? explode(' ', $parameters['ext']) : [];
+
+            if (! empty(array_diff($extensionUris, array_keys($this->extensions)))) {
+                continue;
+            }
+
+            return $extensionUris;
+        }
+
+        throw new NotAcceptableException();
+    }
+
+    private function parseParameters(array $parameters): array
+    {
+        return array_reduce($parameters, function ($a, $v) {
+            $parts = explode('=', $v, 2);
+            $a[$parts[0]] = trim($parts[1], '"');
+            return $a;
+        }, []);
     }
 
     /**

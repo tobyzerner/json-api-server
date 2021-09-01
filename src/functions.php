@@ -19,7 +19,7 @@ use Tobyz\JsonApiServer\Schema\Field;
 function json_api_response($document, int $status = 200): Response
 {
     return (new Response($status))
-        ->withHeader('content-type', JsonApi::MEDIA_TYPE)
+        ->withHeader('Content-Type', JsonApi::MEDIA_TYPE)
         ->withBody(Stream::create(json_encode($document, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES)));
 }
 

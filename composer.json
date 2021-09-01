@@ -8,7 +8,8 @@
         "json-api-php/json-api": "^2.2",
         "nyholm/psr7": "^1.3",
         "psr/http-message": "^1.0",
-        "psr/http-server-handler": "^1.0"
+        "psr/http-server-handler": "^1.0",
+        "xynha/http-accept": "dev-master"
     },
     "license": "MIT",
     "authors": [
