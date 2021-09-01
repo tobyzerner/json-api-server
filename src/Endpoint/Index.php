@@ -18,6 +18,8 @@ use JsonApiPhp\JsonApi\Link\PrevLink;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsMeta;
+use Tobyz\JsonApiServer\Endpoint\Concerns\IncludesData;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\ResourceType;
@@ -29,7 +31,8 @@ use function Tobyz\JsonApiServer\run_callbacks;
 
 class Index
 {
-    use Concerns\IncludesData;
+    use IncludesData;
+    use BuildsMeta;
 
     /**
      * Handle a request to show a resource listing.
@@ -99,9 +102,7 @@ class Index
             $meta[] = new Structure\Meta('total', $total);
         }
 
-        foreach ($context->getMeta() as $item) {
-            $meta[] = new Structure\Meta($item->getName(), $item->getValue()($context));
-        }
+        $meta = array_merge($meta, $this->buildMeta($context));
 
         return json_api_response(
             new Structure\CompoundDocument(

@@ -11,17 +11,23 @@
 
 namespace Tobyz\JsonApiServer\Endpoint;
 
+use JsonApiPhp\JsonApi\Meta;
+use JsonApiPhp\JsonApi\MetaDocument;
 use Nyholm\Psr7\Response;
 use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsMeta;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\ResourceType;
 
 use function Tobyz\JsonApiServer\evaluate;
+use function Tobyz\JsonApiServer\json_api_response;
 use function Tobyz\JsonApiServer\run_callbacks;
 
 class Delete
 {
+    use BuildsMeta;
+
     /**
      * @throws ForbiddenException if the resource is not deletable.
      */
@@ -46,6 +52,12 @@ class Delete
         }
 
         run_callbacks($schema->getListeners('deleted'), [&$model, $context]);
+
+        if (count($meta = $this->buildMeta($context))) {
+            return json_api_response(
+                new MetaDocument(...$meta)
+            );
+        }
 
         return new Response(204);
     }

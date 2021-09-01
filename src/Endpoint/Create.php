@@ -13,6 +13,8 @@ namespace Tobyz\JsonApiServer\Endpoint;
 
 use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsMeta;
+use Tobyz\JsonApiServer\Endpoint\Concerns\SavesData;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\ResourceType;
 
@@ -23,7 +25,7 @@ use function Tobyz\JsonApiServer\set_value;
 
 class Create
 {
-    use Concerns\SavesData;
+    use SavesData;
 
     /**
      * @throws ForbiddenException if the resource is not creatable.

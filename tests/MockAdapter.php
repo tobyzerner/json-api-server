@@ -36,6 +36,10 @@ class MockAdapter implements AdapterInterface
 
     public function find($query, string $id)
     {
+        if ($id === '404') {
+            return null;
+        }
+
         return $this->models[$id] ?? (object) ['id' => $id];
     }
 

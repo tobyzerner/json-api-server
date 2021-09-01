@@ -15,6 +15,8 @@ use JsonApiPhp\JsonApi\CompoundDocument;
 use JsonApiPhp\JsonApi\Included;
 use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsMeta;
+use Tobyz\JsonApiServer\Endpoint\Concerns\IncludesData;
 use Tobyz\JsonApiServer\ResourceType;
 use Tobyz\JsonApiServer\Serializer;
 
@@ -23,7 +25,8 @@ use function Tobyz\JsonApiServer\run_callbacks;
 
 class Show
 {
-    use Concerns\IncludesData;
+    use IncludesData;
+    use BuildsMeta;
 
     public function handle(Context $context, ResourceType $resourceType, $model): ResponseInterface
     {
@@ -39,7 +42,8 @@ class Show
         return json_api_response(
             new CompoundDocument(
                 $primary[0],
-                new Included(...$included)
+                new Included(...$included),
+                ...$this->buildMeta($context)
             )
         );
     }
