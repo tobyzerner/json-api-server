@@ -112,6 +112,7 @@ class Index
                 ),
                 new Structure\Included(...$included),
                 new Structure\Link\SelfLink($this->buildUrl($context->getRequest())),
+                $this->buildJsonApiObject($context),
                 ...$meta
             )
         );
@@ -132,6 +133,8 @@ class Index
                 $v = $v === null ? '' : $v;
             }
         }
+
+        ksort($queryParams);
 
         $queryString = http_build_query($queryParams, '', '&', PHP_QUERY_RFC3986);
 

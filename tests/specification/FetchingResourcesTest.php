@@ -11,12 +11,13 @@
 
 namespace Tobyz\Tests\JsonApiServer\specification;
 
+use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockAdapter;
 
 /**
- * @see https://jsonapi.org/format/#fetching-resources
+ * @see https://jsonapi.org/format/1.1/#fetching-resources
  */
 class FetchingResourcesTest extends AbstractTestCase
 {
@@ -25,50 +26,80 @@ class FetchingResourcesTest extends AbstractTestCase
      */
     private $api;
 
-    /**
-     * @var MockAdapter
-     */
-    private $adapter;
-
     public function setUp(): void
     {
         $this->api = new JsonApi('http://example.com');
-
-        $this->adapter = new MockAdapter();
     }
 
     public function test_data_for_resource_collection_is_array_of_resource_objects()
     {
-        $this->markTestIncomplete();
+        $adapter = new MockAdapter([
+            (object) ['id' => '1'],
+            (object) ['id' => '2'],
+        ]);
+
+        $this->api->resourceType('articles', $adapter);
+
+        $response = $this->api->handle(
+            $this->buildRequest('GET', '/articles')
+        );
+
+        $this->assertJsonApiDocumentSubset([
+            'data' => [
+                ['type' => 'articles', 'id' => '1'],
+                ['type' => 'articles', 'id' => '2'],
+            ]
+        ], $response->getBody());
     }
 
     public function test_data_for_empty_resource_collection_is_empty_array()
     {
-        $this->markTestIncomplete();
+        $this->api->resourceType('articles', new MockAdapter());
+
+        $response = $this->api->handle(
+            $this->buildRequest('GET', '/articles')
+        );
+
+        $data = json_decode($response->getBody(), true)['data'] ?? null;
+
+        $this->assertIsArray($data);
+        $this->assertEmpty($data);
     }
 
     public function test_data_for_individual_resource_is_resource_object()
     {
-        $this->markTestIncomplete();
+        $adapter = new MockAdapter([
+            (object) ['id' => '1'],
+        ]);
+
+        $this->api->resourceType('articles', $adapter);
+
+        $response = $this->api->handle(
+            $this->buildRequest('GET', '/articles/1')
+        );
+
+        $this->assertJsonApiDocumentSubset([
+            'data' => ['type' => 'articles', 'id' => '1'],
+        ], $response->getBody());
     }
 
     public function test_not_found_error_if_resource_type_does_not_exist()
     {
-        $this->markTestIncomplete();
+        $this->expectException(ResourceNotFoundException::class);
+
+        $this->api->handle(
+            $this->buildRequest('GET', '/articles/1')
+        );
     }
 
     public function test_not_found_error_if_resource_does_not_exist()
     {
-        $this->markTestIncomplete();
-    }
+        $this->expectException(ResourceNotFoundException::class);
 
-    public function test_resource_collection_document_contains_self_link()
-    {
-        $this->markTestIncomplete();
-    }
+        $this->api->resourceType('articles', new MockAdapter());
 
-    public function test_resource_document_contains_self_link()
-    {
-        $this->markTestIncomplete();
+        $this->api->handle(
+            $this->buildRequest('GET', '/articles/404')
+        );
     }
 }

@@ -11,6 +11,7 @@
 
 namespace Tobyz\JsonApiServer\Endpoint\Concerns;
 
+use JsonApiPhp\JsonApi\JsonApi;
 use JsonApiPhp\JsonApi\Meta;
 use Tobyz\JsonApiServer\Context;
 
@@ -25,5 +26,10 @@ trait BuildsMeta
         }
 
         return $meta;
+    }
+
+    private function buildJsonApiObject(Context $context): JsonApi
+    {
+        return new JsonApi('1.1');
     }
 }

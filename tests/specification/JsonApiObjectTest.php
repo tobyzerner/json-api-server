@@ -16,29 +16,32 @@ use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockAdapter;
 
 /**
- * @see https://jsonapi.org/format/#document-jsonapi-object
+ * @see https://jsonapi.org/format/1.1/#document-jsonapi-object
  */
-class JsonApiTest extends AbstractTestCase
+class JsonApiObjectTest extends AbstractTestCase
 {
     /**
      * @var JsonApi
      */
     private $api;
 
-    /**
-     * @var MockAdapter
-     */
-    private $adapter;
-
     public function setUp(): void
     {
         $this->api = new JsonApi('http://example.com');
 
-        $this->adapter = new MockAdapter();
+        $this->api->resourceType('articles', new MockAdapter());
     }
 
-    public function test_document_includes_jsonapi_member_with_version_1_0()
+    public function test_document_includes_jsonapi_member_with_version_1_1()
     {
-        $this->markTestIncomplete();
+        $response = $this->api->handle(
+            $this->buildRequest('GET', '/articles')
+        );
+
+        $this->assertJsonApiDocumentSubset([
+            'jsonapi' => [
+                'version' => '1.1',
+            ],
+        ], $response->getBody());
     }
 }

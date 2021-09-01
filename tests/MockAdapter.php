@@ -45,7 +45,13 @@ class MockAdapter implements AdapterInterface
 
     public function get($query): array
     {
-        return array_values($this->models);
+        $results = array_values($this->models);
+
+        if (isset($query->paginate)) {
+            $results = array_slice($results, $query->paginate['offset'], $query->paginate['limit']);
+        }
+
+        return $results;
     }
 
     public function getId($model): string
@@ -124,7 +130,7 @@ class MockAdapter implements AdapterInterface
 
     public function paginate($query, int $limit, int $offset): void
     {
-        $query->paginate[] = [$limit, $offset];
+        $query->paginate = compact('limit', 'offset');
     }
 
     public function load(array $models, array $relationships, $scope, bool $linkage): void

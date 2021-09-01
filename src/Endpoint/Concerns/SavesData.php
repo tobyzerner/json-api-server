@@ -49,18 +49,20 @@ trait SavesData
             throw new BadRequestException('data.type must be present');
         }
 
-        if ($body['data']['type'] !== $resourceType->getType()) {
-            throw new ConflictException('data.type does not match the resource type');
-        }
-
         if ($model) {
-            $id = $resourceType->getAdapter()->getId($model);
+            if (! isset($body['data']['id'])) {
+                throw new BadRequestException('data.id must be present');
+            }
 
-            if (! isset($body['data']['id']) || $body['data']['id'] !== $id) {
+            if ($body['data']['id'] !== $resourceType->getAdapter()->getId($model)) {
                 throw new ConflictException('data.id does not match the resource ID');
             }
         } elseif (isset($body['data']['id'])) {
             throw new ForbiddenException('Client-generated IDs are not supported');
+        }
+
+        if ($body['data']['type'] !== $resourceType->getType()) {
+            throw new ConflictException('data.type does not match the resource type');
         }
 
         if (isset($body['data']['attributes']) && ! is_array($body['data']['attributes'])) {

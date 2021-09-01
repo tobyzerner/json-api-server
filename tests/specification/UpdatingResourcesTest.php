@@ -11,12 +11,16 @@
 
 namespace Tobyz\Tests\JsonApiServer\specification;
 
+use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Exception\ConflictException;
+use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockAdapter;
 
 /**
- * @see https://jsonapi.org/format/1.0/#crud-updating
+ * @see https://jsonapi.org/format/1.1/#crud-updating
  */
 class UpdatingResourcesTest extends AbstractTestCase
 {
@@ -25,60 +29,122 @@ class UpdatingResourcesTest extends AbstractTestCase
      */
     private $api;
 
-    /**
-     * @var MockAdapter
-     */
-    private $adapter;
-
     public function setUp(): void
     {
         $this->api = new JsonApi('http://example.com');
 
-        $this->adapter = new MockAdapter();
+        $adapter = new MockAdapter([
+            '1' => (object) ['id' => '1', 'name' => 'initial'],
+        ]);
+
+        $this->api->resourceType('users', $adapter, function (Type $type) {
+            $type->updatable();
+            $type->attribute('name')->writable();
+            $type->hasOne('pet')->writable();
+        });
     }
 
     public function test_bad_request_error_if_body_does_not_contain_data_type_and_id()
     {
-        $this->markTestIncomplete();
-    }
+        $this->expectException(BadRequestException::class);
 
-    public function test_only_included_attributes_are_processed()
-    {
-        $this->markTestIncomplete();
-    }
-
-    public function test_only_included_relationships_are_processed()
-    {
-        $this->markTestIncomplete();
+        $this->api->handle(
+            $this->buildRequest('PATCH', '/users/1')
+                ->withParsedBody([
+                    'data' => [],
+                ])
+        );
     }
 
     public function test_bad_request_error_if_relationship_does_not_contain_data()
     {
-        $this->markTestIncomplete();
+        $this->expectException(BadRequestException::class);
+
+        $this->api->handle(
+            $this->buildRequest('PATCH', '/users/1')
+                ->withParsedBody([
+                    'data' => [
+                        'type' => 'users',
+                        'id' => '1',
+                        'relationships' => [
+                            'pet' => [],
+                        ],
+                    ],
+                ])
+        );
     }
 
-    public function test_ok_response_if_resource_successfully_updated()
+    public function test_ok_response_with_updated_data_if_resource_successfully_updated()
     {
-        $this->markTestIncomplete();
-    }
+        $response = $this->api->handle(
+            $this->buildRequest('PATCH', '/users/1')
+                ->withParsedBody([
+                    'data' => [
+                        'type' => 'users',
+                        'id' => '1',
+                        'attributes' => [
+                            'name' => 'updated'
+                        ],
+                    ],
+                ])
+        );
 
-    public function test_ok_response_includes_updated_data()
-    {
-        $this->markTestIncomplete();
+        $document = json_decode($response->getBody(), true);
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertEquals('updated', $document['data']['attributes']['name'] ?? null);
     }
 
     public function test_not_found_error_if_resource_does_not_exist()
     {
-        $this->markTestIncomplete();
+        $this->expectException(ResourceNotFoundException::class);
+
+        $this->api->handle(
+            $this->buildRequest('PATCH', '/users/404')
+                ->withParsedBody([
+                    'data' => [
+                        'type' => 'users',
+                        'id' => '404',
+                        'attributes' => [
+                            'name' => 'bob',
+                        ],
+                    ],
+                ])
+        );
     }
 
     public function test_not_found_error_if_references_resource_that_does_not_exist()
     {
-        $this->markTestIncomplete();
+        $this->expectException(ResourceNotFoundException::class);
+
+        $this->api->handle(
+            $this->buildRequest('PATCH', '/users/1')
+                ->withParsedBody([
+                    'data' => [
+                        'type' => 'users',
+                        'id' => '1',
+                        'relationships' => [
+                            'pet' => [
+                                'data' => ['type' => 'pets', 'id' => '1'],
+                            ],
+                        ],
+                    ],
+                ])
+        );
     }
 
     public function test_conflict_error_if_type_and_id_does_not_match_endpoint()
     {
-        $this->markTestIncomplete();
+        $this->expectException(ConflictException::class);
+
+        $this->api->handle(
+            $this->buildRequest('PATCH', '/users/1')
+                ->withParsedBody([
+                    'data' => [
+                        'type' => 'pets',
+                        'id' => '1',
+                    ],
+                ])
+        );
     }
 }

@@ -12,11 +12,12 @@
 namespace Tobyz\Tests\JsonApiServer\specification;
 
 use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockAdapter;
 
 /**
- * @see https://jsonapi.org/format/1.0/#fetching-sparse-fieldsets
+ * @see https://jsonapi.org/format/1.1/#fetching-sparse-fieldsets
  */
 class SparseFieldsetsTest extends AbstractTestCase
 {
@@ -25,40 +26,56 @@ class SparseFieldsetsTest extends AbstractTestCase
      */
     private $api;
 
-    /**
-     * @var MockAdapter
-     */
-    private $adapter;
-
     public function setUp(): void
     {
         $this->api = new JsonApi('http://example.com');
 
-        $this->adapter = new MockAdapter();
+        $articlesAdapter = new MockAdapter([
+            '1' => (object) [
+                'id' => '1',
+                'title' => 'foo',
+                'body' => 'bar',
+                'user' => (object) [
+                    'id' => '1',
+                    'firstName' => 'Toby',
+                    'lastName' => 'Zerner',
+                ],
+            ],
+        ]);
+
+        $this->api->resourceType('articles', $articlesAdapter, function (Type $type) {
+            $type->attribute('title');
+            $type->attribute('body');
+            $type->hasOne('user')->includable();
+        });
+
+        $this->api->resourceType('users', new MockAdapter(), function (Type $type) {
+            $type->attribute('firstName');
+            $type->attribute('lastName');
+        });
     }
 
-    public function test_can_request_sparse_fieldsets_for_a_type()
+    public function test_can_request_sparse_fieldsets()
     {
-        $this->markTestIncomplete();
-    }
+        $request = $this->api->handle(
+            $this->buildRequest('GET', '/articles/1')
+                ->withQueryParams([
+                    'include' => 'user',
+                    'fields' => [
+                        'articles' => 'title,user',
+                        'users' => 'firstName',
+                    ],
+                ])
+        );
 
-    public function test_can_request_sparse_fieldsets_for_multiple_types()
-    {
-        $this->markTestIncomplete();
-    }
+        $document = json_decode($request->getBody(), true);
 
-    public function test_can_request_sparse_fieldsets_on_resource_collections()
-    {
-        $this->markTestIncomplete();
-    }
+        $article = $document['data']['attributes'] ?? [];
+        $user = $document['included'][0]['attributes'] ?? [];
 
-    public function test_can_request_sparse_fieldsets_on_create()
-    {
-        $this->markTestIncomplete();
-    }
-
-    public function test_can_request_sparse_fieldsets_on_update()
-    {
-        $this->markTestIncomplete();
+        $this->assertArrayHasKey('title', $article);
+        $this->assertArrayNotHasKey('body', $article);
+        $this->assertArrayHasKey('firstName', $user);
+        $this->assertArrayNotHasKey('lastName', $user);
     }
 }

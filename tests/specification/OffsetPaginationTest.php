@@ -12,12 +12,12 @@
 namespace Tobyz\Tests\JsonApiServer\specification;
 
 use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockAdapter;
 
 /**
- * @see https://jsonapi.org/format/1.0/#fetching-pagination
- * @todo Create a profile for offset pagination strategy
+ * @see https://jsonapi.org/format/1.1/#fetching-pagination
  */
 class OffsetPaginationTest extends AbstractTestCase
 {
@@ -26,60 +26,84 @@ class OffsetPaginationTest extends AbstractTestCase
      */
     private $api;
 
-    /**
-     * @var MockAdapter
-     */
-    private $adapter;
-
     public function setUp(): void
     {
         $this->api = new JsonApi('http://example.com');
 
-        $this->adapter = new MockAdapter();
+        $adapter = new MockAdapter(
+            array_map(function ($i) {
+                return (object) ['id' => (string) $i];
+            }, range(1, 100))
+        );
+
+        $this->api->resourceType('articles', $adapter, function (Type $type) {
+            $type->paginate(20);
+        });
     }
 
     public function test_can_request_limit_on_resource_collection()
     {
-        $this->markTestIncomplete();
+        $response = $this->api->handle(
+            $this->buildRequest('GET', '/articles')
+                ->withQueryParams(['page' => ['limit' => '10']])
+        );
+
+        $data = json_decode($response->getBody(), true)['data'] ?? null;
+
+        $this->assertCount(10, $data);
     }
 
     public function test_can_request_offset_on_resource_collection()
     {
-        $this->markTestIncomplete();
+        $response = $this->api->handle(
+            $this->buildRequest('GET', '/articles')
+                ->withQueryParams(['page' => ['offset' => '5']])
+        );
+
+        $data = json_decode($response->getBody(), true)['data'] ?? null;
+
+        $this->assertEquals('6', $data[0]['id'] ?? null);
     }
 
-    public function test_first_pagination_link_is_correct()
+    public function test_pagination_links_are_correct_and_retain_query_parameters()
     {
-        $this->markTestIncomplete();
-    }
+        $response = $this->api->handle(
+            $this->buildRequest('GET', '/articles')
+                ->withQueryParams([
+                    'page' => ['offset' => '40'],
+                    'otherParam' => 'value',
+                ])
+        );
 
-    public function test_last_pagination_link_is_correct()
-    {
-        $this->markTestIncomplete();
-    }
+        $links = json_decode($response->getBody(), true)['links'] ?? null;
 
-    public function test_next_pagination_link_is_correct()
-    {
-        $this->markTestIncomplete();
+        $this->assertEquals('/articles?otherParam=value', $links['first'] ?? null);
+        $this->assertEquals('/articles?otherParam=value&page%5Boffset%5D=80', $links['last'] ?? null);
+        $this->assertEquals('/articles?otherParam=value&page%5Boffset%5D=60', $links['next'] ?? null);
+        $this->assertEquals('/articles?otherParam=value&page%5Boffset%5D=20', $links['prev'] ?? null);
     }
 
     public function test_next_pagination_link_is_not_included_on_last_page()
     {
-        $this->markTestIncomplete();
+        $response = $this->api->handle(
+            $this->buildRequest('GET', '/articles')
+                ->withQueryParams(['page' => ['offset' => '80']])
+        );
+
+        $links = json_decode($response->getBody(), true)['links'] ?? null;
+
+        $this->assertNull($links['next'] ?? null);
     }
 
-    public function test_prev_pagination_link_is_correct()
+    public function test_prev_pagination_link_is_not_included_on_first_page()
     {
-        $this->markTestIncomplete();
-    }
+        $response = $this->api->handle(
+            $this->buildRequest('GET', '/articles')
+                ->withQueryParams(['page' => ['offset' => '0']])
+        );
 
-    public function test_prev_pagination_link_is_not_included_on_last_page()
-    {
-        $this->markTestIncomplete();
-    }
+        $links = json_decode($response->getBody(), true)['links'] ?? null;
 
-    public function test_pagination_links_retain_other_query_parameters()
-    {
-        $this->markTestIncomplete();
+        $this->assertNull($links['prev'] ?? null);
     }
 }

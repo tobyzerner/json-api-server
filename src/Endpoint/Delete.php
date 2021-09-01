@@ -54,6 +54,8 @@ class Delete
         run_callbacks($schema->getListeners('deleted'), [&$model, $context]);
 
         if (count($meta = $this->buildMeta($context))) {
+            $meta[] = $this->buildJsonApiObject($context);
+
             return json_api_response(
                 new MetaDocument(...$meta)
             );

@@ -43,6 +43,7 @@ class Show
             new CompoundDocument(
                 $primary[0],
                 new Included(...$included),
+                $this->buildJsonApiObject($context),
                 ...$this->buildMeta($context)
             )
         );
