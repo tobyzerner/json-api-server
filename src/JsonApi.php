@@ -11,6 +11,7 @@
 
 namespace Tobyz\JsonApiServer;
 
+use HttpAccept\AcceptParser;
 use JsonApiPhp\JsonApi\ErrorDocument;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -26,7 +27,6 @@ use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\Exception\UnsupportedMediaTypeException;
 use Tobyz\JsonApiServer\Extension\Extension;
 use Tobyz\JsonApiServer\Schema\Concerns\HasMeta;
-use Xynha\HttpAccept\AcceptParser;
 
 final class JsonApi implements RequestHandlerInterface
 {
@@ -236,13 +236,13 @@ final class JsonApi implements RequestHandlerInterface
             throw new UnsupportedMediaTypeException();
         }
 
-        $parameters = $this->parseParameters($mediaType->parameters());
+        $parameters = $mediaType->parameter();
 
-        if (! empty(array_diff(array_keys($parameters), ['ext', 'profile']))) {
+        if (! empty(array_diff(array_keys($parameters->all()), ['ext', 'profile']))) {
             throw new UnsupportedMediaTypeException();
         }
 
-        $extensionUris = isset($parameters['ext']) ? explode(' ', $parameters['ext']) : [];
+        $extensionUris = $parameters->has('ext') ? explode(' ', $parameters->get('ext')) : [];
 
         if (! empty(array_diff($extensionUris, array_keys($this->extensions)))) {
             throw new UnsupportedMediaTypeException();
@@ -264,13 +264,13 @@ final class JsonApi implements RequestHandlerInterface
                 continue;
             }
 
-            $parameters = $this->parseParameters($mediaType->parameters());
+            $parameters = $mediaType->parameter();
 
-            if (! empty(array_diff(array_keys($parameters), ['ext', 'profile']))) {
+            if (! empty(array_diff(array_keys($parameters->all()), ['ext', 'profile']))) {
                 continue;
             }
 
-            $extensionUris = isset($parameters['ext']) ? explode(' ', $parameters['ext']) : [];
+            $extensionUris = $parameters->has('ext') ? explode(' ', $parameters->get('ext')) : [];
 
             if (! empty(array_diff($extensionUris, array_keys($this->extensions)))) {
                 continue;
@@ -280,15 +280,6 @@ final class JsonApi implements RequestHandlerInterface
         }
 
         throw new NotAcceptableException();
-    }
-
-    private function parseParameters(array $parameters): array
-    {
-        return array_reduce($parameters, function ($a, $v) {
-            $parts = explode('=', $v, 2);
-            $a[$parts[0]] = trim($parts[1], '"');
-            return $a;
-        }, []);
     }
 
     /**
