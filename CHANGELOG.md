@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0-beta.3] - 2021-09-03
+### Fixed
+- Fix dependency on `http-accept` now that a version has been tagged
+- Change `EloquentAdapter` to load relationships using `load` instead of `loadMissing`, as they may need API-specific scopes applied
+
 ## [0.2.0-beta.2] - 2021-09-01
 ### Added
 - Content-Type validation and Accept negotation
