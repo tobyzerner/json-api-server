@@ -34,7 +34,7 @@ abstract class EloquentBuffer
             return;
         }
 
-        Collection::make($models)->loadMissing([
+        Collection::make($models)->load([
             $relationName => function ($relation) use ($model, $relationName, $relationship, $context) {
                 $query = $relation->getQuery();
 
