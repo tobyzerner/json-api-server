@@ -23,11 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.0-beta.2] - 2021-09-01
 ### Added
-- Content-Type validation and Accept negotation
+- Content-Type validation and Accept negotiation
 - Include `jsonapi` object with `version` member in response
 - Validate implementation-specific query parameters according to specification
 - Added `Location` header to `201 Created` responses
-- Improved error repsonses when creating and updating resources
+- Improved error responses when creating and updating resources
 - `Context::filter()` method to get the value of a filter
 - `ResourceType::applyScope()`, `applyFilter()` and `applySort()` methods
 - `ResourceType::url()` method to get the URL for a model
