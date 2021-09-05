@@ -66,9 +66,13 @@ function authenticated(): Closure
     };
 }
 
-function can(string $ability): Closure
+function can(string $ability, ...$args): Closure
 {
-    return function ($arg) use ($ability) {
-        return Gate::allows($ability, $arg instanceof Model ? $arg : null);
+    return function ($arg) use ($ability, $args) {
+        if ($arg instanceof Model) {
+            array_unshift($args, $arg);
+        }
+
+        return Gate::allows($ability, $args);
     };
 }
