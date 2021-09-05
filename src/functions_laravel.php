@@ -25,28 +25,31 @@ function rules($rules, array $messages = [], array $customAttributes = []): Clos
         $rules = [$rules];
     }
 
-    return function (callable $fail, $value, $model, Context $context, Field $field) use ($rules, $messages, $customAttributes) {
+    return function (callable $fail, $value, Model $model, Context $context, Field $field) use (
+        $rules,
+        $messages,
+        $customAttributes
+    ) {
         $key = $field->getName();
-        $validationRules = [$key => []];
-        $validationMessages = [$key => []];
 
-        foreach ($rules as $k => $v) {
+        $validatorRules = [$key => []];
+
+        foreach ($rules as $k => $rule) {
+            $rule = str_replace('{id}', $model->getKey(), $rule);
+
             if (! is_numeric($k)) {
-                $validationRules[$key.'.'.$k] = $v;
+                $validatorRules[$key.'.'.$k] = $rule;
             } else {
-                $validationRules[$key][] = $v;
+                $validatorRules[$key][] = $rule;
             }
         }
 
-        foreach ($messages as $k => $v) {
-            if (! is_numeric($k)) {
-                $validationMessages[$key.'.'.$k] = $v;
-            } else {
-                $validationMessages[$key][] = $v;
-            }
-        }
-
-        $validation = Validator::make($value !== null ? [$key => $value] : [], $validationRules, $validationMessages, $customAttributes);
+        $validation = Validator::make(
+            $value !== null ? [$key => $value] : [],
+            $validatorRules,
+            $messages,
+            $customAttributes
+        );
 
         if ($validation->fails()) {
             foreach ($validation->errors()->all() as $message) {
