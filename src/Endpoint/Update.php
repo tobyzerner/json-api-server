@@ -40,7 +40,11 @@ class Update
             ));
         }
 
-        $data = $this->parseData($resourceType, $context->getRequest()->getParsedBody(), $model);
+        $data = $this->parseData(
+            $resourceType,
+            json_decode($context->getRequest()->getBody()->getContents(), true),
+            $model
+        );
 
         $this->validateFields($resourceType, $data, $model, $context);
         $this->loadRelatedResources($resourceType, $data, $context);
