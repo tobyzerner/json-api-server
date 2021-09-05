@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0-beta.4]
+### Added
+- `Laravel\rules()`: Replace `{id}` placeholder in rules with the model's key.
+  - This is useful for the `unique` rule, for example: `unique:users,email,{id}`
+- `Laravel\can()`: Pass through additional arguments to Gate check.
+  - This is needed to use policy methods without models, for example: `can('create', Post::class)`
+
+### Changed
+- Get a fresh copy of the model to display after create/update to ensure consistency
+- Respond with `400 Bad Request` when attempting to filter on an attribute of a polymorphic relationship
+
 ## [0.2.0-beta.3] - 2021-09-03
 ### Fixed
 - Fix dependency on `http-accept` now that a version has been tagged
@@ -12,11 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.0-beta.2] - 2021-09-01
 ### Added
-- Content-Type validation and Accept negotation
+- Content-Type validation and Accept negotiation
 - Include `jsonapi` object with `version` member in response
 - Validate implementation-specific query parameters according to specification
 - Added `Location` header to `201 Created` responses
-- Improved error repsonses when creating and updating resources
+- Improved error responses when creating and updating resources
 - `Context::filter()` method to get the value of a filter
 - `ResourceType::applyScope()`, `applyFilter()` and `applySort()` methods
 - `ResourceType::url()` method to get the URL for a model
@@ -51,5 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fix pagination next link appearing when it shouldn't
 
+[0.2.0-beta.4]: https://github.com/tobyzerner/json-api-models/compare/v0.2.0-beta.4...v0.2.0-beta.3
+[0.2.0-beta.3]: https://github.com/tobyzerner/json-api-models/compare/v0.2.0-beta.3...v0.2.0-beta.2
 [0.2.0-beta.2]: https://github.com/tobyzerner/json-api-models/compare/v0.2.0-beta.2...v0.2.0-beta.1
 [0.2.0-beta.1]: https://github.com/tobyzerner/json-api-models/compare/v0.2.0-beta.1...v0.1.0-beta.1

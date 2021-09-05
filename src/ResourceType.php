@@ -157,8 +157,12 @@ final class ResourceType
                         $this->adapter->filterByRelationship($query, $field, function ($query) use ($relatedResource, $sub, $value, $context) {
                             $relatedResource->applyFilters($query, [($sub ?? 'id') => $value], $context);
                         });
+
+                        continue;
                     }
-                    continue;
+
+                    throw (new BadRequestException('Cannot filter on attribute of polymorphic relationship: '.$name))
+                        ->setSourceParameter("filter[$name]");
                 }
             }
 

@@ -60,6 +60,8 @@ class Create
 
         run_callbacks($schema->getListeners('created'), [&$model, $context]);
 
+        $model = $this->freshModel($resourceType, $model, $context);
+
         return (new Show())
             ->handle($context, $resourceType, $model)
             ->withStatus(201)
