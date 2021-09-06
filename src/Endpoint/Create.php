@@ -42,7 +42,7 @@ class Create
         }
 
         $model = $this->newModel($resourceType, $context);
-        $data = $this->parseData($resourceType, $context->getBody(), $model);
+        $data = $this->parseData($resourceType, $context->getBody());
 
         $this->validateFields($resourceType, $data, $model, $context);
         $this->fillDefaultValues($resourceType, $data, $context);
