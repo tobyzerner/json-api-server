@@ -86,4 +86,12 @@ class Context
     {
         return $this->request->getQueryParams()['filter'][$name] ?? null;
     }
+
+    /**
+     * Get parsed JsonApi payload
+     */
+    public function getBody(): ?array
+    {
+        return json_decode($this->request->getBody()->getContents(), true);
+    }
 }
