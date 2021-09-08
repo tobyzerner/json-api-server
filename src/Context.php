@@ -92,6 +92,6 @@ class Context
      */
     public function getBody(): ?array
     {
-        return json_decode($this->request->getBody()->getContents(), true);
+        return $this->request->getParsedBody() ?: json_decode($this->request->getBody()->getContents(), true);
     }
 }

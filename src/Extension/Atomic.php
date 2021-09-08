@@ -50,7 +50,7 @@ final class Atomic extends Extension
             throw new MethodNotAllowedException();
         }
 
-        $body = $request->getParsedBody();
+        $body = $context->getBody();
         $operations = $body['atomic:operations'] ?? null;
 
         if (! is_array($operations)) {
