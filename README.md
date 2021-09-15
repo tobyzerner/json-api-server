@@ -5,7 +5,20 @@
 
 json-api-server is a [JSON:API](http://jsonapi.org) server implementation in PHP.
 
-Build an API in minutes by defining your API's schema and connecting it to your application's models. json-api-server takes care of all the boilerplate stuff like routing, query parameters, and building a valid JSON:API document.
+It allows you to define your API's schema, and then use an [adapter](adapters.md) to connect it to your application's database layer. You don't have to worry about any of the server boilerplate, routing, query parameters, or JSON:API document formatting.
+
+Based on your schema definition, the package will serve a **complete JSON:API that conforms to the [spec](https://jsonapi.org/format/)**, including support for:
+
+- **Showing** individual resources (`GET /api/articles/1`)
+- **Listing** resource collections (`GET /api/articles`)
+- **Sorting**, **filtering**, **pagination**, and **sparse fieldsets**
+- **Compound documents** with inclusion of related resources
+- **Creating** resources (`POST /api/articles`)
+- **Updating** resources (`PATCH /api/articles/1`)
+- **Deleting** resources (`DELETE /api/articles/1`)
+- **Error handling**
+
+The schema definition is extremely powerful and lets you easily apply [permissions](visibility.md), [transformations](writing.md#transformers), [validation](writing.md#validation), and custom [filtering](filtering.md) and [sorting](sorting.md) logic to build a fully functional API with ease.
 
 ## Documentation
 
