@@ -35,7 +35,9 @@ function rules($rules, array $messages = [], array $customAttributes = []): Clos
         $validatorRules = [$key => []];
 
         foreach ($rules as $k => $rule) {
-            $rule = str_replace('{id}', $model->getKey(), $rule);
+            if (is_string($rule)) {
+                $rule = str_replace('{id}', $model->getKey(), $rule);
+            }
 
             if (! is_numeric($k)) {
                 $validatorRules[$key.'.'.$k] = $rule;
