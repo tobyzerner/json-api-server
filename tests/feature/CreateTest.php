@@ -11,6 +11,7 @@
 
 namespace Tobyz\Tests\JsonApiServer\feature;
 
+use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
 use Tobyz\JsonApiServer\Adapter\AdapterInterface;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
@@ -125,6 +126,8 @@ class CreateTest extends AbstractTestCase
         $adapter->model()->willReturn($createdModel = (object) []);
         $adapter->save($createdModel)->shouldBeCalled();
         $adapter->getId($createdModel)->willReturn('1');
+        $adapter->query()->shouldBeCalled();
+        $adapter->find(Argument::any(), '1')->willReturn($createdModel);
 
         $this->api->resourceType('users', $adapter->reveal(), function (Type $type) {
             $type->creatable();
@@ -141,6 +144,8 @@ class CreateTest extends AbstractTestCase
         $adapter->model()->shouldNotBeCalled();
         $adapter->save($createdModel)->shouldBeCalled();
         $adapter->getId($createdModel)->willReturn('1');
+        $adapter->query()->shouldBeCalled();
+        $adapter->find(Argument::any(), '1')->willReturn($createdModel);
 
         $this->api->resourceType('users', $adapter->reveal(), function (Type $type) use ($createdModel) {
             $type->creatable();
@@ -161,6 +166,8 @@ class CreateTest extends AbstractTestCase
         $adapter->model()->willReturn($createdModel = (object) []);
         $adapter->save($createdModel)->shouldNotBeCalled();
         $adapter->getId($createdModel)->willReturn('1');
+        $adapter->query()->shouldBeCalled();
+        $adapter->find(Argument::any(), '1')->willReturn($createdModel);
 
         $this->api->resourceType('users', $adapter->reveal(), function (Type $type) use ($createdModel, &$called) {
             $type->creatable();
@@ -184,6 +191,8 @@ class CreateTest extends AbstractTestCase
         $adapter = $this->prophesize(AdapterInterface::class);
         $adapter->model()->willReturn($createdModel = (object) []);
         $adapter->getId($createdModel)->willReturn('1');
+        $adapter->query()->shouldBeCalled();
+        $adapter->find(Argument::any(), '1')->willReturn($createdModel);
 
         $this->api->resourceType('users', $adapter->reveal(), function (Type $type) use ($adapter, $createdModel, &$called) {
             $type->creatable();

@@ -11,7 +11,6 @@
 
 namespace Tobyz\Tests\JsonApiServer\feature;
 
-use Psr\Http\Message\ServerRequestInterface;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Schema\Type;
@@ -87,45 +86,5 @@ class ScopesTest extends AbstractTestCase
         );
 
         $this->assertTrue($this->scopeWasCalled);
-    }
-
-    public function test_scopes_are_applied_to_related_resources()
-    {
-        $this->api->resourceType('pets', new MockAdapter, function (Type $type) {
-            $type->hasOne('owner')
-                ->type('users')
-                ->includable();
-        });
-
-        $this->api->handle(
-            $this->buildRequest('GET', '/pets/1')
-                ->withQueryParams(['include' => 'owner'])
-        );
-
-        $this->assertTrue($this->scopeWasCalled);
-    }
-
-    public function test_scopes_are_applied_to_polymorphic_related_resources()
-    {
-        $this->api->resourceType('pets', new MockAdapter, function (Type $type) {
-            $type->hasOne('owner')
-                ->polymorphic(['users', 'organisations'])
-                ->includable();
-        });
-
-        $organisationScopeWasCalled = false;
-        $this->api->resourceType('organisations', new MockAdapter, function (Type $type) use (&$organisationScopeWasCalled) {
-            $type->scope(function ($query, Context $context) use (&$organisationScopeWasCalled) {
-                $organisationScopeWasCalled = true;
-            });
-        });
-
-        $this->api->handle(
-            $this->buildRequest('GET', '/pets/1')
-                ->withQueryParams(['include' => 'owner'])
-        );
-
-        $this->assertTrue($this->scopeWasCalled);
-        $this->assertTrue($organisationScopeWasCalled);
     }
 }
