@@ -103,7 +103,7 @@ class DeleteTest extends AbstractTestCase
         $called = false;
 
         $adapter = $this->prophesize(AdapterInterface::class);
-        $adapter->newQuery()->willReturn($query = (object) []);
+        $adapter->query()->willReturn($query = (object) []);
         $adapter->find($query, '1')->willReturn($deletingModel = (object) []);
         $adapter->delete($deletingModel);
 
@@ -123,7 +123,7 @@ class DeleteTest extends AbstractTestCase
     public function test_deleting_a_resource_calls_the_delete_adapter_method()
     {
         $adapter = $this->prophesize(AdapterInterface::class);
-        $adapter->newQuery()->willReturn($query = (object) []);
+        $adapter->query()->willReturn($query = (object) []);
         $adapter->find($query, '1')->willReturn($model = (object) []);
         $adapter->delete($model)->shouldBeCalled();
 
@@ -139,7 +139,7 @@ class DeleteTest extends AbstractTestCase
         $called = false;
 
         $adapter = $this->prophesize(AdapterInterface::class);
-        $adapter->newQuery()->willReturn($query = (object) []);
+        $adapter->query()->willReturn($query = (object) []);
         $adapter->find($query, '1')->willReturn($deletingModel = (object) []);
         $adapter->delete($deletingModel)->shouldNotBeCalled();
 
@@ -162,7 +162,7 @@ class DeleteTest extends AbstractTestCase
         $called = 0;
 
         $adapter = $this->prophesize(AdapterInterface::class);
-        $adapter->newQuery()->willReturn($query = (object) []);
+        $adapter->query()->willReturn($query = (object) []);
         $adapter->find($query, '1')->willReturn($deletingModel = (object) []);
         $adapter->delete($deletingModel)->shouldBeCalled();
 

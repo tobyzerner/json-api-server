@@ -85,7 +85,7 @@ class FieldGettersTest extends AbstractTestCase
             $type->hasOne('animal')->withLinkage();
         });
 
-        $this->api->resourceType('animals', new MockAdapter);
+        $this->api->resourceType('animals', new MockAdapter());
 
         $response = $this->api->handle(
             $this->buildRequest('GET', '/users/1')
@@ -100,12 +100,12 @@ class FieldGettersTest extends AbstractTestCase
     {
         $this->api->resourceType('users', $this->adapter, function (Type $type) {
             $type->hasOne('animal')->withLinkage()
-                ->get(function ($model, Context $context) {
+                ->get(function ($model, bool $linkageOnly, Context $context) {
                     return (object) ['id' => '2'];
                 });
         });
 
-        $this->api->resourceType('animals', new MockAdapter);
+        $this->api->resourceType('animals', new MockAdapter());
 
         $response = $this->api->handle(
             $this->buildRequest('GET', '/users/1')
@@ -122,7 +122,7 @@ class FieldGettersTest extends AbstractTestCase
             $type->hasMany('animals')->withLinkage();
         });
 
-        $this->api->resourceType('animals', new MockAdapter);
+        $this->api->resourceType('animals', new MockAdapter());
 
         $response = $this->api->handle(
             $this->buildRequest('GET', '/users/1')
@@ -138,7 +138,7 @@ class FieldGettersTest extends AbstractTestCase
     {
         $this->api->resourceType('users', $this->adapter, function (Type $type) {
             $type->hasMany('animals')->withLinkage()
-                ->get(function ($model, Context $context) {
+                ->get(function ($model, bool $linkageOnly, Context $context) {
                     return [
                         (object) ['id' => '2'],
                         (object) ['id' => '3']
@@ -146,7 +146,7 @@ class FieldGettersTest extends AbstractTestCase
                 });
         });
 
-        $this->api->resourceType('animals', new MockAdapter);
+        $this->api->resourceType('animals', new MockAdapter());
 
         $response = $this->api->handle(
             $this->buildRequest('GET', '/users/1')
