@@ -84,7 +84,7 @@ final class ResourceType
         $customSorts = $schema->getSorts();
         $fields = $schema->getFields();
 
-        foreach ($this->parseSortString($sortString) as [$name, $direction]) {
+        foreach (parse_sort_string($sortString) as [$name, $direction]) {
             if (
                 isset($customSorts[$name])
                 && evaluate($customSorts[$name]->getVisible(), [$context])
@@ -105,17 +105,6 @@ final class ResourceType
 
             throw (new BadRequestException("Invalid sort field: $name"))->setSourceParameter('sort');
         }
-    }
-
-    private function parseSortString(string $string): array
-    {
-        return array_map(function ($field) {
-            if ($field[0] === '-') {
-                return [substr($field, 1), 'desc'];
-            } else {
-                return [$field, 'asc'];
-            }
-        }, explode(',', $string));
     }
 
     /**

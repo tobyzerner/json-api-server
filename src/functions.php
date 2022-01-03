@@ -68,3 +68,14 @@ function set_value(array &$data, Field $field, $value): void
 {
     $data[$field->getLocation()][$field->getName()] = $value;
 }
+
+function parse_sort_string(string $string): array
+{
+    return array_map(function ($field) {
+        if ($field[0] === '-') {
+            return [substr($field, 1), 'desc'];
+        } else {
+            return [$field, 'asc'];
+        }
+    }, explode(',', $string));
+}
