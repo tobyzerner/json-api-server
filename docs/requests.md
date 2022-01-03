@@ -57,8 +57,14 @@ This object contains a number of useful methods:
 * `getPath(): string`  
   Get the request path relative to the API's base path.
 
+* `getBody(): ?array`  
+  Get the parsed JSON:API payload.
+
 * `fieldRequested(string $type, string $field, bool $default = true): bool`  
   Determine whether a field has been requested in a [sparse fieldset](https://jsonapi.org/format/1.1/#fetching-sparse-fieldsets).
+
+* `sortRequested(string $field): bool`  
+  Determine whether a sort field has been requested.
 
 * `filter(string $name): ?string`  
   Get the value of a filter.
