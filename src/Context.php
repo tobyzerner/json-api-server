@@ -60,6 +60,14 @@ class Context
         );
     }
 
+    /**
+     * Get the parsed JSON:API payload.
+     */
+    public function getBody(): ?array
+    {
+        return $this->request->getParsedBody() ?: json_decode($this->request->getBody()->getContents(), true);
+    }
+
     public function response(callable $callback): void
     {
         $this->listeners['response'][] = $callback;
@@ -80,18 +88,26 @@ class Context
     }
 
     /**
+     * Determine whether a sort field has been requested.
+     */
+    public function sortRequested(string $field): bool
+    {
+        if ($sortString = $this->getRequest()->getQueryParams()['sort'] ?? null) {
+            foreach (parse_sort_string($sortString) as [$name, $direction]) {
+                if ($name === $field) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Get the value of a filter.
      */
     public function filter(string $name): ?string
     {
         return $this->request->getQueryParams()['filter'][$name] ?? null;
-    }
-
-    /**
-     * Get parsed JsonApi payload
-     */
-    public function getBody(): ?array
-    {
-        return $this->request->getParsedBody() ?: json_decode($this->request->getBody()->getContents(), true);
     }
 }
