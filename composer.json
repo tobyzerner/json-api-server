@@ -4,7 +4,7 @@
     "require": {
         "php": ">=7.1",
         "ext-json": "*",
-        "doctrine/inflector": "^1.3",
+        "doctrine/inflector": "^1.4 || ^2.0",
         "json-api-php/json-api": "^2.2",
         "nyholm/psr7": "^1.3",
         "psr/http-message": "^1.0",

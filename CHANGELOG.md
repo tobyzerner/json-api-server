@@ -5,7 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0-beta.5]
+## [0.2.0-beta.6] - 2022-04-22
+### Changed
+- Add support for `doctrine/inflector:^2.0`
+
+## [0.2.0-beta.5] - 2022-01-03
 ### Added
 - `Context::getBody()` method to retrieve the parsed JSON:API payload from the request
 - `Context::sortRequested()` method to determine if a sort field has been requested
@@ -13,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - `Laravel\rules()`: Fix regression disallowing use of advanced validation rules like callbacks and `Rule` instances. (@SychO9)
 
-## [0.2.0-beta.4]
+## [0.2.0-beta.4] - 2021-09-05
 ### Added
 - `Laravel\rules()`: Replace `{id}` placeholder in rules with the model's key.
   - This is useful for the `unique` rule, for example: `unique:users,email,{id}`
