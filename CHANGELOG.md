@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0] - 2022-06-21
 ### Fixed
 - Fix `EloquentAdapter::filterByIds()` getting key name from query model instead of adapter model
+- Fix deprecation notice on PHP 8.1
 
 ## [0.2.0-beta.6] - 2022-04-22
 ### Changed
