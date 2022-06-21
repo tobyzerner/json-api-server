@@ -48,7 +48,7 @@ class EloquentAdapter implements AdapterInterface
 
     public function filterByIds($query, array $ids): void
     {
-        $query->whereIn($query->getModel()->getQualifiedKeyName(), $ids);
+        $query->whereIn($this->model->getQualifiedKeyName(), $ids);
     }
 
     public function filterByAttribute($query, Attribute $attribute, $value, string $operator = '='): void
