@@ -27,6 +27,10 @@ class NullAdapter implements AdapterInterface
     {
     }
 
+    public function filterByExpression($query, string $expression): void
+    {
+    }
+
     public function sortByAttribute($query, Attribute $attribute, string $direction): void
     {
     }

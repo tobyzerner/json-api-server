@@ -122,6 +122,11 @@ final class ResourceType
                 continue;
             }
 
+            if (is_int($name)) {
+                $this->adapter->filterByExpression($query, $value);
+                continue;
+            }
+
             if (
                 isset($customFilters[$name])
                 && evaluate($customFilters[$name]->getVisible(), [$context])
