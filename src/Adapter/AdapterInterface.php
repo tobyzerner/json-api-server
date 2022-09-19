@@ -51,6 +51,13 @@ interface AdapterInterface
     public function filterByRelationship($query, Relationship $relationship, Closure $scope): void;
 
     /**
+     * Manipulate the query to only include resources appropriate to given filter expression.
+     *
+     * @param string $expression The filter expression
+     */
+    public function filterByExpression($query, string $expression): void;
+
+    /**
      * Manipulate the query to sort by the given attribute in the given direction.
      */
     public function sortByAttribute($query, Attribute $attribute, string $direction): void;

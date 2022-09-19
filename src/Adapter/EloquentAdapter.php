@@ -61,6 +61,10 @@ class EloquentAdapter implements AdapterInterface
         $query->whereHas($this->getRelationshipProperty($relationship), $scope);
     }
 
+    public function filterByExpression($query, string $expression): void
+    {
+    }
+
     public function sortByAttribute($query, Attribute $attribute, string $direction): void
     {
         $query->orderBy($this->getAttributeProperty($attribute), $direction);

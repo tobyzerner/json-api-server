@@ -110,11 +110,16 @@ final class ResourceType
     /**
      * Apply the resource type's filters to a query.
      */
-    public function applyFilters($query, array $filters, Context $context): void
+    public function applyFilters($query, $filters, Context $context): void
     {
         $schema = $this->getSchema();
         $customFilters = $schema->getFilters();
         $fields = $schema->getFields();
+
+        if (is_string($filters)) {
+            $this->adapter->filterByExpression($query, $filters);
+            return;
+        }
 
         foreach ($filters as $name => $value) {
             if ($name === 'id') {
