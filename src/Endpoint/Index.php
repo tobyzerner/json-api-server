@@ -62,10 +62,6 @@ class Index
         }
 
         if ($filter = $context->getRequest()->getQueryParams()['filter'] ?? null) {
-            if (! is_array($filter)) {
-                throw (new BadRequestException('filter must be an array'))->setSourceParameter('filter');
-            }
-
             $resourceType->applyFilters($query, $filter, $context);
         }
 
