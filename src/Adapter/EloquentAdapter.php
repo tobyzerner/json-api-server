@@ -65,6 +65,10 @@ class EloquentAdapter implements AdapterInterface
     {
     }
 
+    public function sparseFieldset($query, $fields): void
+    {
+    }
+
     public function sortByAttribute($query, Attribute $attribute, string $direction): void
     {
         $query->orderBy($this->getAttributeProperty($attribute), $direction);

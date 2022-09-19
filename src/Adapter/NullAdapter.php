@@ -31,6 +31,10 @@ class NullAdapter implements AdapterInterface
     {
     }
 
+    public function sparseFieldset($query, $fields): void
+    {
+    }
+
     public function sortByAttribute($query, Attribute $attribute, string $direction): void
     {
     }

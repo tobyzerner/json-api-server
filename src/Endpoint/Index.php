@@ -65,6 +65,10 @@ class Index
             $resourceType->applyFilters($query, $filter, $context);
         }
 
+        if ($fields = $context->getRequest()->getQueryParams()['fields'] ?? null) {
+            $resourceType->applySparseFieldset($query, $fields, $context);
+        }
+
         run_callbacks($schema->getListeners('listing'), [$query, $context]);
 
         $total = $schema->isCountable() ? $adapter->count($query) : null;

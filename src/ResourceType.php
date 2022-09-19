@@ -169,6 +169,14 @@ final class ResourceType
         }
     }
 
+    /**
+     * Apply the resource type's sparse fieldsets to a query.
+     */
+    public function applySparseFieldset($query, $fields, Context $context): void
+    {
+        $this->adapter->sparseFieldset($query, $fields);
+    }
+
     private function filterByAttribute($query, Attribute $attribute, $value): void
     {
         if (preg_match('/(.+)\.\.(.+)/', $value, $matches)) {

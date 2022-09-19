@@ -58,6 +58,13 @@ interface AdapterInterface
     public function filterByExpression($query, string $expression): void;
 
     /**
+     * Manipulate the query to only include specific fields.
+     *
+     * @param string|array $fields Comma-separated list of field names to include or array of such lists for every resource type
+     */
+    public function sparseFieldset($query, $fields): void;
+
+    /**
      * Manipulate the query to sort by the given attribute in the given direction.
      */
     public function sortByAttribute($query, Attribute $attribute, string $direction): void;
