@@ -53,8 +53,6 @@ class Update
 
         run_callbacks($schema->getListeners('updated'), [&$model, $context]);
 
-        $model = $this->freshModel($resourceType, $model, $context);
-
         return (new Show())
             ->handle($context, $resourceType, $model);
     }
