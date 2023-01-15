@@ -59,7 +59,10 @@ abstract class EloquentBuffer
                 $constrain = [];
 
                 foreach ($resourceTypes as $resourceType) {
-                    if ($model = $resourceType->getAdapter()->model()) {
+                    if (
+                        ($model = $resourceType->getAdapter()->model()) &&
+                        !isset($constrain[get_class($model)])
+                    ) {
                         $constrain[get_class($model)] = function ($query) use ($resourceType, $context) {
                             $resourceType->applyScopes($query, $context);
                         };
