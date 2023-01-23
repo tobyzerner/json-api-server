@@ -308,4 +308,14 @@ trait SavesData
             );
         }
     }
+
+    /**
+     * Get a fresh copy of the model for display.
+     */
+    private function freshModel(ResourceType $resourceType, $model, Context $context)
+    {
+        $id = $resourceType->getAdapter()->getId($model);
+
+        return $this->findResource($resourceType, $id, $context);
+    }
 }
