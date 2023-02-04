@@ -11,6 +11,7 @@ You must return your extension's unique URI from `uri`.
 For every request that includes your extension in the media type, the `handle` method will be called. If your extension is able to handle the request, it should return a PSR-7 response. Otherwise, return null to let the normal handling of the request take place.
 
 ```php
+use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Extension\Extension;
 use Psr\Http\Message\ResponseInterface;
 
@@ -23,7 +24,7 @@ class MyExtension extends Extension
         return 'https://example.org/my-extension';
     }
 
-    public function handle(Context $context): ?ResponseInterface;
+    public function handle(Context $context): ?ResponseInterface
     {
         if ($context->getPath() === '/my-extension') {
             return json_api_response([
