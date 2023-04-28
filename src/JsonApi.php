@@ -12,6 +12,8 @@
 namespace Tobyz\JsonApiServer;
 
 use HttpAccept\AcceptParser;
+use HttpAccept\ContentTypeParser;
+use InvalidArgumentException;
 use JsonApiPhp\JsonApi\ErrorDocument;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -224,26 +226,21 @@ final class JsonApi implements RequestHandlerInterface
             return [];
         }
 
-        $mediaList = (new AcceptParser())->parse($contentType);
-
-        if ($mediaList->count() > 1) {
+        try {
+            $type = (new ContentTypeParser())->parse($contentType);
+        } catch(InvalidArgumentException $exc){
             throw new UnsupportedMediaTypeException();
         }
 
-        $mediaType = $mediaList->preferredMedia(0);
-
-        if ($mediaType->mimetype() !== JsonApi::MEDIA_TYPE) {
+        if ($type->name() !== JsonApi::MEDIA_TYPE) {
             throw new UnsupportedMediaTypeException();
         }
 
-        $parameters = $mediaType->parameter();
-
-        if (! empty(array_diff(array_keys($parameters->all()), ['ext', 'profile']))) {
+        if (! empty(array_diff(array_keys($type->parameters()), ['ext', 'profile']))) {
             throw new UnsupportedMediaTypeException();
         }
 
-        $extensionUris = $parameters->has('ext') ? explode(' ', $parameters->get('ext')) : [];
-
+        $extensionUris = $type->hasParamater('ext') ? explode(' ', $type->getParameter('ext')) : [];
         if (! empty(array_diff($extensionUris, array_keys($this->extensions)))) {
             throw new UnsupportedMediaTypeException();
         }
@@ -257,21 +254,17 @@ final class JsonApi implements RequestHandlerInterface
             return [];
         }
 
-        $mediaList = (new AcceptParser())->parse($accept);
-
-        foreach ($mediaList->all() as $mediaType) {
-            if (! in_array($mediaType->mimetype(), [JsonApi::MEDIA_TYPE, '*/*'])) {
+        $list = (new AcceptParser())->parse($accept);
+        foreach($list as $mediaType) {
+            if (!in_array($mediaType->name(), [JsonApi::MEDIA_TYPE, '*/*'])) {
                 continue;
             }
 
-            $parameters = $mediaType->parameter();
-
-            if (! empty(array_diff(array_keys($parameters->all()), ['ext', 'profile']))) {
+            if (!empty(array_diff(array_keys($mediaType->parameters()), ['ext', 'profile']))) {
                 continue;
             }
 
-            $extensionUris = $parameters->has('ext') ? explode(' ', $parameters->get('ext')) : [];
-
+            $extensionUris = $mediaType->hasParamater('ext') ? explode(' ', $mediaType->getParameter('ext')) : [];
             if (! empty(array_diff($extensionUris, array_keys($this->extensions)))) {
                 continue;
             }
