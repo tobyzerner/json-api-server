@@ -2,7 +2,7 @@
     "name": "tobyz/json-api-server",
     "description": "A fully automated JSON:API server implementation in PHP.",
     "require": {
-        "php": ">=7.1",
+        "php": ">=7.3",
         "ext-json": "*",
         "doctrine/inflector": "^1.4 || ^2.0",
         "json-api-php/json-api": "^2.2",
