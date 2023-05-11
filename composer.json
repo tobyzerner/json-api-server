@@ -4,12 +4,12 @@
     "require": {
         "php": ">=7.3",
         "ext-json": "*",
+        "asispts/http-accept": "^1.0",
         "doctrine/inflector": "^1.4 || ^2.0",
         "json-api-php/json-api": "^2.2",
         "nyholm/psr7": "^1.3",
         "psr/http-message": "^1.0",
-        "psr/http-server-handler": "^1.0",
-        "hnet/http-accept": "^0.1"
+        "psr/http-server-handler": "^1.0"
     },
     "license": "MIT",
     "authors": [
