@@ -71,24 +71,28 @@ final class Serializer
             $id = $adapter->getId($model)
         );
 
-        if (isset($this->map[$key])) {
-            return $this->map[$key];
-        }
+        $url = $resourceType->url($model, $this->context);
 
-        $this->map[$key] = [
-            'type' => $type,
-            'id' => $id,
-            'fields' => [],
-            'links' => [
-                'self' => new Structure\Link\SelfLink($url = $resourceType->url($model, $this->context)),
-            ],
-            'meta' => $this->meta($schema->getMeta(), $model)
-        ];
+        if (!isset($this->map[$key])) {
+            $this->map[$key] = [
+                'type' => $type,
+                'id' => $id,
+                'fields' => [],
+                'links' => [
+                    'self' => new Structure\Link\SelfLink($url),
+                ],
+                'meta' => $this->meta($schema->getMeta(), $model)
+            ];
+        }
 
         $fields = $this->sparseFields($type, $schema->getFields());
 
         foreach ($fields as $field) {
-            if (! evaluate($field->getVisible(), [$model, $this->context])) {
+            if (isset($this->map[$key]['fields'][$field->getName()])) {
+                continue;
+            }
+
+            if (!evaluate($field->getVisible(), [$model, $this->context])) {
                 continue;
             }
 
