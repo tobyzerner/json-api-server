@@ -184,7 +184,9 @@ class Index
                 throw (new BadRequestException('page[limit] must be a positive integer'))->setSourceParameter('page[limit]');
             }
 
-            $limit = min($schema->getLimit(), $limit);
+            if ($maxLimit = $schema->getLimit()) {
+                $limit = min($maxLimit, $limit);
+            }
         }
 
         $offset = 0;
