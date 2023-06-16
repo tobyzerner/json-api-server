@@ -1,108 +1,72 @@
 <?php
 
-/*
- * This file is part of tobyz/json-api-server.
- *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace Tobyz\JsonApiServer;
 
 use HttpAccept\AcceptParser;
 use HttpAccept\ContentTypeParser;
 use InvalidArgumentException;
-use JsonApiPhp\JsonApi\ErrorDocument;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface;
-use Tobyz\JsonApiServer\Adapter\AdapterInterface;
-use Tobyz\JsonApiServer\Endpoint\Concerns\FindsResources;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\InternalServerErrorException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
 use Tobyz\JsonApiServer\Exception\NotAcceptableException;
-use Tobyz\JsonApiServer\Exception\NotImplementedException;
+use Tobyz\JsonApiServer\Exception\NotFoundException;
 use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\Exception\UnsupportedMediaTypeException;
 use Tobyz\JsonApiServer\Extension\Extension;
-use Tobyz\JsonApiServer\Schema\Concerns\HasMeta;
+use Tobyz\JsonApiServer\Resource\Resource;
+use Tobyz\JsonApiServer\Resource\ResourceInterface;
 
-final class JsonApi implements RequestHandlerInterface
+class JsonApi implements RequestHandlerInterface
 {
     public const MEDIA_TYPE = 'application/vnd.api+json';
-
-    use FindsResources;
-    use HasMeta;
-
-    /**
-     * @var string
-     */
-    private $basePath;
+    public const VERSION = '1.1';
 
     /**
      * @var Extension[]
      */
-    private $extensions = [];
+    public array $extensions = [];
 
     /**
-     * @var ResourceType[]
+     * @var Resource[]
      */
-    private $resourceTypes = [];
+    public array $resources = [];
 
-    public function __construct(string $basePath)
+    public function __construct(public string $basePath = '')
     {
-        $this->basePath = $basePath;
+        $this->basePath = rtrim($this->basePath, '/');
     }
 
     /**
      * Register an extension.
      */
-    public function extension(Extension $extension)
+    public function extension(Extension $extension): void
     {
         $this->extensions[$extension->uri()] = $extension;
     }
 
     /**
-     * Get all registered extensions.
+     * Define a new resource.
      */
-    public function getExtensions(): array
+    public function resource(ResourceInterface $resource): void
     {
-        return $this->extensions;
+        $this->resources[$resource->type()] = $resource;
     }
 
     /**
-     * Define a new resource type.
-     */
-    public function resourceType(string $type, AdapterInterface $adapter, callable $buildSchema = null): void
-    {
-        $this->resourceTypes[$type] = new ResourceType($type, $adapter, $buildSchema);
-    }
-
-    /**
-     * Get defined resource types.
+     * Get a resource by type.
      *
-     * @return ResourceType[]
+     * @throws ResourceNotFoundException if the resource has not been defined.
      */
-    public function getResourceTypes(): array
+    public function getResource(string $type): ResourceInterface
     {
-        return $this->resourceTypes;
-    }
-
-    /**
-     * Get a resource type.
-     *
-     * @throws ResourceNotFoundException if the resource type has not been defined.
-     */
-    public function getResourceType(string $type): ResourceType
-    {
-        if (! isset($this->resourceTypes[$type])) {
+        if (!isset($this->resources[$type])) {
             throw new ResourceNotFoundException($type);
         }
 
-        return $this->resourceTypes[$type];
+        return $this->resources[$type];
     }
 
     /**
@@ -112,7 +76,6 @@ final class JsonApi implements RequestHandlerInterface
      * @throws NotAcceptableException if the request Accept header is invalid
      * @throws MethodNotAllowedException if the request method is invalid
      * @throws BadRequestException if the request URI is invalid
-     * @throws NotImplementedException
      */
     public function handle(Request $request): Response
     {
@@ -122,8 +85,24 @@ final class JsonApi implements RequestHandlerInterface
 
         $response = $this->runExtensions($context);
 
-        if (! $response) {
-            $response = $this->route($context);
+        if (!$response) {
+            $segments = explode('/', trim($context->path(), '/'), 2);
+
+            $context = $context->withResource($this->getResource($segments[0]));
+
+            foreach ($context->resource->endpoints() as $endpoint) {
+                try {
+                    if ($response = $endpoint->handle($context->withEndpoint($endpoint))) {
+                        break;
+                    }
+                } catch (MethodNotAllowedException $e) {
+                    // Give other endpoints a chance to handle
+                }
+            }
+        }
+
+        if (!$response) {
+            throw $e ?? new NotFoundException();
         }
 
         return $response->withAddedHeader('Vary', 'Accept');
@@ -131,7 +110,7 @@ final class JsonApi implements RequestHandlerInterface
 
     private function runExtensions(Context $context): ?Response
     {
-        $request = $context->getRequest();
+        $request = $context->request;
 
         $contentTypeExtensionUris = $this->getContentTypeExtensionUris($request);
         $acceptableExtensionUris = $this->getAcceptableExtensionUris($request);
@@ -139,96 +118,44 @@ final class JsonApi implements RequestHandlerInterface
         $activeExtensions = array_intersect_key(
             $this->extensions,
             array_flip($contentTypeExtensionUris),
-            array_flip($acceptableExtensionUris)
+            array_flip($acceptableExtensionUris),
         );
 
         foreach ($activeExtensions as $extension) {
             if ($response = $extension->handle($context)) {
-                return $response->withHeader('Content-Type', self::MEDIA_TYPE.'; ext='.$extension->uri());
+                return $response->withHeader(
+                    'Content-Type',
+                    self::MEDIA_TYPE . '; ext=' . $extension->uri(),
+                );
             }
         }
 
         return null;
     }
 
-    private function route(Context $context): Response
-    {
-        $segments = explode('/', trim($context->getPath(), '/'));
-        $resourceType = $this->getResourceType($segments[0]);
-
-        switch (count($segments)) {
-            case 1:
-                return $this->routeCollection($context, $resourceType);
-
-            case 2:
-                return $this->routeResource($context, $resourceType, $segments[1]);
-
-            case 3:
-                throw new NotImplementedException();
-
-            case 4:
-                if ($segments[2] === 'relationships') {
-                    throw new NotImplementedException();
-                }
-        }
-
-        throw new BadRequestException();
-    }
-
     private function validateQueryParameters(Request $request): void
     {
         foreach ($request->getQueryParams() as $key => $value) {
             if (
-                ! preg_match('/[^a-z]/', $key)
-                && ! in_array($key, ['include', 'fields', 'filter', 'page', 'sort'])
+                !preg_match('/[^a-z]/', $key) &&
+                !in_array($key, ['include', 'fields', 'filter', 'page', 'sort'])
             ) {
-                throw (new BadRequestException('Invalid query parameter: '.$key))->setSourceParameter($key);
+                throw (new BadRequestException(
+                    "Invalid query parameter: $key",
+                ))->setSourceParameter($key);
             }
-        }
-    }
-
-    private function routeCollection(Context $context, ResourceType $resourceType): Response
-    {
-        switch ($context->getRequest()->getMethod()) {
-            case 'GET':
-                return (new Endpoint\Index())->handle($context, $resourceType);
-
-            case 'POST':
-                return (new Endpoint\Create())->handle($context, $resourceType);
-
-            default:
-                throw new MethodNotAllowedException();
-        }
-    }
-
-    private function routeResource(Context $context, ResourceType $resourceType, string $resourceId): Response
-    {
-        $model = $this->findResource($resourceType, $resourceId, $context);
-
-        switch ($context->getRequest()->getMethod()) {
-            case 'PATCH':
-                return (new Endpoint\Update())->handle($context, $resourceType, $model);
-
-            case 'GET':
-                return (new Endpoint\Show())->handle($context, $resourceType, $model);
-
-            case 'DELETE':
-                return (new Endpoint\Delete())->handle($context, $resourceType, $model);
-
-            default:
-                throw new MethodNotAllowedException();
         }
     }
 
     private function getContentTypeExtensionUris(Request $request): array
     {
-        if (! $contentType = $request->getHeaderLine('Content-Type')) {
+        if (!($contentType = $request->getHeaderLine('Content-Type'))) {
             return [];
         }
 
         try {
             $type = (new ContentTypeParser())->parse($contentType);
-        } catch(InvalidArgumentException $exc){
+        } catch (InvalidArgumentException $e) {
             throw new UnsupportedMediaTypeException();
         }
 
@@ -236,12 +163,13 @@ final class JsonApi implements RequestHandlerInterface
             throw new UnsupportedMediaTypeException();
         }
 
-        if (! empty(array_diff(array_keys($type->parameters()), ['ext', 'profile']))) {
+        if (!empty(array_diff(array_keys($type->parameters()), ['ext', 'profile']))) {
             throw new UnsupportedMediaTypeException();
         }
 
         $extensionUris = $type->hasParamater('ext') ? explode(' ', $type->getParameter('ext')) : [];
-        if (! empty(array_diff($extensionUris, array_keys($this->extensions)))) {
+
+        if (!empty(array_diff($extensionUris, array_keys($this->extensions)))) {
             throw new UnsupportedMediaTypeException();
         }
 
@@ -250,12 +178,13 @@ final class JsonApi implements RequestHandlerInterface
 
     private function getAcceptableExtensionUris(Request $request): array
     {
-        if (! $accept = $request->getHeaderLine('Accept')) {
+        if (!($accept = $request->getHeaderLine('Accept'))) {
             return [];
         }
 
         $list = (new AcceptParser())->parse($accept);
-        foreach($list as $mediaType) {
+
+        foreach ($list as $mediaType) {
             if (!in_array($mediaType->name(), [JsonApi::MEDIA_TYPE, '*/*'])) {
                 continue;
             }
@@ -264,8 +193,11 @@ final class JsonApi implements RequestHandlerInterface
                 continue;
             }
 
-            $extensionUris = $mediaType->hasParamater('ext') ? explode(' ', $mediaType->getParameter('ext')) : [];
-            if (! empty(array_diff($extensionUris, array_keys($this->extensions)))) {
+            $extensionUris = $mediaType->hasParamater('ext')
+                ? explode(' ', $mediaType->getParameter('ext'))
+                : [];
+
+            if (!empty(array_diff($extensionUris, array_keys($this->extensions)))) {
                 continue;
             }
 
@@ -283,28 +215,18 @@ final class JsonApi implements RequestHandlerInterface
      */
     public function error($e): Response
     {
-        if (! $e instanceof ErrorProviderInterface) {
+        if (!$e instanceof ErrorProviderInterface) {
             $e = new InternalServerErrorException();
         }
 
         $errors = $e->getJsonApiErrors();
         $status = $e->getJsonApiStatus();
 
-        $document = new ErrorDocument(...$errors);
-
-        return json_api_response($document, $status);
+        return json_api_response(['errors' => $errors], $status);
     }
 
     /**
-     * Get the base path for the API.
-     */
-    public function getBasePath(): string
-    {
-        return $this->basePath;
-    }
-
-    /**
-     * Strip the API's base path from the start of the given path.
+     * Strip the API base path from the start of the given path.
      */
     public function stripBasePath(string $path): string
     {

@@ -1,40 +1,19 @@
 <?php
 
-/*
- * This file is part of tobyz/json-api-server.
- *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace Tobyz\JsonApiServer\Schema;
 
+use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
 use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 
-final class Sort
+abstract class Sort
 {
     use HasDescription;
     use HasVisibility;
 
-    private $name;
-    private $callback;
-
-    public function __construct(string $name, callable $callback)
+    public function __construct(public string $name)
     {
-        $this->name = $name;
-        $this->callback = $callback;
     }
 
-    public function getName(): string
-    {
-        return $this->name;
-    }
-
-    public function getCallback(): callable
-    {
-        return $this->callback;
-    }
+    abstract public function apply(object $query, string $direction, Context $context): void;
 }

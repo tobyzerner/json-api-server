@@ -1,35 +1,74 @@
-# Deleting Resources
+# Delete
 
-You can allow resources to be [deleted](https://jsonapi.org/format/#crud-deleting) using the `deletable` and `notDeletable` methods on the schema builder. 
+Use the Delete endpoint to allow resources to be updated.
 
-Optionally pass a closure that returns a boolean value.
+The Delete endpoint handles `DELETE /{type}/{id}` requests and responds with a
+`204 No Content` response.
 
-```php
-$type->deletable();
-
-$type->deletable(function (Context $context) {
-    return $context->getRequest()->getAttribute('user')->isAdmin();
-});
-```
-
-## Events
-
-### `deleting`
-
-Run before the model is deleted.
+To enable it for a resource, add the Delete endpoint to your `endpoints` array:
 
 ```php
-$type->deleting(function (&$model, Context $context) {
-    // do something
-});
+use Tobyz\JsonApiServer\Endpoint\Delete;
+
+class PostsResource extends Resource
+{
+    // ...
+
+    public function endpoints(): array
+    {
+        return [Delete::make()];
+    }
+}
 ```
 
-### `deleted`
+## Authorization
 
-Run after the model is deleted.
+If you want to restrict the ability to delete a resource, use the `visible` or
+`hidden` method, with a closure that returns a boolean value:
 
 ```php
-$type->deleted(function (&$model, Context $context) {
-    // do something
-});
+Delete::make()->visible(fn($model, Context $context) => $model->is_wiki);
 ```
+
+## Implementation
+
+The Delete endpoint requires the resource to implement the
+`Tobyz\JsonApiServer\Resource\Deletable` interface (which extends the `Findable`
+interface). The endpoint will:
+
+1. Call the `find` method to retrieve the model instance.
+2. Call the `delete` method to delete the model.
+
+A simple implementation might look like:
+
+```php
+use App\Models\Post;
+use Tobyz\JsonApiServer\Resource\Updatable;
+
+class PostsResource extends Resource implements Deletable
+{
+    // ...
+
+    public function endpoints(): array
+    {
+        return [Endpoint\Delete::make()];
+    }
+
+    public function find(string $id, Context $context): ?object;
+    {
+        return Post::find($id);
+    }
+
+    public function delete(object $model, Context $context): void
+    {
+        $model->delete();
+    }
+}
+```
+
+::: tip Laravel Integration  
+For Laravel applications with Eloquent-backed resources, you can extend the
+`Tobyz\JsonApiServer\Laravel\EloquentResource` class which implements this
+interface for you. Learn more on the
+[Laravel Integration](laravel.md#eloquent-resources) page.  
+:::

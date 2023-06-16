@@ -2,3 +2,5 @@ composer.lock
 vendor
 node_modules
 .phpunit.result.cache
+.vitepress/dist
+.vitepress/cache

@@ -1,72 +1,63 @@
 <?php
 
-/*
- * This file is part of tobyz/json-api-server.
- *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace Tobyz\JsonApiServer;
 
 use Closure;
 use Nyholm\Psr7\Response;
 use Nyholm\Psr7\Stream;
-use Tobyz\JsonApiServer\Schema\Field;
+use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Resource\Listable;
+use Tobyz\JsonApiServer\Resource\ResourceInterface;
+use Tobyz\JsonApiServer\Schema\Field\Field;
+use Tobyz\JsonApiServer\Schema\Field\Relationship;
 
 function json_api_response($document, int $status = 200): Response
 {
     return (new Response($status))
         ->withHeader('Content-Type', JsonApi::MEDIA_TYPE)
-        ->withBody(Stream::create(json_encode($document, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES)));
+        ->withBody(
+            Stream::create(
+                json_encode(
+                    $document + ['jsonapi' => ['version' => JsonApi::VERSION]],
+                    JSON_HEX_TAG |
+                        JSON_HEX_APOS |
+                        JSON_HEX_AMP |
+                        JSON_HEX_QUOT |
+                        JSON_UNESCAPED_SLASHES,
+                ),
+            ),
+        );
 }
 
-function negate(Closure $condition): Closure
+function negate(bool|Closure $condition): bool|Closure
 {
-    return function (...$args) use ($condition) {
-        return ! $condition(...$args);
-    };
-}
-
-function wrap($value): Closure
-{
-    if (! $value instanceof Closure) {
-        $value = function () use ($value) {
-            return $value;
-        };
+    if (is_bool($condition)) {
+        return !$condition;
     }
 
-    return $value;
+    return fn(...$args) => !$condition(...$args);
 }
 
-function evaluate($condition, array $params): bool
+function location(Field $field): string
 {
-    return $condition === true || (is_callable($condition) && $condition(...$params));
-}
-
-function run_callbacks(array $callbacks, array $params): void
-{
-    foreach ($callbacks as $callback) {
-        $callback(...$params);
-    }
+    return $field instanceof Relationship ? 'relationships' : 'attributes';
 }
 
 function has_value(array $data, Field $field): bool
 {
-    return array_key_exists($location = $field->getLocation(), $data)
-        && array_key_exists($field->getName(), $data[$location]);
+    $location = location($field);
+
+    return array_key_exists($location, $data) && array_key_exists($field->name, $data[$location]);
 }
 
 function get_value(array $data, Field $field)
 {
-    return $data[$field->getLocation()][$field->getName()] ?? null;
+    return $data[location($field)][$field->name] ?? null;
 }
 
 function set_value(array &$data, Field $field, $value): void
 {
-    $data[$field->getLocation()][$field->getName()] = $value;
+    $data[location($field)][$field->name] = $value;
 }
 
 function parse_sort_string(string $string): array
@@ -78,4 +69,24 @@ function parse_sort_string(string $string): array
             return [$field, 'asc'];
         }
     }, explode(',', $string));
+}
+
+function apply_filters(
+    $query,
+    array $filters,
+    ResourceInterface&Listable $resource,
+    Context $context,
+): void {
+    $availableFilters = $resource->filters();
+
+    foreach ($filters as $name => $value) {
+        foreach ($availableFilters as $filter) {
+            if ($filter->name === $name && $filter->isVisible($context)) {
+                $filter->apply($query, $value, $context);
+                continue 2;
+            }
+        }
+
+        throw (new BadRequestException("Invalid filter: $name"))->setSourceParameter($name);
+    }
 }

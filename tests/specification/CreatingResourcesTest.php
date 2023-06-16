@@ -1,44 +1,36 @@
 <?php
 
-/*
- * This file is part of tobyz/json-api-server.
- *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace Tobyz\Tests\JsonApiServer\specification;
 
+use Tobyz\JsonApiServer\Endpoint\Create;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\ConflictException;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\JsonApi;
-use Tobyz\JsonApiServer\Schema\Type;
+use Tobyz\JsonApiServer\Schema\Field\Str;
+use Tobyz\JsonApiServer\Schema\Field\ToOne;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
-use Tobyz\Tests\JsonApiServer\MockAdapter;
+use Tobyz\Tests\JsonApiServer\MockResource;
 
 /**
  * @see https://jsonapi.org/format/1.1/#crud-creating
  */
 class CreatingResourcesTest extends AbstractTestCase
 {
-    /**
-     * @var JsonApi
-     */
-    private $api;
+    private JsonApi $api;
 
     public function setUp(): void
     {
-        $this->api = new JsonApi('http://example.com');
+        $this->api = new JsonApi();
 
-        $this->api->resourceType('users', new MockAdapter(), function (Type $type) {
-            $type->creatable();
-            $type->attribute('name')->writable();
-            $type->hasOne('pet')->writable();
-        });
+        $this->api->resource(
+            new MockResource(
+                'users',
+                endpoints: [Create::make()],
+                fields: [Str::make('name')->writable(), ToOne::make('pet')->writable()],
+            ),
+        );
     }
 
     public function test_bad_request_error_if_body_does_not_contain_data_type()
@@ -46,10 +38,9 @@ class CreatingResourcesTest extends AbstractTestCase
         $this->expectException(BadRequestException::class);
 
         $this->api->handle(
-            $this->buildRequest('POST', '/users')
-                ->withParsedBody([
-                    'data' => [],
-                ])
+            $this->buildRequest('POST', '/users')->withParsedBody([
+                'data' => [],
+            ]),
         );
     }
 
@@ -58,15 +49,14 @@ class CreatingResourcesTest extends AbstractTestCase
         $this->expectException(BadRequestException::class);
 
         $this->api->handle(
-            $this->buildRequest('POST', '/users')
-                ->withParsedBody([
-                    'data' => [
-                        'type' => 'users',
-                        'relationships' => [
-                            'pet' => [],
-                        ],
+            $this->buildRequest('POST', '/users')->withParsedBody([
+                'data' => [
+                    'type' => 'users',
+                    'relationships' => [
+                        'pet' => [],
                     ],
-                ])
+                ],
+            ]),
         );
     }
 
@@ -75,39 +65,38 @@ class CreatingResourcesTest extends AbstractTestCase
         $this->expectException(ForbiddenException::class);
 
         $this->api->handle(
-            $this->buildRequest('POST', '/users')
-                ->withParsedBody([
-                    'data' => [
-                        'type' => 'users',
-                        'id' => '1',
-                    ],
-                ])
+            $this->buildRequest('POST', '/users')->withParsedBody([
+                'data' => [
+                    'type' => 'users',
+                    'id' => '1',
+                ],
+            ]),
         );
     }
 
     public function test_created_response_includes_created_data_and_location_header()
     {
         $response = $this->api->handle(
-            $this->buildRequest('POST', '/users')
-                ->withParsedBody([
-                    'data' => [
-                        'type' => 'users',
-                    ],
-                ])
+            $this->buildRequest('POST', '/users')->withParsedBody([
+                'data' => ['type' => 'users'],
+            ]),
         );
 
         $this->assertEquals(201, $response->getStatusCode());
-        $this->assertEquals('http://example.com/users/1', $response->getHeaderLine('location'));
+        $this->assertEquals('/users/created', $response->getHeaderLine('location'));
 
-        $this->assertJsonApiDocumentSubset([
-            'data' => [
-                'type' => 'users',
-                'id' => '1',
-                'links' => [
-                    'self' => 'http://example.com/users/1',
+        $this->assertJsonApiDocumentSubset(
+            [
+                'data' => [
+                    'type' => 'users',
+                    'id' => 'created',
+                    'links' => [
+                        'self' => '/users/created',
+                    ],
                 ],
             ],
-        ], $response->getBody());
+            $response->getBody(),
+        );
     }
 
     public function test_not_found_error_if_references_resource_that_does_not_exist()
@@ -115,17 +104,16 @@ class CreatingResourcesTest extends AbstractTestCase
         $this->expectException(ResourceNotFoundException::class);
 
         $this->api->handle(
-            $this->buildRequest('POST', '/users')
-                ->withParsedBody([
-                    'data' => [
-                        'type' => 'users',
-                        'relationships' => [
-                            'pet' => [
-                                'data' => ['type' => 'pets', 'id' => '1'],
-                            ],
+            $this->buildRequest('POST', '/users')->withParsedBody([
+                'data' => [
+                    'type' => 'users',
+                    'relationships' => [
+                        'pet' => [
+                            'data' => ['type' => 'pets', 'id' => '1'],
                         ],
                     ],
-                ])
+                ],
+            ]),
         );
     }
 
@@ -134,12 +122,11 @@ class CreatingResourcesTest extends AbstractTestCase
         $this->expectException(ConflictException::class);
 
         $this->api->handle(
-            $this->buildRequest('POST', '/users')
-                ->withParsedBody([
-                    'data' => [
-                        'type' => 'pets',
-                    ],
-                ])
+            $this->buildRequest('POST', '/users')->withParsedBody([
+                'data' => [
+                    'type' => 'pets',
+                ],
+            ]),
         );
     }
 }

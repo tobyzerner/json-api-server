@@ -1,51 +1,46 @@
 <?php
 
-/*
- * This file is part of tobyz/json-api-server.
- *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace Tobyz\JsonApiServer\Endpoint;
 
-use JsonApiPhp\JsonApi\CompoundDocument;
-use JsonApiPhp\JsonApi\Included;
 use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsMeta;
-use Tobyz\JsonApiServer\Endpoint\Concerns\IncludesData;
-use Tobyz\JsonApiServer\ResourceType;
-use Tobyz\JsonApiServer\Serializer;
+use Tobyz\JsonApiServer\Endpoint\Concerns\FindsResources;
+use Tobyz\JsonApiServer\Endpoint\Concerns\ShowsResources;
+use Tobyz\JsonApiServer\Exception\ForbiddenException;
+use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
+use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 
 use function Tobyz\JsonApiServer\json_api_response;
-use function Tobyz\JsonApiServer\run_callbacks;
 
-class Show
+class Show implements EndpointInterface
 {
-    use IncludesData;
-    use BuildsMeta;
+    use HasVisibility;
+    use FindsResources;
+    use ShowsResources;
 
-    public function handle(Context $context, ResourceType $resourceType, $model): ResponseInterface
+    public static function make(): static
     {
-        run_callbacks($resourceType->getSchema()->getListeners('show'), [&$model, $context]);
+        return new static();
+    }
 
-        $include = $this->getInclude($context, $resourceType);
+    public function handle(Context $context): ?ResponseInterface
+    {
+        $segments = explode('/', $context->path());
 
-        $serializer = new Serializer($context);
-        $serializer->add($resourceType, $model, $include);
+        if (count($segments) !== 2) {
+            return null;
+        }
 
-        [$primary, $included] = $serializer->serialize();
+        if ($context->request->getMethod() !== 'GET') {
+            throw new MethodNotAllowedException();
+        }
 
-        return json_api_response(
-            new CompoundDocument(
-                $primary[0],
-                new Included(...$included),
-                $this->buildJsonApiObject($context),
-                ...$this->buildMeta($context)
-            )
-        );
+        $model = $this->findResource($context, $segments[1]);
+
+        if (!$this->isVisible($context = $context->withModel($model))) {
+            throw new ForbiddenException();
+        }
+
+        return json_api_response($this->showResource($context, $model));
     }
 }

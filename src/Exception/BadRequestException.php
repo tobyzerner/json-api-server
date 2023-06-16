@@ -1,26 +1,16 @@
 <?php
 
-/*
- * This file is part of tobyz/json-api-server.
- *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace Tobyz\JsonApiServer\Exception;
 
 use DomainException;
-use JsonApiPhp\JsonApi\Error;
 use Tobyz\JsonApiServer\ErrorProviderInterface;
 
 class BadRequestException extends DomainException implements ErrorProviderInterface
 {
-    private $sourceType;
-    private $source;
+    public string $sourceType;
+    public string $source;
 
-    public function setSourceParameter(string $parameter)
+    public function setSourceParameter(string $parameter): static
     {
         $this->sourceType = 'parameter';
         $this->source = $parameter;
@@ -28,7 +18,7 @@ class BadRequestException extends DomainException implements ErrorProviderInterf
         return $this;
     }
 
-    public function setSourcePointer(string $pointer)
+    public function setSourcePointer(string $pointer): static
     {
         $this->sourceType = 'pointer';
         $this->source = $pointer;
@@ -41,21 +31,21 @@ class BadRequestException extends DomainException implements ErrorProviderInterf
         $members = [];
 
         if ($this->message) {
-            $members[] = new Error\Detail($this->message);
+            $members['detail'] = $this->message;
         }
 
         if ($this->sourceType === 'parameter') {
-            $members[] = new Error\SourceParameter($this->source);
+            $members['source']['parameter'] = $this->source;
         } elseif ($this->sourceType === 'pointer') {
-            $members[] = new Error\SourcePointer($this->source);
+            $members['source']['pointer'] = $this->source;
         }
 
         return [
-            new Error(
-                new Error\Title('Bad Request'),
-                new Error\Status($this->getJsonApiStatus()),
-                ...$members
-            )
+            [
+                'title' => 'Bad Request',
+                'status' => $this->getJsonApiStatus(),
+                ...$members,
+            ],
         ];
     }
 

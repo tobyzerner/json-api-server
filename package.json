@@ -1,11 +1,14 @@
 {
-  "name": "json-api-server",
-  "private": true,
-  "scripts": {
-    "docs:dev": "vuepress dev docs",
-    "docs:build": "vuepress build docs"
-  },
-  "devDependencies": {
-    "vuepress": "^1.7.1"
-  }
+    "name": "json-api-server",
+    "private": true,
+    "scripts": {
+        "docs:dev": "vitepress dev docs",
+        "docs:build": "vitepress build docs",
+        "docs:preview": "vitepress preview docs"
+    },
+    "devDependencies": {
+        "@prettier/plugin-php": "^0.19.6",
+        "prettier": "^2.8.8",
+        "vitepress": "1.0.0-beta.2"
+    }
 }

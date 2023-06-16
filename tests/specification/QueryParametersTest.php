@@ -1,41 +1,32 @@
 <?php
 
-/*
- * This file is part of tobyz/json-api-server.
- *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace Tobyz\Tests\JsonApiServer\specification;
 
+use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
-use Tobyz\Tests\JsonApiServer\MockAdapter;
+use Tobyz\Tests\JsonApiServer\MockResource;
 
 /**
  * @see https://jsonapi.org/format/1.1/#query-parameters
  */
 class QueryParametersTest extends AbstractTestCase
 {
-    /**
-     * @var JsonApi
-     */
-    private $api;
+    private JsonApi $api;
 
     public function setUp(): void
     {
-        $this->api = new JsonApi('http://example.com');
-        $this->api->resourceType('users', new MockAdapter());
+        $this->api = new JsonApi();
+
+        $this->api->resource(
+            new MockResource('users', models: [(object) ['id' => '1']], endpoints: [Show::make()]),
+        );
     }
 
     public function test_bad_request_error_if_unknown_query_parameters()
     {
-        $request = $this->buildRequest('GET', '/users/1')
-            ->withQueryParams(['unknown' => 'value']);
+        $request = $this->buildRequest('GET', '/users/1')->withQueryParams(['unknown' => 'value']);
 
         $this->expectException(BadRequestException::class);
 
@@ -44,8 +35,9 @@ class QueryParametersTest extends AbstractTestCase
 
     public function test_supports_custom_query_parameters()
     {
-        $request = $this->buildRequest('GET', '/users/1')
-            ->withQueryParams(['camelCase' => 'value']);
+        $request = $this->buildRequest('GET', '/users/1')->withQueryParams([
+            'camelCase' => 'value',
+        ]);
 
         $response = $this->api->handle($request);
 

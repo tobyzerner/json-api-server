@@ -1,28 +1,22 @@
 <?php
 
-/*
- * This file is part of tobyz/json-api-server.
- *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace Tobyz\JsonApiServer\Schema\Concerns;
+
+use Closure;
+use Tobyz\JsonApiServer\Context;
 
 use function Tobyz\JsonApiServer\negate;
 
 trait HasVisibility
 {
-    private $visible = true;
+    private bool|Closure $visible = true;
 
     /**
      * Allow this field to be seen.
      */
-    public function visible(callable $condition = null)
+    public function visible(bool|Closure $condition = true): static
     {
-        $this->visible = $condition ?: true;
+        $this->visible = $condition;
 
         return $this;
     }
@@ -30,15 +24,24 @@ trait HasVisibility
     /**
      * Disallow this field to be seen.
      */
-    public function hidden(callable $condition = null)
+    public function hidden(bool|Closure $condition = true): static
     {
-        $this->visible = $condition ? negate($condition) : false;
+        $this->visible = negate($condition);
 
         return $this;
     }
 
-    public function getVisible()
+    /**
+     * Determine if this field is visible in the given context.
+     */
+    public function isVisible(Context $context): bool
     {
-        return $this->visible;
+        if (is_bool($this->visible)) {
+            return $this->visible;
+        }
+
+        return isset($context->model)
+            ? ($this->visible)($context->model, $context)
+            : ($this->visible)($context);
     }
 }

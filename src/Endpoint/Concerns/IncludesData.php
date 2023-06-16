@@ -1,31 +1,19 @@
 <?php
 
-/*
- * This file is part of tobyz/json-api-server.
- *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace Tobyz\JsonApiServer\Endpoint\Concerns;
 
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
-use Tobyz\JsonApiServer\ResourceType;
-use Tobyz\JsonApiServer\Schema\Relationship;
+use Tobyz\JsonApiServer\Schema\Field\Relationship;
 
 trait IncludesData
 {
-    private function getInclude(Context $context, ResourceType $resourceType): array
+    private function getInclude(Context $context): array
     {
-        $queryParams = $context->getRequest()->getQueryParams();
+        if ($includeString = $context->request->getQueryParams()['include'] ?? null) {
+            $include = $this->parseInclude($includeString);
 
-        if (! empty($queryParams['include'])) {
-            $include = $this->parseInclude($queryParams['include']);
-
-            $this->validateInclude($context, [$resourceType], $include);
+            $this->validateInclude($context, [$context->resource], $include);
 
             return $include;
         }
@@ -41,7 +29,7 @@ trait IncludesData
             $array = &$tree;
 
             foreach (explode('.', $path) as $key) {
-                if (! isset($array[$key])) {
+                if (!isset($array[$key])) {
                     $array[$key] = [];
                 }
 
@@ -52,38 +40,38 @@ trait IncludesData
         return $tree;
     }
 
-    private function validateInclude(Context $context, array $resourceTypes, array $include, string $path = '')
-    {
+    private function validateInclude(
+        Context $context,
+        array $resources,
+        array $include,
+        string $path = '',
+    ): void {
         foreach ($include as $name => $nested) {
-            foreach ($resourceTypes as $resource) {
-                $fields = $resource->getSchema()->getFields();
+            foreach ($resources as $resource) {
+                $fields = $context->fields($resource);
 
                 if (
-                    ! isset($fields[$name])
-                    || ! $fields[$name] instanceof Relationship
-                    || ! $fields[$name]->isIncludable()
+                    !($field = $fields[$name] ?? null) ||
+                    !$field instanceof Relationship ||
+                    !$field->includable
                 ) {
                     continue;
                 }
 
-                $type = $fields[$name]->getType();
+                $types = $field->types;
 
-                if (is_string($type)) {
-                    $relatedResource = $context->getApi()->getResourceType($type);
+                $relatedResources = $types
+                    ? array_map(fn($type) => $context->api->getResource($type), $types)
+                    : array_values($context->api->resources);
 
-                    $this->validateInclude($context, [$relatedResource], $nested, $name.'.');
-                } else {
-                    $relatedResources = is_array($type) ? array_map(function ($type) use ($context) {
-                        return $context->getApi()->getResourceType($type);
-                    }, $type) : array_values($context->getApi()->getResourceTypes());
-
-                    $this->validateInclude($context, $relatedResources, $nested, $name.'.');
-                }
+                $this->validateInclude($context, $relatedResources, $nested, $name . '.');
 
                 continue 2;
             }
 
-            throw (new BadRequestException("Invalid include [{$path}{$name}]"))->setSourceParameter('include');
+            throw (new BadRequestException("Invalid include [{$path}{$name}]"))->setSourceParameter(
+                'include',
+            );
         }
     }
 }

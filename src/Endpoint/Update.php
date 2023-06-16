@@ -1,61 +1,69 @@
 <?php
 
-/*
- * This file is part of tobyz/json-api-server.
- *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace Tobyz\JsonApiServer\Endpoint;
 
 use Psr\Http\Message\ResponseInterface;
+use RuntimeException;
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsMeta;
+use Tobyz\JsonApiServer\Endpoint\Concerns\FindsResources;
 use Tobyz\JsonApiServer\Endpoint\Concerns\SavesData;
+use Tobyz\JsonApiServer\Endpoint\Concerns\ShowsResources;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
-use Tobyz\JsonApiServer\ResourceType;
+use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
+use Tobyz\JsonApiServer\Resource\Updatable;
+use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 
-use function Tobyz\JsonApiServer\evaluate;
-use function Tobyz\JsonApiServer\run_callbacks;
+use function Tobyz\JsonApiServer\json_api_response;
 
-class Update
+class Update implements EndpointInterface
 {
+    use HasVisibility;
+    use FindsResources;
     use SavesData;
+    use ShowsResources;
 
-    /**
-     * @throws ForbiddenException if the resource is not updatable.
-     */
-    public function handle(Context $context, ResourceType $resourceType, $model): ResponseInterface
+    public static function make(): static
     {
-        $schema = $resourceType->getSchema();
+        return new static();
+    }
 
-        if (! evaluate($schema->isUpdatable(), [$model, $context])) {
-            throw new ForbiddenException(sprintf(
-                'Cannot update resource %s:%s',
-                $resourceType->getType(),
-                $resourceType->getAdapter()->getId($model)
-            ));
+    public function handle(Context $context): ?ResponseInterface
+    {
+        $segments = explode('/', $context->path());
+
+        if (count($segments) !== 2) {
+            return null;
         }
 
-        $data = $this->parseData($resourceType, $context->getBody(), $model);
+        if ($context->request->getMethod() !== 'PATCH') {
+            throw new MethodNotAllowedException();
+        }
 
-        $this->validateFields($resourceType, $data, $model, $context);
-        $this->loadRelatedResources($resourceType, $data, $context);
-        $this->assertDataValid($resourceType, $data, $model, $context, false);
-        $this->setValues($resourceType, $data, $model, $context);
+        $resource = $context->resource;
 
-        run_callbacks($schema->getListeners('updating'), [&$model, $context]);
+        if (!$resource instanceof Updatable) {
+            throw new RuntimeException(
+                sprintf('%s must implement %s', get_class($resource), Updatable::class),
+            );
+        }
 
-        $this->save($resourceType, $data, $model, $context);
+        $model = $this->findResource($context, $segments[1]);
 
-        run_callbacks($schema->getListeners('updated'), [&$model, $context]);
+        if (!$this->isVisible($context = $context->withModel($model))) {
+            throw new ForbiddenException();
+        }
 
-        $model = $this->freshModel($resourceType, $model, $context);
+        $data = $this->parseData($context);
 
-        return (new Show())
-            ->handle($context, $resourceType, $model);
+        $this->assertFieldsValid($context, $data);
+        $this->deserializeValues($context, $data);
+        $this->assertDataValid($context, $data, false);
+        $this->setValues($context, $data);
+
+        $context = $context->withModel($model = $resource->update($model, $context));
+
+        $this->saveFields($context, $data);
+
+        return json_api_response($this->showResource($context, $model));
     }
 }

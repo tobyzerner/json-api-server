@@ -1,81 +1,93 @@
 <?php
 
-/*
- * This file is part of tobyz/json-api-server.
- *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace Tobyz\Tests\JsonApiServer\specification;
 
+use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\JsonApi;
-use Tobyz\JsonApiServer\Schema\Type;
+use Tobyz\JsonApiServer\Schema\Field\Str;
+use Tobyz\JsonApiServer\Schema\Field\ToOne;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
-use Tobyz\Tests\JsonApiServer\MockAdapter;
+use Tobyz\Tests\JsonApiServer\MockResource;
 
 /**
- * @see https://jsonapi.org/format/1.1/#fetching-sparse-fieldsets
+ * @see https://jsonapi.org/format/#fetching-sparse-fieldsets
  */
 class SparseFieldsetsTest extends AbstractTestCase
 {
-    /**
-     * @var JsonApi
-     */
-    private $api;
+    private JsonApi $api;
 
     public function setUp(): void
     {
-        $this->api = new JsonApi('http://example.com');
+        $this->api = new JsonApi();
 
-        $articlesAdapter = new MockAdapter([
-            '1' => (object) [
-                'id' => '1',
-                'title' => 'foo',
-                'body' => 'bar',
-                'user' => (object) [
-                    'id' => '1',
-                    'firstName' => 'Toby',
-                    'lastName' => 'Zerner',
-                ],
-            ],
-        ]);
-
-        $this->api->resourceType('articles', $articlesAdapter, function (Type $type) {
-            $type->attribute('title');
-            $type->attribute('body');
-            $type->hasOne('user')->includable();
-        });
-
-        $this->api->resourceType('users', new MockAdapter(), function (Type $type) {
-            $type->attribute('firstName');
-            $type->attribute('lastName');
-        });
-    }
-
-    public function test_can_request_sparse_fieldsets()
-    {
-        $request = $this->api->handle(
-            $this->buildRequest('GET', '/articles/1')
-                ->withQueryParams([
-                    'include' => 'user',
-                    'fields' => [
-                        'articles' => 'title,user',
-                        'users' => 'firstName',
-                    ],
-                ])
+        $this->api->resource(
+            new MockResource(
+                'users',
+                models: [($user1 = (object) ['id' => '1', 'name' => 'Toby', 'color' => 'yellow'])],
+                fields: [Str::make('name'), Str::make('color')],
+            ),
         );
 
-        $document = json_decode($request->getBody(), true);
+        $this->api->resource(
+            new MockResource(
+                'articles',
+                models: [
+                    '1' => (object) [
+                        'id' => '1',
+                        'title' => 'foo',
+                        'body' => 'bar',
+                        'exclude' => 'baz',
+                        'author' => $user1,
+                    ],
+                ],
+                endpoints: [Show::make()],
+                fields: [
+                    Str::make('title'),
+                    Str::make('body'),
+                    Str::make('exclude'),
+                    ToOne::make('author')
+                        ->type('users')
+                        ->includable(),
+                ],
+            ),
+        );
+    }
 
-        $article = $document['data']['attributes'] ?? [];
-        $user = $document['included'][0]['attributes'] ?? [];
+    public function test_sparse_fieldsets()
+    {
+        $response = $this->api->handle(
+            $this->buildRequest(
+                'GET',
+                '/articles/1?include=author&fields[articles]=title,body,author&fields[users]=name',
+            ),
+        );
 
-        $this->assertArrayHasKey('title', $article);
-        $this->assertArrayNotHasKey('body', $article);
-        $this->assertArrayHasKey('firstName', $user);
-        $this->assertArrayNotHasKey('lastName', $user);
+        $this->assertJsonApiDocumentSubset(
+            [
+                'data' => [
+                    'type' => 'articles',
+                    'id' => '1',
+                    'attributes' => ['title' => 'foo', 'body' => 'bar'],
+                    'relationships' => [
+                        'author' => [
+                            'data' => ['type' => 'users', 'id' => '1'],
+                        ],
+                    ],
+                ],
+                'included' => [
+                    [
+                        'type' => 'users',
+                        'id' => '1',
+                        'attributes' => ['name' => 'Toby'],
+                    ],
+                ],
+            ],
+            $body = $response->getBody(),
+        );
+
+        $document = json_decode($body, true);
+
+        $this->assertArrayNotHasKey('exclude', $document['data']['attributes']);
+        $this->assertArrayNotHasKey('color', $document['included'][0]['attributes']);
     }
 }

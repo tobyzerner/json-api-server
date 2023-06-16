@@ -1,64 +1,61 @@
 <?php
 
-/*
- * This file is part of tobyz/json-api-server.
- *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace Tobyz\JsonApiServer\Endpoint;
 
-use JsonApiPhp\JsonApi\Meta;
-use JsonApiPhp\JsonApi\MetaDocument;
 use Nyholm\Psr7\Response;
 use Psr\Http\Message\ResponseInterface;
+use RuntimeException;
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsMeta;
+use Tobyz\JsonApiServer\Endpoint\Concerns\FindsResources;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
-use Tobyz\JsonApiServer\ResourceType;
+use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
+use Tobyz\JsonApiServer\Resource\Deletable;
+use Tobyz\JsonApiServer\Schema\Concerns\HasMeta;
+use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 
-use function Tobyz\JsonApiServer\evaluate;
 use function Tobyz\JsonApiServer\json_api_response;
-use function Tobyz\JsonApiServer\run_callbacks;
 
-class Delete
+class Delete implements EndpointInterface
 {
-    use BuildsMeta;
+    use HasMeta;
+    use HasVisibility;
+    use FindsResources;
 
-    /**
-     * @throws ForbiddenException if the resource is not deletable.
-     */
-    public function handle(Context $context, ResourceType $resourceType, $model): ResponseInterface
+    public static function make(): static
     {
-        $schema = $resourceType->getSchema();
+        return new static();
+    }
 
-        if (! evaluate($schema->isDeletable(), [$model, $context])) {
-            throw new ForbiddenException(sprintf(
-                'Cannot delete resource %s:%s',
-                $resourceType->getType(),
-                $resourceType->getAdapter()->getId($model)
-            ));
+    public function handle(Context $context): ?ResponseInterface
+    {
+        $segments = explode('/', $context->path());
+
+        if (count($segments) !== 2) {
+            return null;
         }
 
-        run_callbacks($schema->getListeners('deleting'), [&$model, $context]);
-
-        if ($deleteCallback = $schema->getDeleteCallback()) {
-            $deleteCallback($model, $context);
-        } else {
-            $resourceType->getAdapter()->delete($model);
+        if ($context->request->getMethod() !== 'DELETE') {
+            throw new MethodNotAllowedException();
         }
 
-        run_callbacks($schema->getListeners('deleted'), [&$model, $context]);
+        $resource = $context->resource;
 
-        if (count($meta = $this->buildMeta($context))) {
-            $meta[] = $this->buildJsonApiObject($context);
-
-            return json_api_response(
-                new MetaDocument(...$meta)
+        if (!$resource instanceof Deletable) {
+            throw new RuntimeException(
+                sprintf('%s must implement %s', get_class($resource), Deletable::class),
             );
+        }
+
+        $model = $this->findResource($context, $segments[1]);
+
+        if (!$this->isVisible($context = $context->withModel($model))) {
+            throw new ForbiddenException();
+        }
+
+        $resource->delete($model, $context);
+
+        if ($meta = $this->serializeMeta($context)) {
+            return json_api_response(['meta' => $meta]);
         }
 
         return new Response(204);

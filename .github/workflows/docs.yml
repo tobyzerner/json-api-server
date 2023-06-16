@@ -1,22 +1,34 @@
 name: Deploy Docs
 
 on:
+  workflow_dispatch: {}
   push:
-     branches: [ master ]
+    branches: [main]
 
 jobs:
-  build-and-deploy:
-    
+  deploy:
     runs-on: ubuntu-latest
-    
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-    - uses: actions/checkout@v2
-
-    - name: vuepress-deploy
-      uses: jenkey2011/vuepress-deploy@master
-      env:
-        ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
-        TARGET_REPO: tobyzerner/json-api-server
-        TARGET_BRANCH: gh-pages
-        BUILD_SCRIPT: npm i && npm run docs:build
-        BUILD_DIR: docs/.vuepress/dist/
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: npm
+      - run: npm ci
+      - name: Build
+        run: npm run docs:build
+      - uses: actions/configure-pages@v2
+      - uses: actions/upload-pages-artifact@v1
+        with:
+          path: docs/.vitepress/dist
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v1

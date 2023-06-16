@@ -1,17 +1,7 @@
 <?php
 
-/*
- * This file is part of tobyz/json-api-server.
- *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace Tobyz\JsonApiServer\Exception;
 
-use JsonApiPhp\JsonApi\Error;
 use RuntimeException;
 use Tobyz\JsonApiServer\ErrorProviderInterface;
 
@@ -20,10 +10,10 @@ class InternalServerErrorException extends RuntimeException implements ErrorProv
     public function getJsonApiErrors(): array
     {
         return [
-            new Error(
-                new Error\Title('Internal Server Error'),
-                new Error\Status($this->getJsonApiStatus())
-            )
+            [
+                'title' => 'Internal Server Error',
+                'status' => $this->getJsonApiStatus(),
+            ],
         ];
     }
 

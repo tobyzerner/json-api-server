@@ -1,14 +1,5 @@
 <?php
 
-/*
- * This file is part of tobyz/json-api-server.
- *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace Tobyz\JsonApiServer\Laravel;
 
 use Closure;
@@ -17,7 +8,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Schema\Field;
 
 function rules($rules, array $messages = [], array $customAttributes = []): Closure
 {
@@ -25,12 +15,13 @@ function rules($rules, array $messages = [], array $customAttributes = []): Clos
         $rules = [$rules];
     }
 
-    return function (callable $fail, $value, Model $model, Context $context, Field $field) use (
-        $rules,
-        $messages,
-        $customAttributes
-    ) {
-        $key = $field->getName();
+    return function (
+        callable $fail,
+        $value,
+        Model $model,
+        Context $context,
+    ) use ($rules, $messages, $customAttributes) {
+        $key = $context->field->name;
 
         $validatorRules = [$key => []];
 
@@ -39,8 +30,8 @@ function rules($rules, array $messages = [], array $customAttributes = []): Clos
                 $rule = str_replace('{id}', $model->getKey(), $rule);
             }
 
-            if (! is_numeric($k)) {
-                $validatorRules[$key.'.'.$k] = $rule;
+            if (!is_numeric($k)) {
+                $validatorRules[$key . '.' . $k] = $rule;
             } else {
                 $validatorRules[$key][] = $rule;
             }
@@ -50,7 +41,7 @@ function rules($rules, array $messages = [], array $customAttributes = []): Clos
             $value !== null ? [$key => $value] : [],
             $validatorRules,
             $messages,
-            $customAttributes
+            $customAttributes,
         );
 
         if ($validation->fails()) {
@@ -63,9 +54,7 @@ function rules($rules, array $messages = [], array $customAttributes = []): Clos
 
 function authenticated(): Closure
 {
-    return function () {
-        return Auth::check();
-    };
+    return fn() => Auth::check();
 }
 
 function can(string $ability, ...$args): Closure

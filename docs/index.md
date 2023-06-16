@@ -1,78 +1,96 @@
-# Introduction
+# json-api-server
 
-json-api-server is a [JSON:API](http://jsonapi.org) server implementation in PHP.
+json-api-server is a [JSON:API](http://jsonapi.org) server implementation in
+PHP.
 
-It allows you to define your API's schema, and then use an [adapter](adapters.md) to connect it to your application's database layer. You don't have to worry about any of the server boilerplate, routing, query parameters, or JSON:API document formatting.
+It allows you to build a feature-rich API by defining resource schema and
+connecting it to your application's database layer.
 
-Based on your schema definition, the package will serve a **complete JSON:API that conforms to the [spec](https://jsonapi.org/format/)**, including support for:
+Based on your schema definition, the package will serve a complete API that
+conforms to the [JSON:API specification](https://jsonapi.org/format/), including
+support for:
 
-- **Showing** individual resources (`GET /api/articles/1`)
-- **Listing** resource collections (`GET /api/articles`)
-- **Sorting**, **filtering**, **pagination**, and **sparse fieldsets**
-- **Compound documents** with inclusion of related resources
-- **Creating** resources (`POST /api/articles`)
-- **Updating** resources (`PATCH /api/articles/1`)
-- **Deleting** resources (`DELETE /api/articles/1`)
-- **Error handling**
+-   **Showing** individual resources (`GET /articles/1`)
+-   **Listing** resource collections (`GET /articles`)
+-   **Sorting**, **filtering**, **pagination**, and **sparse fieldsets**
+-   **Compound documents** with inclusion of related resources
+-   **Creating** resources (`POST /articles`)
+-   **Updating** resources (`PATCH /articles/1`)
+-   **Deleting** resources (`DELETE /articles/1`)
+-   **Content negotiation**
+-   **Error handling**
+-   **Extensions** including Atomic Operations
+-   **Generating OpenAPI definitions**
 
-The schema definition is extremely powerful and lets you easily apply [permissions](visibility.md), [transformations](writing.md#transformers), [validation](writing.md#validation), and custom [filtering](filtering.md) and [sorting](sorting.md) logic to build a fully functional API with ease.
+## Framework Integration
 
-### Example
+json-api-server can be used with any framework that can deal in PSR-7 Requests
+and Responses. Custom behavior can be implemented to support any ORM or data
+persistence layer.
 
-The following example uses Eloquent models in a Laravel application. However, json-api-server can be used with any framework that can deal in PSR-7 Requests and Responses. Custom [adapters](adapters.md) can be used to support other ORMs and data persistence layers.
+In particular, json-api-server works great with Laravel – for resources backed
+by Eloquent models, we provide an `EloquentResource` base class as well as
+various helpers. Read the [Laravel Integration](laravel.md) page for more
+information.
+
+## Example
+
+The following example shows an API implementation in a Laravel application.
 
 ```php
-use App\Models\{Article, Comment, User};
-use Tobyz\JsonApiServer\JsonApi;
-use Tobyz\JsonApiServer\Schema\Type;
-use Tobyz\JsonApiServer\Adapter\EloquentAdapter;
+use App\Models\User;
 use Tobyz\JsonApiServer\Laravel;
+use Tobyz\JsonApiServer\Laravel\{EloquentResource, Filter};
+use Tobyz\JsonApiServer\Endpoint;
+use Tobyz\JsonApiServer\Schema\Field;
+use Tobyz\JsonApiServer\JsonApi;
 
-$api = new JsonApi('http://example.com/api');
+class UsersResource extends EloquentResource
+{
+    public readonly string $type = 'users';
+    public readonly string $model = User::class;
 
-$api->resourceType('articles', new EloquentAdapter(Article::class), function (Type $type) {
-    $type->attribute('title')
-        ->writable()
-        ->validate(Laravel\rules('required'));
+    public function endpoints(): array
+    {
+        return [
+            Endpoint\Show::make(),
+            Endpoint\Index::make()->paginate(),
+            Endpoint\Create::make()->visible(Laravel\can('create')),
+            Endpoint\Update::make()->visible(Laravel\can('update')),
+            Endpoint\Delete::make()->visible(Laravel\can('delete')),
+        ];
+    }
 
-    $type->hasOne('author')
-        ->type('users')
-        ->includable()
-        ->filterable();
+    public function fields(): array
+    {
+        return [
+            Field\Str::make('name')
+                ->writable()
+                ->required(),
 
-    $type->hasMany('comments')
-        ->includable();
-});
+            Field\HasOne::make('address')->includable(),
 
-$api->resourceType('comments', new EloquentAdapter(Comment::class), function (Type $type) {
-    $type->creatable(Laravel\authenticated());
-    $type->updatable(Laravel\can('update-comment'));
-    $type->deletable(Laravel\can('delete-comment'));
+            Field\HasMany::make('friends')
+                ->type('users')
+                ->includable(),
+        ];
+    }
 
-    $type->attribute('body')
-        ->writable()
-        ->validate(Laravel\rules('required'));
+    public function filters(): array
+    {
+        return [Filter\WhereIdIn::make(), Filter\Where::make('name')];
+    }
+}
 
-    $type->hasOne('article')
-        ->writable()->once()
-        ->validate(Laravel\rules('required'));
+$api = new JsonApi();
 
-    $type->hasOne('author')
-        ->type('users')
-        ->writable()->once()
-        ->validate(Laravel\rules('required'));
-});
-
-$api->resourceType('users', new EloquentAdapter(User::class), function (Type $type) {
-    $type->attribute('firstName')->sortable();
-    $type->attribute('lastName')->sortable();
-});
+$api->resource(new UsersResource());
 
 /** @var Psr\Http\Message\ServerRequestInterface $request */
 /** @var Psr\Http\Message\ResponseInterface $response */
 try {
     $response = $api->handle($request);
-} catch (Exception $e) {
+} catch (Throwable $e) {
     $response = $api->error($e);
 }
 ```

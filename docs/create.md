@@ -1,45 +1,97 @@
-# Creating Resources
+# Create
 
-You can allow resources to be [created](https://jsonapi.org/format/#crud-creating) using the `creatable` and `notCreatable` methods on the schema builder. 
+Use the Create endpoint to allow a resource to be created.
 
-Optionally pass a closure that returns a boolean value.
+The Create endpoint handles POST requests to the resource root and responds with
+a JSON:API document containing the created resource object.
 
-```php
-$type->creatable();
-
-$type->creatable(function (Context $context) {
-    return $context->getRequest()->getAttribute('user')->isAdmin();
-});
-```
-
-## Customizing the Model
-
-When creating a resource, an empty model is supplied by the adapter. You may wish to override this and provide a custom model in special circumstances. You can do so using the `model` method:
+To enable it for a resource, add the Create endpoint to your `endpoints` array:
 
 ```php
-$type->model(function (Context $context) {
-    return new CustomModel;
-});
+use Tobyz\JsonApiServer\Endpoint\Create;
+
+class PostsResource extends Resource
+{
+    // ...
+
+    public function endpoints(): array
+    {
+        return [Create::make()];
+    }
+}
 ```
 
-## Events
+## Authorization
 
-### `creating`
-
-Run after values have been set on the model, but before it is saved.
+If you want to restrict the ability to create resources, use the `visible` or
+`hidden` method, with a closure that returns a boolean value:
 
 ```php
-$type->creating(function (&$model, Context $context) {
-    // do something
-});
+Create::make()->visible(
+    fn(Context $context) => $context->request->getAttribute('isAdmin'),
+);
 ```
 
-### `created`
+## Implementation
 
-Run after the model is saved, and before it is shown in a JSON:API document.
+The Create endpoint requires the resource to implement the
+`Tobyz\JsonApiServer\Resource\Creatable` interface (which overlaps with the
+`Updatable` interface). The endpoint will:
+
+1. Call the `newModel` method to get a new model instance.
+2. Deserialize and validate field data.
+3. Call the `setValue` method for each field.
+4. Call the `create` method to persist the model to storage.
+5. Call the `saveValue` method for each field.
+
+A simple implementation might look like:
 
 ```php
-$type->created(function (&$model, Context $context) {
-    $context->meta('foo', 'bar');
-});
+use App\Models\Post;
+use Tobyz\JsonApiServer\Resource\Creatable;
+
+class PostsResource extends Resource implements Creatable
+{
+    // ...
+
+    public function endpoints(): array
+    {
+        return [Endpoint\Create::make()];
+    }
+
+    public function newModel(Context $context): object
+    {
+        return new Post();
+    }
+
+    public function setValue(
+        object $model,
+        Field $field,
+        mixed $value,
+        Context $context,
+    ): void {
+        $model->{$field->property ?: $field->name} = $value;
+    }
+
+    public function create(object $model, Context $context): object
+    {
+        $post->save();
+    }
+
+    public function saveValue(
+        object $model,
+        Field $field,
+        mixed $value,
+        Context $context,
+    ): void {
+        // noop
+    }
+}
 ```
+
+::: tip Laravel Integration  
+For Laravel applications with Eloquent-backed resources, you can extend the
+`Tobyz\JsonApiServer\Laravel\EloquentResource` class which implements this
+interface for you. Learn more on the
+[Laravel Integration](laravel.md#eloquent-resources) page.  
+:::

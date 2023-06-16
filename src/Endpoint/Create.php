@@ -1,83 +1,79 @@
 <?php
 
-/*
- * This file is part of tobyz/json-api-server.
- *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace Tobyz\JsonApiServer\Endpoint;
 
 use Psr\Http\Message\ResponseInterface;
+use RuntimeException;
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsMeta;
 use Tobyz\JsonApiServer\Endpoint\Concerns\SavesData;
+use Tobyz\JsonApiServer\Endpoint\Concerns\ShowsResources;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
-use Tobyz\JsonApiServer\ResourceType;
+use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
+use Tobyz\JsonApiServer\Resource\Creatable;
+use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 
-use function Tobyz\JsonApiServer\evaluate;
 use function Tobyz\JsonApiServer\has_value;
-use function Tobyz\JsonApiServer\run_callbacks;
+use function Tobyz\JsonApiServer\json_api_response;
 use function Tobyz\JsonApiServer\set_value;
 
-class Create
+class Create implements EndpointInterface
 {
+    use HasVisibility;
     use SavesData;
+    use ShowsResources;
 
-    /**
-     * @throws ForbiddenException if the resource is not creatable.
-     */
-    public function handle(Context $context, ResourceType $resourceType): ResponseInterface
+    public static function make(): static
     {
-        $schema = $resourceType->getSchema();
+        return new static();
+    }
 
-        if (! evaluate($schema->isCreatable(), [$context])) {
-            throw new ForbiddenException(sprintf(
-                'Cannot create resource type %s',
-                $resourceType->getType()
-            ));
+    public function handle(Context $context): ?ResponseInterface
+    {
+        if (str_contains($context->path(), '/')) {
+            return null;
         }
 
-        $model = $this->newModel($resourceType, $context);
-        $data = $this->parseData($resourceType, $context->getBody());
+        if ($context->request->getMethod() !== 'POST') {
+            throw new MethodNotAllowedException();
+        }
 
-        $this->validateFields($resourceType, $data, $model, $context);
-        $this->fillDefaultValues($resourceType, $data, $context);
-        $this->loadRelatedResources($resourceType, $data, $context);
-        $this->assertDataValid($resourceType, $data, $model, $context, true);
-        $this->setValues($resourceType, $data, $model, $context);
+        $resource = $context->resource;
 
-        run_callbacks($schema->getListeners('creating'), [&$model, $context]);
+        if (!$resource instanceof Creatable) {
+            throw new RuntimeException(
+                sprintf('%s must implement %s', get_class($resource), Creatable::class),
+            );
+        }
 
-        $this->save($resourceType, $data, $model, $context);
+        if (!$this->isVisible($context)) {
+            throw new ForbiddenException();
+        }
 
-        run_callbacks($schema->getListeners('created'), [&$model, $context]);
+        $data = $this->parseData($context);
 
-        $model = $this->freshModel($resourceType, $model, $context);
+        $this->assertFieldsValid($context, $data);
+        $this->fillDefaultValues($context, $data);
+        $this->deserializeValues($context, $data);
+        $this->assertDataValid($context, $data, true);
 
-        return (new Show())
-            ->handle($context, $resourceType, $model)
+        $context = $context->withModel($model = $resource->newModel($context));
+
+        $this->setValues($context, $data);
+
+        $context = $context->withModel($model = $resource->create($model, $context));
+
+        $this->saveFields($context, $data);
+
+        return json_api_response($document = $this->showResource($context, $model))
             ->withStatus(201)
-            ->withHeader('Location', $resourceType->url($model, $context));
+            ->withHeader('Location', $document['data']['links']['self']);
     }
 
-    private function newModel(ResourceType $resourceType, Context $context)
+    private function fillDefaultValues(Context $context, array &$data): void
     {
-        $newModel = $resourceType->getSchema()->getModelCallback();
-
-        return $newModel
-            ? $newModel($context)
-            : $resourceType->getAdapter()->model();
-    }
-
-    private function fillDefaultValues(ResourceType $resourceType, array &$data, Context $context)
-    {
-        foreach ($resourceType->getSchema()->getFields() as $field) {
-            if (! has_value($data, $field) && ($defaultCallback = $field->getDefaultCallback())) {
-                set_value($data, $field, $defaultCallback($context));
+        foreach ($context->fields($context->resource) as $field) {
+            if (!has_value($data, $field) && ($default = $field->default)) {
+                set_value($data, $field, $default($context->withField($field)));
             }
         }
     }

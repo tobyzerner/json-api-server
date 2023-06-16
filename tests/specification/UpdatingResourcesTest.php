@@ -1,47 +1,36 @@
 <?php
 
-/*
- * This file is part of tobyz/json-api-server.
- *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace Tobyz\Tests\JsonApiServer\specification;
 
+use Tobyz\JsonApiServer\Endpoint\Update;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\ConflictException;
 use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\JsonApi;
-use Tobyz\JsonApiServer\Schema\Type;
+use Tobyz\JsonApiServer\Schema\Field\Str;
+use Tobyz\JsonApiServer\Schema\Field\ToOne;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
-use Tobyz\Tests\JsonApiServer\MockAdapter;
+use Tobyz\Tests\JsonApiServer\MockResource;
 
 /**
  * @see https://jsonapi.org/format/1.1/#crud-updating
  */
 class UpdatingResourcesTest extends AbstractTestCase
 {
-    /**
-     * @var JsonApi
-     */
-    private $api;
+    private JsonApi $api;
 
     public function setUp(): void
     {
-        $this->api = new JsonApi('http://example.com');
+        $this->api = new JsonApi();
 
-        $adapter = new MockAdapter([
-            '1' => (object) ['id' => '1', 'name' => 'initial'],
-        ]);
-
-        $this->api->resourceType('users', $adapter, function (Type $type) {
-            $type->updatable();
-            $type->attribute('name')->writable();
-            $type->hasOne('pet')->writable();
-        });
+        $this->api->resource(
+            new MockResource(
+                'users',
+                models: [(object) ['id' => '1', 'name' => 'initial']],
+                endpoints: [Update::make()],
+                fields: [Str::make('name')->writable(), ToOne::make('pet')->writable()],
+            ),
+        );
     }
 
     public function test_bad_request_error_if_body_does_not_contain_data_type_and_id()
@@ -49,10 +38,9 @@ class UpdatingResourcesTest extends AbstractTestCase
         $this->expectException(BadRequestException::class);
 
         $this->api->handle(
-            $this->buildRequest('PATCH', '/users/1')
-                ->withParsedBody([
-                    'data' => [],
-                ])
+            $this->buildRequest('PATCH', '/users/1')->withParsedBody([
+                'data' => [],
+            ]),
         );
     }
 
@@ -61,32 +49,30 @@ class UpdatingResourcesTest extends AbstractTestCase
         $this->expectException(BadRequestException::class);
 
         $this->api->handle(
-            $this->buildRequest('PATCH', '/users/1')
-                ->withParsedBody([
-                    'data' => [
-                        'type' => 'users',
-                        'id' => '1',
-                        'relationships' => [
-                            'pet' => [],
-                        ],
+            $this->buildRequest('PATCH', '/users/1')->withParsedBody([
+                'data' => [
+                    'type' => 'users',
+                    'id' => '1',
+                    'relationships' => [
+                        'pet' => [],
                     ],
-                ])
+                ],
+            ]),
         );
     }
 
     public function test_ok_response_with_updated_data_if_resource_successfully_updated()
     {
         $response = $this->api->handle(
-            $this->buildRequest('PATCH', '/users/1')
-                ->withParsedBody([
-                    'data' => [
-                        'type' => 'users',
-                        'id' => '1',
-                        'attributes' => [
-                            'name' => 'updated'
-                        ],
+            $this->buildRequest('PATCH', '/users/1')->withParsedBody([
+                'data' => [
+                    'type' => 'users',
+                    'id' => '1',
+                    'attributes' => [
+                        'name' => 'updated',
                     ],
-                ])
+                ],
+            ]),
         );
 
         $document = json_decode($response->getBody(), true);
@@ -100,16 +86,15 @@ class UpdatingResourcesTest extends AbstractTestCase
         $this->expectException(ResourceNotFoundException::class);
 
         $this->api->handle(
-            $this->buildRequest('PATCH', '/users/404')
-                ->withParsedBody([
-                    'data' => [
-                        'type' => 'users',
-                        'id' => '404',
-                        'attributes' => [
-                            'name' => 'bob',
-                        ],
+            $this->buildRequest('PATCH', '/users/404')->withParsedBody([
+                'data' => [
+                    'type' => 'users',
+                    'id' => '404',
+                    'attributes' => [
+                        'name' => 'bob',
                     ],
-                ])
+                ],
+            ]),
         );
     }
 
@@ -118,18 +103,17 @@ class UpdatingResourcesTest extends AbstractTestCase
         $this->expectException(ResourceNotFoundException::class);
 
         $this->api->handle(
-            $this->buildRequest('PATCH', '/users/1')
-                ->withParsedBody([
-                    'data' => [
-                        'type' => 'users',
-                        'id' => '1',
-                        'relationships' => [
-                            'pet' => [
-                                'data' => ['type' => 'pets', 'id' => '1'],
-                            ],
+            $this->buildRequest('PATCH', '/users/1')->withParsedBody([
+                'data' => [
+                    'type' => 'users',
+                    'id' => '1',
+                    'relationships' => [
+                        'pet' => [
+                            'data' => ['type' => 'pets', 'id' => '1'],
                         ],
                     ],
-                ])
+                ],
+            ]),
         );
     }
 
@@ -138,13 +122,12 @@ class UpdatingResourcesTest extends AbstractTestCase
         $this->expectException(ConflictException::class);
 
         $this->api->handle(
-            $this->buildRequest('PATCH', '/users/1')
-                ->withParsedBody([
-                    'data' => [
-                        'type' => 'pets',
-                        'id' => '1',
-                    ],
-                ])
+            $this->buildRequest('PATCH', '/users/1')->withParsedBody([
+                'data' => [
+                    'type' => 'pets',
+                    'id' => '1',
+                ],
+            ]),
         );
     }
 }

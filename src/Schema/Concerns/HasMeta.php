@@ -1,46 +1,38 @@
 <?php
 
-/*
- * This file is part of tobyz/json-api-server.
- *
- * (c) Toby Zerner <toby.zerner@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace Tobyz\JsonApiServer\Schema\Concerns;
 
-use Tobyz\JsonApiServer\Schema\Meta;
-use function Tobyz\JsonApiServer\wrap;
+use Closure;
+use Tobyz\JsonApiServer\Context;
 
 trait HasMeta
 {
-    private $meta = [];
+    public array $meta = [];
 
     /**
-     * Add a meta attribute.
+     * Define meta fields.
      */
-    public function meta(string $name, $value): Meta
+    public function meta(array $fields): static
     {
-        return $this->meta[$name] = new Meta($name, wrap($value));
+        $this->meta = $fields;
+
+        return $this;
     }
 
-    /**
-     * Remove a meta attribute.
-     */
-    public function removeMeta(string $name): void
+    protected function serializeMeta(Context $context): array
     {
-        unset($this->meta[$name]);
-    }
+        $meta = [];
 
-    /**
-     * Get the meta attributes.
-     *
-     * @return Meta[]
-     */
-    public function getMeta(): array
-    {
-        return $this->meta;
+        foreach ($this->meta as $field) {
+            if (!$field->isVisible($context)) {
+                continue;
+            }
+
+            $value = $field->getValue($context);
+
+            $meta[$field->name] = $value instanceof Closure ? $value() : $value;
+        }
+
+        return $meta;
     }
 }
