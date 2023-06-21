@@ -138,5 +138,4 @@ Still to come:
 [0.2.0-beta.3]: https://github.com/tobyzerner/json-api-server/compare/v0.2.0-beta.3...v0.2.0-beta.2
 [0.2.0-beta.2]: https://github.com/tobyzerner/json-api-server/compare/v0.2.0-beta.2...v0.2.0-beta.1
 [0.2.0-beta.1]: https://github.com/tobyzerner/json-api-server/compare/v0.2.0-beta.1...v0.1.0-beta.1
-
 [unreleased]: https://github.com/tobyzerner/json-api-server/compare/v1.0.0-alpha.1...HEAD
