@@ -4,11 +4,15 @@
     "scripts": {
         "docs:dev": "vitepress dev docs",
         "docs:build": "vitepress build docs",
-        "docs:preview": "vitepress preview docs"
+        "docs:preview": "vitepress preview docs",
+        "prettier": "prettier --write .",
+        "release": "release-it"
     },
     "devDependencies": {
         "@prettier/plugin-php": "^0.19.6",
+        "@release-it/keep-a-changelog": "^3.1.0",
         "prettier": "^2.8.8",
+        "release-it": "^15.11.0",
         "vitepress": "1.0.0-beta.2"
     }
 }
