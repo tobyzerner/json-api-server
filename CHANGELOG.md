@@ -2,8 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project
+adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+-   **New class-based API.** More ergonomic for managing large resource definitions and
+    inheriting/overriding behavior. Complex fields can be extracted into their own classes and
+    reused across resources.
+
+-   **Typed attributes.** Implementations of typed attributes are provided to match the data types
+    in the OpenAPI specification. Attributes can be marked as required and nullable.
+
+-   **Customizable endpoints.** Each endpoint is now opt-in for each resource and can be configured
+    and implemented separately. Also adds the ability for custom endpoints to be added.
+
+-   **Restructured internals.** The codebase is cleaner and easier to reason about, especially the
+    serialization process.
+
+Still to come:
+
+-   Implementation of Laravel stuff (currently it is documented but not implemented)
+-   Ability to generate OpenAPI definitions
+-   Additional attribute types (array, object)
+-   Benchmarks
 
 ## [0.2.0] - 2022-06-21
 
@@ -27,7 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
--   `Laravel\rules()`: Fix regression disallowing use of advanced validation rules like callbacks and `Rule` instances. (@SychO9)
+-   `Laravel\rules()`: Fix regression disallowing use of advanced validation rules like callbacks
+    and `Rule` instances. (@SychO9)
 
 ## [0.2.0-beta.4] - 2021-09-05
 
@@ -36,19 +59,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   `Laravel\rules()`: Replace `{id}` placeholder in rules with the model's key.
     -   This is useful for the `unique` rule, for example: `unique:users,email,{id}`
 -   `Laravel\can()`: Pass through additional arguments to Gate check.
-    -   This is needed to use policy methods without models, for example: `can('create', Post::class)`
+    -   This is needed to use policy methods without models, for example:
+        `can('create', Post::class)`
 
 ### Changed
 
 -   Get a fresh copy of the model to display after create/update to ensure consistency
--   Respond with `400 Bad Request` when attempting to filter on an attribute of a polymorphic relationship
+-   Respond with `400 Bad Request` when attempting to filter on an attribute of a polymorphic
+    relationship
 
 ## [0.2.0-beta.3] - 2021-09-03
 
 ### Fixed
 
 -   Fix dependency on `http-accept` now that a version has been tagged
--   Change `EloquentAdapter` to load relationships using `load` instead of `loadMissing`, as they may need API-specific scopes applied
+-   Change `EloquentAdapter` to load relationships using `load` instead of `loadMissing`, as they
+    may need API-specific scopes applied
 
 ## [0.2.0-beta.2] - 2021-09-01
 
@@ -80,7 +106,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 -   Preliminary support for Extensions
--   Support filtering by nested relationships/attributes (eg. `filter[relationship.attribute]=value`)
+-   Support filtering by nested relationships/attributes (eg.
+    `filter[relationship.attribute]=value`)
 -   Add new methods to Context object: `getApi`, `getPath`, `fieldRequested`, `meta`
 -   Eloquent adapter: apply scopes when including polymorphic relationships
 -   Laravel validation helper: support nested validation messages
@@ -89,7 +116,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
--   Change paradigm for eager loading relationships; allow fields to return `Deferred` values to be evaluated after all other fields, so that resource loading can be buffered.
+-   Change paradigm for eager loading relationships; allow fields to return `Deferred` values to be
+    evaluated after all other fields, so that resource loading can be buffered.
 -   Remove `on` prefix from field event methods
 
 ### Removed
