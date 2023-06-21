@@ -170,8 +170,8 @@ for all of the buffered posts at once.
 ## Writing
 
 By default, fields are read-only. You can allow a field to be written to in the
-[Create](endpoints/create) and [Update](endpoints/update) endpoints using the
-`writable` and `readonly` methods.
+[Create](create.md) and [Update](update.md) endpoints using the `writable` and
+`readonly` methods.
 
 You can optionally supply a closure to these methods which will receive the
 model instance, and should return a boolean value.
@@ -274,7 +274,7 @@ component for field validation with the
 
 By default, the value provided for each field will be set to the model using the
 `setValue` method on your resource (which must be implemented as part of the
-[Create](endpoints/create.md) and [Update](endpoints/update.md) endpoints).
+[Create](create.md) and [Update](update.md) endpoints).
 
 If you would like to define custom hydration logic for a specific field, use the
 `set` method:

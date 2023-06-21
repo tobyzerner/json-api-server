@@ -121,13 +121,13 @@ these endpoints requires the implementation of an interface on your resource
 class to define the behavior of how the endpoint should interact with your
 storage.
 
-| Method | URI           | Endpoint                      | Interface                                |
-| ------ | ------------- | ----------------------------- | ---------------------------------------- |
-| GET    | `/users`      | [Index](endpoints/index.md)   | `Tobyz\JsonApiServer\Resource\Listable`  |
-| POST   | `/users`      | [Create](endpoints/create.md) | `Tobyz\JsonApiServer\Resource\Creatable` |
-| GET    | `/users/{id}` | [Show](endpoints/show.md)     | `Tobyz\JsonApiServer\Resource\Findable`  |
-| PATCH  | `/users/{id}` | [Update](endpoints/update.md) | `Tobyz\JsonApiServer\Resource\Updatable` |
-| DELETE | `/users/{id}` | [Delete](endpoints/delete.md) | `Tobyz\JsonApiServer\Resource\Deletable` |
+| Method | URI           | Endpoint            | Interface                                |
+| ------ | ------------- | ------------------- | ---------------------------------------- |
+| GET    | `/users`      | [Index](index.md)   | `Tobyz\JsonApiServer\Resource\Listable`  |
+| POST   | `/users`      | [Create](create.md) | `Tobyz\JsonApiServer\Resource\Creatable` |
+| GET    | `/users/{id}` | [Show](show.md)     | `Tobyz\JsonApiServer\Resource\Findable`  |
+| PATCH  | `/users/{id}` | [Update](update.md) | `Tobyz\JsonApiServer\Resource\Updatable` |
+| DELETE | `/users/{id}` | [Delete](delete.md) | `Tobyz\JsonApiServer\Resource\Deletable` |
 
 ::: tip Laravel Integration  
 For Laravel applications with Eloquent-backed resources, you can extend the
