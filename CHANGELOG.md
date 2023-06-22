@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2023-06-22
+### Changed
+- Update PHP requirement to >= 7.3
+- Upgrade http-accept library (@asispts)
+
+### Fixed
+- Fix page limit not being applied when there is no maximum limit
+- When serializing, allow multiple passes on the same resource to add missing fields
+- EloquentResource: Make the first resource type for a model take precedence when loading a polymorphic relationship
+
 ## [0.2.0] - 2022-06-21
 ### Fixed
 - Fix `EloquentAdapter::filterByIds()` getting key name from query model instead of adapter model
@@ -79,7 +89,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fix pagination next link appearing when it shouldn't
 
-[0.2.0]: https://github.com/tobyzerner/json-api-server/compare/v0.2.0...v0.2.0-beta.6
+[0.2.1]: https://github.com/tobyzerner/json-api-server/compare/v0.2.0...v0.2.0-beta.6
+[0.2.0]: https://github.com/tobyzerner/json-api-server/compare/v0.2.1...v0.2.0
 [0.2.0-beta.6]: https://github.com/tobyzerner/json-api-server/compare/v0.2.0-beta.6...v0.2.0-beta.5
 [0.2.0-beta.5]: https://github.com/tobyzerner/json-api-server/compare/v0.2.0-beta.5...v0.2.0-beta.4
 [0.2.0-beta.4]: https://github.com/tobyzerner/json-api-server/compare/v0.2.0-beta.4...v0.2.0-beta.3
