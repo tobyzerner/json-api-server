@@ -67,7 +67,9 @@ abstract class Relationship extends Field
         }
 
         if (!in_array($identifier['type'], $this->types)) {
-            throw new BadRequestException("type [{$identifier['type']}] not allowed");
+            throw new BadRequestException("type [{$identifier['type']}] not allowed", [
+                'pointer' => '/type',
+            ]);
         }
 
         $resource = $context->api->getResource($identifier['type']);

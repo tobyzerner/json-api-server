@@ -69,9 +69,9 @@ trait IncludesData
                 continue 2;
             }
 
-            throw (new BadRequestException("Invalid include [{$path}{$name}]"))->setSourceParameter(
-                'include',
-            );
+            throw new BadRequestException("Invalid include [{$path}{$name}]", [
+                'parameter' => 'include',
+            ]);
         }
     }
 }

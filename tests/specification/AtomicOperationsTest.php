@@ -5,6 +5,7 @@ namespace Tobyz\Tests\JsonApiServer\specification;
 use Tobyz\JsonApiServer\Endpoint\Create;
 use Tobyz\JsonApiServer\Endpoint\Delete;
 use Tobyz\JsonApiServer\Endpoint\Update;
+use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Extension\Atomic;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Field\Str;
@@ -16,6 +17,8 @@ use Tobyz\Tests\JsonApiServer\MockResource;
  */
 class AtomicOperationsTest extends AbstractTestCase
 {
+    private const MEDIA_TYPE = JsonApi::MEDIA_TYPE . '; ext=' . Atomic::URI;
+
     private JsonApi $api;
 
     public function setUp(): void
@@ -36,12 +39,10 @@ class AtomicOperationsTest extends AbstractTestCase
 
     public function test_atomic_operations()
     {
-        $mediaType = JsonApi::MEDIA_TYPE . '; ext=' . Atomic::URI;
-
         $response = $this->api->handle(
             $this->buildRequest('POST', '/operations')
-                ->withHeader('Accept', $mediaType)
-                ->withHeader('Content-Type', $mediaType)
+                ->withHeader('Accept', static::MEDIA_TYPE)
+                ->withHeader('Content-Type', static::MEDIA_TYPE)
                 ->withParsedBody([
                     'atomic:operations' => [
                         [
@@ -97,5 +98,32 @@ class AtomicOperationsTest extends AbstractTestCase
             ],
             $response->getBody(),
         );
+    }
+
+    public function test_atomic_operations_error_prefix()
+    {
+        try {
+            $this->api->handle(
+                $this->buildRequest('POST', '/operations')
+                    ->withHeader('Accept', static::MEDIA_TYPE)
+                    ->withHeader('Content-Type', static::MEDIA_TYPE)
+                    ->withParsedBody([
+                        'atomic:operations' => [
+                            [
+                                'op' => 'update',
+                                'ref' => ['type' => 'users', 'id' => '1'],
+                                'data' => [],
+                            ],
+                        ],
+                    ]),
+            );
+
+            $this->fail('BadRequestException was not thrown');
+        } catch (BadRequestException $e) {
+            $this->assertStringStartsWith(
+                '/atomic:operations/0/data',
+                $e->getJsonApiErrors()[0]['source']['pointer'],
+            );
+        }
     }
 }

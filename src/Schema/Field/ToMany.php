@@ -45,13 +45,21 @@ class ToMany extends Relationship
         }
 
         if (!array_is_list($value['data'])) {
-            throw new BadRequestException('relationship data must be a list of identifier objects');
+            throw new BadRequestException(
+                'relationship data must be a list of identifier objects',
+                ['pointer' => '/data'],
+            );
         }
 
-        $models = array_map(
-            fn($identifier) => $this->findResourceForIdentifier($identifier, $context),
-            $value['data'],
-        );
+        $models = [];
+
+        foreach ($value['data'] as $i => $identifier) {
+            try {
+                $models[] = $this->findResourceForIdentifier($identifier, $context);
+            } catch (BadRequestException $e) {
+                throw $e->prependSource(['pointer' => "/data/$i"]);
+            }
+        }
 
         if ($this->deserializer) {
             return ($this->deserializer)($models, $context);

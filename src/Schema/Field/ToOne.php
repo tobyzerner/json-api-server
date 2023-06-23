@@ -56,6 +56,10 @@ class ToOne extends Relationship
             return null;
         }
 
-        return $this->findResourceForIdentifier($value['data'], $context);
+        try {
+            return $this->findResourceForIdentifier($value['data'], $context);
+        } catch (BadRequestException $e) {
+            throw $e->prependSource(['pointer' => '/data']);
+        }
     }
 }

@@ -135,7 +135,7 @@ class Index implements EndpointInterface
                 }
             }
 
-            throw (new BadRequestException("Invalid sort: $name"))->setSourceParameter('sort');
+            throw new BadRequestException("Invalid sort: $name", ['parameter' => 'sort']);
         }
     }
 
@@ -146,15 +146,13 @@ class Index implements EndpointInterface
         }
 
         if (!is_array($filters)) {
-            throw (new BadRequestException('filter must be an array'))->setSourceParameter(
-                'filter',
-            );
+            throw new BadRequestException('filter must be an array', ['parameter' => 'filter']);
         }
 
         try {
             apply_filters($query, $filters, $context->resource, $context);
         } catch (BadRequestException $e) {
-            throw $e->setSourceParameter("filter[$e->source]");
+            throw $e->prependSource(['parameter' => 'filter']);
         }
     }
 }

@@ -3,25 +3,32 @@
 namespace Tobyz\JsonApiServer\Exception;
 
 use DomainException;
+use Throwable;
 use Tobyz\JsonApiServer\ErrorProviderInterface;
 
 class BadRequestException extends DomainException implements ErrorProviderInterface
 {
-    public string $sourceType;
-    public string $source;
+    public function __construct(
+        string $message = '',
+        public ?array $source = null,
+        int $code = 0,
+        ?Throwable $previous = null,
+    ) {
+        parent::__construct($message, $code, $previous);
+    }
 
-    public function setSourceParameter(string $parameter): static
+    public function setSource(?array $source): static
     {
-        $this->sourceType = 'parameter';
-        $this->source = $parameter;
+        $this->source = $source;
 
         return $this;
     }
 
-    public function setSourcePointer(string $pointer): static
+    public function prependSource(array $source): static
     {
-        $this->sourceType = 'pointer';
-        $this->source = $pointer;
+        foreach ($source as $k => $v) {
+            $this->source = [$k => $v . ($this->source[$k] ?? '')];
+        }
 
         return $this;
     }
@@ -34,10 +41,8 @@ class BadRequestException extends DomainException implements ErrorProviderInterf
             $members['detail'] = $this->message;
         }
 
-        if ($this->sourceType === 'parameter') {
-            $members['source']['parameter'] = $this->source;
-        } elseif ($this->sourceType === 'pointer') {
-            $members['source']['pointer'] = $this->source;
+        if ($this->source) {
+            $members['source'] = $this->source;
         }
 
         return [

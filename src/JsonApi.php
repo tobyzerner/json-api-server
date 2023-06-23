@@ -140,9 +140,9 @@ class JsonApi implements RequestHandlerInterface
                 !preg_match('/[^a-z]/', $key) &&
                 !in_array($key, ['include', 'fields', 'filter', 'page', 'sort'])
             ) {
-                throw (new BadRequestException(
-                    "Invalid query parameter: $key",
-                ))->setSourceParameter($key);
+                throw new BadRequestException("Invalid query parameter: $key", [
+                    'parameter' => $key,
+                ]);
             }
         }
     }

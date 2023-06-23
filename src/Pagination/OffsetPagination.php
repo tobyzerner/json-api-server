@@ -103,9 +103,9 @@ class OffsetPagination implements PaginationInterface
     {
         if ($offset = $context->queryParam('page')['offset'] ?? null) {
             if (preg_match('/\D+/', $offset) || $offset < 0) {
-                throw (new BadRequestException(
-                    'page[offset] must be a non-negative integer',
-                ))->setSourceParameter('page[offset]');
+                throw new BadRequestException('page[offset] must be a non-negative integer', [
+                    'parameter' => 'page[offset]',
+                ]);
             }
 
             return $offset;

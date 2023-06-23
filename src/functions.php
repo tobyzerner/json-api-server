@@ -87,6 +87,6 @@ function apply_filters(
             }
         }
 
-        throw (new BadRequestException("Invalid filter: $name"))->setSourceParameter($name);
+        throw new BadRequestException("Invalid filter: $name", ['parameter' => "[$name]"]);
     }
 }
