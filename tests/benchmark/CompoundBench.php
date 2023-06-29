@@ -76,7 +76,7 @@ class CompoundBench
         );
     }
 
-    #[Revs(10000), Iterations(5)]
+    #[Revs(1000), Iterations(5)]
     public function benchCompound(): void
     {
         $this->api->handle(new ServerRequest('GET', '/articles?include=author,comments'));
