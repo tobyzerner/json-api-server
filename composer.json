@@ -34,6 +34,7 @@
     },
     "require-dev": {
         "dms/phpunit-arraysubset-asserts": "^0.2.1",
+        "phpbench/phpbench": "^1.2",
         "phpspec/prophecy-phpunit": "^2.0",
         "phpunit/phpunit": "^9.4"
     },
