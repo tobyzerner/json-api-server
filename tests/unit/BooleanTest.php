@@ -39,12 +39,6 @@ class BooleanTest extends AbstractTestCase
         $this->assertSame($expected, $field->serializeValue($value, $this->context));
     }
 
-    #[DataProvider('serializationProvider')]
-    public function test_deserialization(Field $field, mixed $value, mixed $expected)
-    {
-        $this->assertSame($expected, $field->deserializeValue($value, $this->context));
-    }
-
     public static function validationProvider(): array
     {
         return [

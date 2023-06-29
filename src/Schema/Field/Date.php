@@ -18,14 +18,18 @@ class Date extends Attribute
                 : $value,
         );
 
-        $this->deserialize(
-            static fn($value) => is_string($value)
-                ? \DateTime::createFromFormat(static::FORMAT, $value)->setTime(0, 0)
-                : $value,
-        );
+        $this->deserialize(static function ($value) {
+            if (
+                is_string($value) &&
+                ($date = \DateTime::createFromFormat(static::FORMAT, $value))
+            ) {
+                return $date->setTime(0, 0);
+            }
+            return $value;
+        });
 
         $this->validate(static function (mixed $value, callable $fail): void {
-            if (!\DateTime::createFromFormat(static::FORMAT, $value)) {
+            if (!$value instanceof \DateTime) {
                 $fail('must be a date');
             }
         });

@@ -58,7 +58,7 @@ class DateTimeTest extends AbstractTestCase
     public static function validationProvider(): array
     {
         return [
-            [DateTime::make('foo'), '1993-04-04T12:34:56Z', true],
+            [DateTime::make('foo'), new \DateTime(), true],
             [DateTime::make('foo'), '1993-04-04', false],
             [DateTime::make('foo'), 'string', false],
             [DateTime::make('foo'), null, false],

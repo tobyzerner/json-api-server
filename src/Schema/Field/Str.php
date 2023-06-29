@@ -15,8 +15,6 @@ class Str extends Attribute
 
         $this->serialize(static fn($value) => (string) $value);
 
-        $this->deserialize(static fn($value) => (string) $value);
-
         $this->validate(function (mixed $value, callable $fail): void {
             if (!is_string($value)) {
                 $fail('must be a string');

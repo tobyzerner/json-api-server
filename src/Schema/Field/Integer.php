@@ -12,8 +12,6 @@ class Integer extends Attribute
 
         $this->serialize(static fn($value) => (int) $value);
 
-        $this->deserialize(static fn($value) => (int) $value);
-
         $this->validate(static function (mixed $value, Closure $fail): void {
             if (!is_int($value)) {
                 $fail('must be an integer');

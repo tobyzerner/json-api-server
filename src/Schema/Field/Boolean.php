@@ -10,11 +10,9 @@ class Boolean extends Attribute
 
         $this->serialize(static fn($value) => (bool) $value);
 
-        $this->deserialize(static fn($value) => (bool) $value);
-
         $this->validate(static function (mixed $value, callable $fail): void {
             if (!is_bool($value)) {
-                $fail('must be an boolean');
+                $fail('must be a boolean');
             }
         });
     }

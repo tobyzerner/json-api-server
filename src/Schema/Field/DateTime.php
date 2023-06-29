@@ -16,14 +16,18 @@ class DateTime extends Attribute
                 : $value,
         );
 
-        $this->deserialize(
-            static fn($value) => is_string($value)
-                ? \DateTime::createFromFormat(DateTimeInterface::RFC3339, $value)
-                : $value,
-        );
+        $this->deserialize(static function ($value) {
+            if (
+                is_string($value) &&
+                ($date = \DateTime::createFromFormat(DateTimeInterface::RFC3339, $value))
+            ) {
+                return $date;
+            }
+            return $value;
+        });
 
         $this->validate(static function (mixed $value, callable $fail): void {
-            if (!\DateTime::createFromFormat(DateTimeInterface::RFC3339, $value)) {
+            if (!$value instanceof \DateTime) {
                 $fail('must be a date-time');
             }
         });

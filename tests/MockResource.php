@@ -25,7 +25,7 @@ class MockResource extends Resource implements
 {
     public function __construct(
         private readonly string $type,
-        private array $models = [],
+        public array $models = [],
         private readonly array $endpoints = [],
         private readonly array $fields = [],
         private readonly array $meta = [],

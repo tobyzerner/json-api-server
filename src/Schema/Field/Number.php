@@ -19,8 +19,6 @@ class Number extends Attribute
 
         $this->serialize(static fn($value) => (float) $value);
 
-        $this->deserialize(static fn($value) => (float) $value);
-
         $this->validate(function (mixed $value, Closure $fail): void {
             if (!is_numeric($value)) {
                 $fail('must be numeric');
