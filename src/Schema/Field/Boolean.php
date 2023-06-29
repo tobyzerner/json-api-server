@@ -16,4 +16,9 @@ class Boolean extends Attribute
             }
         });
     }
+
+    public function getSchema(): array
+    {
+        return parent::getSchema() + ['type' => 'boolean'];
+    }
 }

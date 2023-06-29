@@ -18,4 +18,9 @@ class Integer extends Attribute
             }
         });
     }
+
+    public function getSchema(): array
+    {
+        return ['type' => 'integer'] + parent::getSchema();
+    }
 }

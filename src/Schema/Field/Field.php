@@ -14,6 +14,8 @@ abstract class Field
 
     public ?string $property = null;
     public bool $nullable = false;
+    public ?string $description = null;
+    public array $schema = [];
 
     public function __construct(public readonly string $name)
     {
@@ -36,5 +38,24 @@ abstract class Field
         $this->nullable = $nullable;
 
         return $this;
+    }
+
+    public function description(?string $description): static
+    {
+        $this->description = $description;
+
+        return $this;
+    }
+
+    public function schema(array $schema): static
+    {
+        $this->schema = $schema;
+
+        return $this;
+    }
+
+    public function getSchema(): array
+    {
+        return $this->schema + ['description' => $this->description, 'nullable' => $this->nullable];
     }
 }

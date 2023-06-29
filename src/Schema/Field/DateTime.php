@@ -32,4 +32,9 @@ class DateTime extends Attribute
             }
         });
     }
+
+    public function getSchema(): array
+    {
+        return parent::getSchema() + ['type' => 'string', 'format' => 'date-time'];
+    }
 }

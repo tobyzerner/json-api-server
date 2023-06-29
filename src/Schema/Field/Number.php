@@ -73,4 +73,16 @@ class Number extends Attribute
 
         return $this;
     }
+
+    public function getSchema(): array
+    {
+        return parent::getSchema() + [
+            'type' => 'number',
+            'minimum' => $this->minimum,
+            'exclusiveMinimum' => $this->exclusiveMinimum,
+            'maximum' => $this->maximum,
+            'exclusiveMaximum' => $this->exclusiveMaximum,
+            'multipleOf' => $this->multipleOf,
+        ];
+    }
 }

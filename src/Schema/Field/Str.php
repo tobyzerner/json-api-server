@@ -65,4 +65,15 @@ class Str extends Attribute
 
         return $this;
     }
+
+    public function getSchema(): array
+    {
+        return parent::getSchema() + [
+            'type' => 'string',
+            'minLength' => $this->minLength,
+            'maxLength' => $this->maxLength,
+            'pattern' => $this->pattern,
+            'format' => $this->format,
+        ];
+    }
 }
