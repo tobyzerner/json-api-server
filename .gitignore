@@ -1,6 +1,7 @@
 composer.lock
 vendor
 node_modules
+.phpbench
 .phpunit.cache
 .phpunit.result.cache
 .vitepress/dist
