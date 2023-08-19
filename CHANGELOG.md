@@ -7,6 +7,29 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+-   Finish Laravel integration
+-   Add basic field schema configuration in preparation for OpenAPI generation
+-   Add `Context::$query` to access the query used in the `Index` endpoint
+-   Add `Context::fieldRequested()` and `Context::sortRequested()` methods
+-   Add `BooleanDateTime` attribute for exposing internal date-time values as booleans
+-   Improve error sources in Bad Request errors
+-   Add a performance benchmark
+
+### Changed
+
+-   Add `void` return type to `Filter::apply()` signature
+
+### Fixed
+
+-   Fix typed attribute values being deserialized and always passing validation
+-   Fix visibility callback result not being cast to a boolean
+-   Fix `Integer` incorrectly not extending `Number`
+-   Fix empty to-many relationships not being present in the response at all
+-   Fix TypeError when removing non-nullable to-one relationship
+    ([#74](https://github.com/tobyzerner/json-api-server/issues/74))
+
 ## [1.0.0-alpha.1] - 2023-06-21
 
 -   **New class-based API.** More ergonomic for managing large resource definitions and
