@@ -23,7 +23,7 @@
         },
         "files": [
             "src/functions.php",
-            "src/functions_laravel.php"
+            "src/Laravel/functions.php"
         ]
     },
     "autoload-dev": {

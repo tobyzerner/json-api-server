@@ -49,8 +49,15 @@ use Tobyz\JsonApiServer\Laravel\EloquentResource;
 
 class PostsResource extends EloquentResource
 {
-    public readonly string $type = 'posts';
-    public readonly string $model = Post::class;
+    public function type(): string
+    {
+        return 'posts';
+    }
+
+    public function newModel(Context $context): object
+    {
+        return new Post();
+    }
 
     public function endpoints(): array
     {
@@ -117,11 +124,11 @@ requests, and force delete a resource using a `DELETE` request.
 
 To expose the soft-delete capability to the client, add the
 `Tobyz\JsonApiServer\Laravel\SoftDeletes` trait to your Eloquent resource, and a
-`Tobyz\JsonApiServer\Laravel\Fields\SoftDelete` field to your fields array:
+nullable `DateTime` field to your fields array:
 
 ```php
-use Tobyz\JsonApiServer\Laravel\Fields\SoftDelete; // [!code ++]
 use Tobyz\JsonApiServer\Laravel\SoftDeletes; // [!code ++]
+use Tobyz\JsonApiServer\Schema\Field\DateTime; // [!code ++]
 
 class PostsResource extends EloquentResource
 {
@@ -132,20 +139,22 @@ class PostsResource extends EloquentResource
     public function fields(): array
     {
         return [
-            SoftDelete::make('deletedAt'), // [!code ++]
+            DateTime::make('deletedAt')->nullable(), // [!code ++]
         ];
     }
 }
 ```
 
 If you prefer to use a boolean to indicate whether or not a resource is
-soft-deleted instead of a nullable date-time value, you can call the `asBoolean`
-method on the `SoftDelete` field:
+soft-deleted instead of a nullable date-time value, you can use a
+`BooleanDateTime` field instead:
 
 ```php
-SoftDelete::make('isDeleted')
+use Tobyz\JsonApiServer\Schema\Field\BooleanDateTime;
+
+BooleanDateTime::make('isDeleted')
     ->property('deleted_at')
-    ->asBoolean();
+    ->writable();
 ```
 
 ## Filters
@@ -156,8 +165,12 @@ resources.
 ### Where
 
 ```php
-Where::make('id');
 Where::make('name');
+Where::make('id')->commaSeparated();
+Where::make('isConfirmed')->asBoolean();
+Where::make('score')->asNumeric();
+WhereBelongsTo::make('user');
+Has::make('hasComments');
 WhereHas::make('comments');
 WhereDoesntHave::make('comments');
 WhereNull::make('draft')->property('published_at');

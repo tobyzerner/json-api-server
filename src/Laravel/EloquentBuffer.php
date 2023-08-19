@@ -6,13 +6,11 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Schema\Relationship;
-
-use function Tobyz\JsonApiServer\run_callbacks;
+use Tobyz\JsonApiServer\Schema\Field\Relationship;
 
 abstract class EloquentBuffer
 {
-    private static $buffer = [];
+    private static array $buffer = [];
 
     public static function add(Model $model, string $relationName): void
     {
@@ -43,14 +41,10 @@ abstract class EloquentBuffer
                 // may be multiple if this is a polymorphic relationship. We
                 // start by getting the resource types this relationship
                 // could possibly contain.
-                $resourceTypes = $context->getApi()->getResourceTypes();
+                $resources = $context->api->resources;
 
-                if ($type = $relationship->getType()) {
-                    if (is_string($type)) {
-                        $resourceTypes = [$resourceTypes[$type]];
-                    } else {
-                        $resourceTypes = array_intersect_key($resourceTypes, array_flip($type));
-                    }
+                if ($type = $relationship->types) {
+                    $resources = array_intersect_key($resources, array_flip($type));
                 }
 
                 // Now, construct a map of model class names -> scoping
@@ -58,17 +52,11 @@ abstract class EloquentBuffer
                 // method in order to apply type-specific scoping.
                 $constrain = [];
 
-                foreach ($resourceTypes as $resourceType) {
-                    if (
-                        ($model = $resourceType->getAdapter()->model()) &&
-                        !isset($constrain[get_class($model)])
-                    ) {
-                        $constrain[get_class($model)] = function ($query) use (
-                            $resourceType,
-                            $context,
-                        ) {
-                            $resourceType->applyScopes($query, $context);
-                        };
+                foreach ($resources as $resource) {
+                    $modelClass = get_class($resource->newModel($context));
+
+                    if ($resource instanceof EloquentResource && !isset($constrain[$modelClass])) {
+                        $constrain[$modelClass] = fn($query) => $resource->scope($query, $context);
                     }
                 }
 
@@ -77,10 +65,6 @@ abstract class EloquentBuffer
                 } else {
                     reset($constrain)($query);
                 }
-
-                // Also apply any local scopes that have been defined on this
-                // relationship.
-                run_callbacks($relationship->getListeners('scope'), [$query, $context]);
             },
         ]);
 

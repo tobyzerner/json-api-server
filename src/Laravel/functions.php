@@ -16,9 +16,8 @@ function rules($rules, array $messages = [], array $customAttributes = []): Clos
     }
 
     return function (
-        callable $fail,
         $value,
-        Model $model,
+        callable $fail,
         Context $context,
     ) use ($rules, $messages, $customAttributes) {
         $key = $context->field->name;
@@ -27,7 +26,7 @@ function rules($rules, array $messages = [], array $customAttributes = []): Clos
 
         foreach ($rules as $k => $rule) {
             if (is_string($rule)) {
-                $rule = str_replace('{id}', $model->getKey(), $rule);
+                $rule = str_replace('{id}', $context->model?->getKey(), $rule);
             }
 
             if (!is_numeric($k)) {
@@ -60,8 +59,8 @@ function authenticated(): Closure
 function can(string $ability, ...$args): Closure
 {
     return function ($arg) use ($ability, $args) {
-        if ($arg instanceof Model) {
-            array_unshift($args, $arg);
+        if ($arg instanceof Model && !count($args)) {
+            $args = [$arg];
         }
 
         return Gate::allows($ability, $args);

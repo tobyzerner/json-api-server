@@ -47,8 +47,15 @@ use Tobyz\JsonApiServer\JsonApi;
 
 class UsersResource extends EloquentResource
 {
-    public readonly string $type = 'users';
-    public readonly string $model = User::class;
+    public function type(): string
+    {
+        return 'users';
+    }
+
+    public function newModel(Context $context): object
+    {
+        return new User();
+    }
 
     public function endpoints(): array
     {
@@ -78,7 +85,7 @@ class UsersResource extends EloquentResource
 
     public function filters(): array
     {
-        return [Filter\WhereIdIn::make(), Filter\Where::make('name')];
+        return [Filter\Where::make('id'), Filter\Where::make('name')];
     }
 }
 
