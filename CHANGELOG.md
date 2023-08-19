@@ -7,6 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.0-alpha.2] - 2023-08-19
+
 ### Added
 
 -   Finish Laravel integration
@@ -153,6 +155,7 @@ Still to come:
 
 -   Fix pagination next link appearing when it shouldn't
 
+[1.0.0-alpha.2]: https://github.com/tobyzerner/json-api-server/compare/v1.0.0-alpha.1...v1.0.0-alpha.2
 [1.0.0-alpha.1]: https://github.com/tobyzerner/json-api-server/compare/v0.2.0...v1.0.0-alpha.1
 [0.2.0]: https://github.com/tobyzerner/json-api-server/compare/v0.2.0...v0.2.0-beta.6
 [0.2.0-beta.6]: https://github.com/tobyzerner/json-api-server/compare/v0.2.0-beta.6...v0.2.0-beta.5
@@ -161,4 +164,4 @@ Still to come:
 [0.2.0-beta.3]: https://github.com/tobyzerner/json-api-server/compare/v0.2.0-beta.3...v0.2.0-beta.2
 [0.2.0-beta.2]: https://github.com/tobyzerner/json-api-server/compare/v0.2.0-beta.2...v0.2.0-beta.1
 [0.2.0-beta.1]: https://github.com/tobyzerner/json-api-server/compare/v0.2.0-beta.1...v0.1.0-beta.1
-[unreleased]: https://github.com/tobyzerner/json-api-server/compare/v1.0.0-alpha.1...HEAD
+[unreleased]: https://github.com/tobyzerner/json-api-server/compare/v1.0.0-alpha.2...HEAD
