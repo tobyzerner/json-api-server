@@ -52,7 +52,7 @@ class ToOne extends Relationship
             throw new BadRequestException('relationship does not include data key');
         }
 
-        if ($this->nullable && $value['data'] === null) {
+        if ($value['data'] === null) {
             return null;
         }
 

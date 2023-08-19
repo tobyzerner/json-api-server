@@ -6,6 +6,7 @@ use stdClass;
 use Tobyz\JsonApiServer\Endpoint\Create;
 use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Field\ToOne;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
@@ -237,5 +238,33 @@ class RelationshipToOneTest extends AbstractTestCase
         );
 
         $this->assertEquals(201, $response->getStatusCode());
+    }
+
+    public function test_to_one_create_null_not_nullable()
+    {
+        $this->api->resource(
+            new MockResource(
+                'users',
+                models: [(object) ['id' => '1']],
+                endpoints: [Create::make()],
+                fields: [
+                    ToOne::make('friend')
+                        ->type('users')
+                        ->writable()
+                        ->includable(),
+                ],
+            ),
+        );
+
+        $this->expectException(UnprocessableEntityException::class);
+
+        $this->api->handle(
+            $this->buildRequest('POST', '/users')->withParsedBody([
+                'data' => [
+                    'type' => 'users',
+                    'relationships' => ['friend' => ['data' => null]],
+                ],
+            ]),
+        );
     }
 }
