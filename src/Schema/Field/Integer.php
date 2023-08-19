@@ -4,7 +4,7 @@ namespace Tobyz\JsonApiServer\Schema\Field;
 
 use Closure;
 
-class Integer extends Attribute
+class Integer extends Number
 {
     public function __construct(string $name)
     {
