@@ -96,7 +96,9 @@ class Context
     }
 
     /**
+     * Get only the requested fields for the given resource, keyed by name.
      *
+     * @return array<string, Field>
      */
     public function sparseFields(ResourceInterface $resource): array
     {
@@ -113,6 +115,34 @@ class Context
         }
 
         return $this->sparseFields[$resource] = $fields;
+    }
+
+    /**
+     * Determine whether a field has been requested in a sparse fieldset.
+     */
+    public function fieldRequested(string $type, string $field, bool $default = true): bool
+    {
+        if ($requested = $this->queryParam('fields')[$type] ?? null) {
+            return in_array($field, explode(',', $requested));
+        }
+
+        return $default;
+    }
+
+    /**
+     * Determine whether a sort field has been requested.
+     */
+    public function sortRequested(string $field): bool
+    {
+        if ($sort = $this->queryParam('sort')) {
+            foreach (parse_sort_string($sort) as [$name, $direction]) {
+                if ($name === $field) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     public function withRequest(ServerRequestInterface $request): static
