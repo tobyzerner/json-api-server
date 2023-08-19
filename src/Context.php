@@ -12,6 +12,7 @@ class Context
 {
     public ?ResourceInterface $resource = null;
     public ?EndpointInterface $endpoint = null;
+    public ?object $query = null;
     public ?Serializer $serializer = null;
     public mixed $model = null;
     public ?Field $field = null;
@@ -135,6 +136,13 @@ class Context
     {
         $new = clone $this;
         $new->endpoint = $endpoint;
+        return $new;
+    }
+
+    public function withQuery(object $query): static
+    {
+        $new = clone $this;
+        $new->query = $query;
         return $new;
     }
 

@@ -22,6 +22,9 @@ class Context
     // The endpoint handling the request
     public ?EndpointInterface $endpoint = null;
 
+    // The query being constructed by the Index endpoint
+    public ?object $query = null;
+
     // The serializer instance
     public ?Serializer $serializer = null;
 

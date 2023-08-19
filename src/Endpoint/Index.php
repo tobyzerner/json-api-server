@@ -82,6 +82,8 @@ class Index implements EndpointInterface
 
         $query = $resource->query($context);
 
+        $context = $context->withQuery($query);
+
         $this->applySorts($query, $context);
         $this->applyFilters($query, $context);
 
