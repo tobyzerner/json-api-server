@@ -15,5 +15,5 @@ abstract class Filter
     {
     }
 
-    abstract public function apply(object $query, string|array $value, Context $context);
+    abstract public function apply(object $query, string|array $value, Context $context): void;
 }
