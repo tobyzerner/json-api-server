@@ -18,13 +18,13 @@ class ToMany extends Relationship
     {
         $meta = $this->serializeMeta($context);
 
-        if ((($context->include === null && !$this->linkage) || !$value) && !$meta) {
+        if ((($context->include === null && !$this->linkage) || $value === null) && !$meta) {
             return null;
         }
 
         $relationship = [];
 
-        if ($value) {
+        if ($value !== null) {
             $relationship['data'] = array_map(
                 fn($model) => $context->serializer->addIncluded($this, $model, $context->include),
                 $value,

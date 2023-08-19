@@ -60,6 +60,37 @@ class RelationshipToManyTest extends AbstractTestCase
         );
     }
 
+    public function test_empty_to_many_with_linkage()
+    {
+        $this->api->resource(
+            new MockResource(
+                'users',
+                models: [(object) ['id' => '3', 'friends' => []]],
+                endpoints: [Show::make()],
+                fields: [
+                    ToMany::make('friends')
+                        ->withLinkage()
+                        ->type('users'),
+                ],
+            ),
+        );
+
+        $response = $this->api->handle($this->buildRequest('GET', '/users/3'));
+
+        $this->assertJsonApiDocumentSubset(
+            [
+                'data' => [
+                    'type' => 'users',
+                    'id' => '3',
+                    'relationships' => [
+                        'friends' => ['data' => []],
+                    ],
+                ],
+            ],
+            $response->getBody(),
+        );
+    }
+
     public function test_to_many_without_linkage()
     {
         $this->api->resource(
