@@ -42,6 +42,21 @@ Date::make('dob');
 DateTime::make('publishedAt');
 ```
 
+### BooleanDateTime
+
+The `BooleanDateTime` attribute behaves like the `Boolean` attribute, except
+that before setting the value to the model, a `true` value is set as the current
+date, and a `false` value is set as `null`. This can be used to represent a
+field that is stored internally as a timestamp as a boolean in the API.
+
+```php
+use Tobyz\JsonApiServer\Field\DateTime;
+
+BooleanDateTime::make('isDeleted')
+    ->property('deleted_at')
+    ->writable();
+```
+
 ### Number and Integer
 
 The `Number` attribute serializes values to floats, and performs validation to

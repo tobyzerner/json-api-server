@@ -51,7 +51,7 @@ class BooleanTest extends AbstractTestCase
 
         $this->expectException(UnprocessableEntityException::class);
 
-        $response = $this->api->handle(
+        $this->api->handle(
             $this->buildRequest('POST', '/users')->withParsedBody([
                 'data' => ['type' => 'users', 'attributes' => ['name' => 'hello']],
             ]),
