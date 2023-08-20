@@ -280,7 +280,7 @@ If you would like to define custom hydration logic for a specific field, use the
 `set` method:
 
 ```php
-Str::make('name')->set(function ($value, $model, Context $context) {
+Str::make('name')->set(function ($model, $value, Context $context) {
     $model->first_name = explode(' ', $value)[0];
     $model->last_name = explode(' ', $value)[1];
 });
@@ -294,7 +294,7 @@ been saved. If specified, the resource's `setValue` method will **not** be
 called for the field.
 
 ```php
-Str::attribute('locale')->save(function ($value, $model, Context $context) {
+Str::attribute('locale')->save(function ($model, $value, Context $context) {
     $model
         ->preferences()
         ->where('key', 'locale')
