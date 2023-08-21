@@ -4,5 +4,5 @@ node_modules
 .phpbench
 .phpunit.cache
 .phpunit.result.cache
-.vitepress/dist
-.vitepress/cache
+docs/.vitepress/dist
+docs/.vitepress/cache
