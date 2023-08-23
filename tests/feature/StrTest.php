@@ -57,4 +57,46 @@ class StrTest extends AbstractTestCase
             ]),
         );
     }
+
+    public function test_invalid_enum()
+    {
+        $this->api->resource(
+            new MockResource(
+                'users',
+                endpoints: [Create::make()],
+                fields: [Str::make('type')->writable()->enum(['A', 'B'])],
+            ),
+        );
+
+        $this->expectException(UnprocessableEntityException::class);
+
+        $this->api->handle(
+            $this->buildRequest('POST', '/users')->withParsedBody([
+                'data' => ['type' => 'users', 'attributes' => ['type' => 'C']],
+            ]),
+        );
+    }
+
+    public function test_valid_enum()
+    {
+        $this->api->resource(
+            new MockResource(
+                'users',
+                endpoints: [Create::make()],
+                fields: [Str::make('type')->writable()->enum(['A', 'B'])],
+            ),
+        );
+
+        $response = $this->api->handle(
+            $this->buildRequest('POST', '/users')->withParsedBody([
+                'data' => ['type' => 'users', 'attributes' => ['type' => 'A']],
+            ]),
+        );
+
+        $this->assertJsonApiDocumentSubset(
+            ['data' => ['attributes' => ['type' => 'A']]],
+            $response->getBody(),
+            true,
+        );
+    }
 }
