@@ -8,6 +8,7 @@ class Str extends Attribute
     public ?int $maxLength = null;
     public ?string $pattern = null;
     public ?string $format = null;
+    public ?array $enum = null;
 
     public function __construct(string $name)
     {
@@ -19,6 +20,11 @@ class Str extends Attribute
             if (!is_string($value)) {
                 $fail('must be a string');
                 return;
+            }
+
+            if ($this->enum !== null && !in_array($value, $this->enum, true)) {
+                $enum = array_map(fn ($value) => '"' . $value . '"', $this->enum);
+                $fail(sprintf('must be one of %s', implode(', ', $enum)));
             }
 
             if (strlen($value) < $this->minLength) {
@@ -66,6 +72,13 @@ class Str extends Attribute
         return $this;
     }
 
+    public function enum(?array $enum): static
+    {
+        $this->enum = $enum;
+
+        return $this;
+    }
+
     public function getSchema(): array
     {
         return parent::getSchema() + [
@@ -74,6 +87,7 @@ class Str extends Attribute
             'maxLength' => $this->maxLength,
             'pattern' => $this->pattern,
             'format' => $this->format,
+            'enum' => $this->enum,
         ];
     }
 }
