@@ -87,6 +87,7 @@ class Str extends Attribute
             'maxLength' => $this->maxLength,
             'pattern' => $this->pattern,
             'format' => $this->format,
+            'enum' => $this->enum,
         ];
     }
 }
