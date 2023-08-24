@@ -2,7 +2,6 @@
 
 namespace Tobyz\JsonApiServer\Schema\Field;
 
-use Closure;
 use InvalidArgumentException;
 
 class Number extends Attribute
@@ -19,7 +18,7 @@ class Number extends Attribute
 
         $this->serialize(static fn($value) => (float) $value);
 
-        $this->validate(function (mixed $value, Closure $fail): void {
+        $this->validate(function (mixed $value, callable $fail): void {
             if (!is_numeric($value)) {
                 $fail('must be numeric');
                 return;

@@ -2,8 +2,6 @@
 
 namespace Tobyz\JsonApiServer\Schema\Field;
 
-use Closure;
-
 class Integer extends Number
 {
     public function __construct(string $name)
@@ -12,8 +10,8 @@ class Integer extends Number
 
         $this->serialize(static fn($value) => (int) $value);
 
-        $this->validate(static function (mixed $value, Closure $fail): void {
-            if (!is_int($value)) {
+        $this->validate(static function (mixed $value, callable $fail): void {
+            if (is_numeric($value) && !is_int($value)) {
                 $fail('must be an integer');
             }
         });
