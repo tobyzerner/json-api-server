@@ -6,7 +6,7 @@
         "docs:dev": "vitepress dev docs",
         "docs:build": "vitepress build docs",
         "docs:preview": "vitepress preview docs",
-        "prettier": "prettier --write .",
+        "prettier": "prettier --write '**/*' --ignore-unknown",
         "release": "release-it"
     },
     "devDependencies": {
