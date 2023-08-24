@@ -18,6 +18,6 @@ jobs:
 
       - uses: creyD/prettier_action@v4.3
         with:
-          prettier_options: --write "**/*.*" --ignore-unknown
+          prettier_options: --write **/*.* --ignore-unknown
           prettier_plugins: '@prettier/plugin-php'
           commit_message: 'Run Prettier'
