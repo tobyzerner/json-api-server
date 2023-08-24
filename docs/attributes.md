@@ -137,8 +137,7 @@ Str::make('name')
 You can restrict the string to a set of possible values using the `enum` method.
 
 ```php
-Str::make('status')
-    ->enum(['to do', 'doing', 'done']);
+Str::make('status')->enum(['to do', 'doing', 'done']);
 ```
 
 #### `pattern`

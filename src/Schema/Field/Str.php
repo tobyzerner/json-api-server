@@ -23,7 +23,7 @@ class Str extends Attribute
             }
 
             if ($this->enum !== null && !in_array($value, $this->enum, true)) {
-                $enum = array_map(fn ($value) => '"' . $value . '"', $this->enum);
+                $enum = array_map(fn($value) => '"' . $value . '"', $this->enum);
                 $fail(sprintf('must be one of %s', implode(', ', $enum)));
             }
 

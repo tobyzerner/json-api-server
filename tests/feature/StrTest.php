@@ -64,7 +64,11 @@ class StrTest extends AbstractTestCase
             new MockResource(
                 'users',
                 endpoints: [Create::make()],
-                fields: [Str::make('type')->writable()->enum(['A', 'B'])],
+                fields: [
+                    Str::make('type')
+                        ->writable()
+                        ->enum(['A', 'B']),
+                ],
             ),
         );
 
@@ -83,7 +87,11 @@ class StrTest extends AbstractTestCase
             new MockResource(
                 'users',
                 endpoints: [Create::make()],
-                fields: [Str::make('type')->writable()->enum(['A', 'B'])],
+                fields: [
+                    Str::make('type')
+                        ->writable()
+                        ->enum(['A', 'B']),
+                ],
             ),
         );
 
