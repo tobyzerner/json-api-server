@@ -129,11 +129,8 @@ trait SetsValue
      */
     public function validateValue(mixed $value, callable $fail, Context $context): void
     {
-        if ($value === null) {
-            if (!$this->nullable) {
-                $fail('must not be null');
-            }
-            return;
+        if ($value === null && !$this->nullable) {
+            $fail('must not be null');
         }
 
         foreach ($this->validators as $validator) {

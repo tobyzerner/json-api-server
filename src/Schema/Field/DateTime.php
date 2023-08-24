@@ -27,7 +27,7 @@ class DateTime extends Attribute
         });
 
         $this->validate(static function (mixed $value, callable $fail): void {
-            if (!$value instanceof \DateTime) {
+            if (!$value instanceof \DateTime && $value !== null) {
                 $fail('must be a date-time');
             }
         });
