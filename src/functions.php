@@ -77,6 +77,7 @@ function apply_filters(
     ResourceInterface&Listable $resource,
     Context $context,
 ): void {
+    $context = $context->withResource($resource);
     $availableFilters = $resource->filters();
 
     foreach ($filters as $name => $value) {
