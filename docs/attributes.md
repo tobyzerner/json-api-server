@@ -132,6 +132,15 @@ Str::make('name')
     ->maxLength(20);
 ```
 
+#### `enum`
+
+You can restrict the string to a set of possible values using the `enum` method.
+
+```php
+Str::make('status')
+    ->enum(['to do', 'doing', 'done']);
+```
+
 #### `pattern`
 
 You can also validate the string against a regular expression using the
