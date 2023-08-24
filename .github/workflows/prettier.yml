@@ -1,6 +1,6 @@
 name: Prettier
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   prettier:
@@ -20,5 +20,4 @@ jobs:
         with:
           prettier_options: --write .
           prettier_plugins: '@prettier/plugin-php'
-          only_changed: true
           commit_message: 'Run Prettier'
