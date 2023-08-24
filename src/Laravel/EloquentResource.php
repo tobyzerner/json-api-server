@@ -18,6 +18,7 @@ use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Resource\Paginatable;
 use Tobyz\JsonApiServer\Resource\Resource;
 use Tobyz\JsonApiServer\Resource\Updatable;
+use Tobyz\JsonApiServer\Schema\Field\DateTime;
 use Tobyz\JsonApiServer\Schema\Field\Field;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
 use Tobyz\JsonApiServer\Schema\Field\ToMany;
@@ -133,6 +134,16 @@ abstract class EloquentResource extends Resource implements
             }
 
             return;
+        }
+
+        // Mind-blowingly, Laravel discards timezone information when storing
+        // dates in the database. Since the API can receive dates in any
+        // timezone, we will need to convert it to the app's configured
+        // timezone ourselves before storage.
+        if ($field instanceof DateTime && $value instanceof \DateTimeInterface) {
+            $value = \DateTime::createFromInterface($value)->setTimezone(
+                new \DateTimeZone(config('app.timezone')),
+            );
         }
 
         $model->setAttribute($this->property($field), $value);
