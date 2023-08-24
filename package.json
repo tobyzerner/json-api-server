@@ -10,9 +10,9 @@
         "release": "release-it"
     },
     "devDependencies": {
-        "@prettier/plugin-php": "^0.20.1",
+        "@prettier/plugin-php": "^0.19.7",
         "@release-it/keep-a-changelog": "^3.1.0",
-        "prettier": "^3.0.2",
+        "prettier": "^2.8.8",
         "release-it": "^15.11.0",
         "vitepress": "1.0.0-rc.4"
     }
