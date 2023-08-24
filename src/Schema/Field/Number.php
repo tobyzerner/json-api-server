@@ -7,11 +7,11 @@ use InvalidArgumentException;
 
 class Number extends Attribute
 {
-    private ?float $minimum;
-    private bool $exclusiveMinimum;
-    private ?float $maximum;
-    private bool $exclusiveMaximum;
-    private ?float $multipleOf;
+    private ?float $minimum = null;
+    private bool $exclusiveMinimum = false;
+    private ?float $maximum = null;
+    private bool $exclusiveMaximum = false;
+    private ?float $multipleOf = null;
 
     public function __construct(string $name)
     {
