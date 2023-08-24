@@ -52,10 +52,10 @@ abstract class EloquentResource extends Resource implements
 
     protected function getRelationshipValue(Model $model, Relationship $field, Context $context)
     {
-        $property = $field->property ?: $field->name;
+        $method = $this->method($field);
 
-        if (method_exists($model, $property)) {
-            $relation = $model->$property();
+        if (method_exists($model, $method)) {
+            $relation = $model->$method();
 
             // If this is a belongs-to relationship, and we only need to get the ID
             // for linkage, then we don't have to actually load the relation because
@@ -70,12 +70,12 @@ abstract class EloquentResource extends Resource implements
                 return null;
             }
 
-            EloquentBuffer::add($model, $property);
+            EloquentBuffer::add($model, $method);
 
-            return function () use ($model, $property, $field, $context) {
-                EloquentBuffer::load($model, $property, $field, $context);
+            return function () use ($model, $method, $field, $context) {
+                EloquentBuffer::load($model, $method, $field, $context);
 
-                $data = $model->getRelation($property);
+                $data = $model->getRelation($method);
 
                 return $data instanceof Collection ? $data->all() : $data;
             };
@@ -122,10 +122,9 @@ abstract class EloquentResource extends Resource implements
 
     public function setValue(object $model, Field $field, mixed $value, Context $context): void
     {
-        $property = $this->property($field);
-
         if ($field instanceof Relationship) {
-            $relation = $model->$property();
+            $method = $this->method($field);
+            $relation = $model->$method();
 
             // If this is a belongs-to relationship, then the ID is stored on the
             // model itself, so we can set it here.
@@ -136,15 +135,14 @@ abstract class EloquentResource extends Resource implements
             return;
         }
 
-        $model->setAttribute($property, $value);
+        $model->setAttribute($this->property($field), $value);
     }
 
     public function saveValue(object $model, Field $field, mixed $value, Context $context): void
     {
-        $property = $this->property($field);
-
         if ($field instanceof ToMany) {
-            $relation = $model->$property();
+            $method = $this->method($field);
+            $relation = $model->$method();
 
             if ($relation instanceof BelongsToMany) {
                 $relation->sync(new Collection($value));
@@ -214,5 +212,13 @@ abstract class EloquentResource extends Resource implements
     protected function property(Field $field): string
     {
         return $field->property ?: Str::snake($field->name);
+    }
+
+    /**
+     * Get the model method that a field represents.
+     */
+    protected function method(Field $field): string
+    {
+        return $field->property ?: $field->name;
     }
 }
