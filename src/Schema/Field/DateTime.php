@@ -19,7 +19,11 @@ class DateTime extends Attribute
         $this->deserialize(static function ($value) {
             if (
                 is_string($value) &&
-                ($date = \DateTime::createFromFormat(DateTimeInterface::RFC3339, $value))
+                (($date = \DateTime::createFromFormat(DateTimeInterface::RFC3339, $value)) ||
+                    ($date = \DateTime::createFromFormat(
+                        DateTimeInterface::RFC3339_EXTENDED,
+                        $value,
+                    )))
             ) {
                 return $date;
             }
