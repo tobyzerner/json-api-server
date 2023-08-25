@@ -201,7 +201,7 @@ Str::make('email')->writableOnCreate();
 
 If you would like to provide a default value to be used when creating a new
 resource if there is no value provided in the request, you can pass a closure to
-the `default` method. 
+the `default` method.
 
 The closure will receive the current request context as an argument when called.
 
@@ -211,7 +211,8 @@ use Tobyz\JsonApiServer\Field\DateTime;
 DateTime::make('joinedAt')->default(fn(Context $context) => new \DateTime());
 ```
 
-Alternatively, you can pass a literal default value to the `defaultLiteral` method:
+Alternatively, you can pass a literal default value to the `defaultLiteral`
+method:
 
 ```php
 use Tobyz\JsonApiServer\Field\DateTime;
