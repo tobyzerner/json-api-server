@@ -43,6 +43,32 @@ class FieldDefaultTest extends AbstractTestCase
         );
     }
 
+    public function test_default_literal_value_used_if_field_not_present()
+    {
+        $this->api->resource(
+            new MockResource(
+                'users',
+                endpoints: [Create::make()],
+                fields: [
+                    Attribute::make('name')
+                        ->writable()
+                        ->defaultLiteral('default'),
+                ],
+            ),
+        );
+
+        $response = $this->api->handle(
+            $this->buildRequest('POST', '/users')->withParsedBody([
+                'data' => ['type' => 'users'],
+            ]),
+        );
+
+        $this->assertJsonApiDocumentSubset(
+            ['data' => ['attributes' => ['name' => 'default']]],
+            $response->getBody(),
+        );
+    }
+
     public function test_default_value_not_used_if_field_present()
     {
         $this->api->resource(
