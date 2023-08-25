@@ -49,11 +49,21 @@ trait SetsValue
     }
 
     /**
-     * Set a default value for this field.
+     * Set a default value for this field via a callback.
      */
     public function default(?Closure $default): static
     {
         $this->default = $default;
+
+        return $this;
+    }
+
+    /**
+     * Set a literal default value for this field.
+     */
+    public function defaultLiteral(mixed $defaultLiteral): static
+    {
+        $this->default(fn(): mixed => $defaultLiteral);
 
         return $this;
     }
