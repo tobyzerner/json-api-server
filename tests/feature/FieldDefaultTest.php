@@ -17,7 +17,7 @@ class FieldDefaultTest extends AbstractTestCase
         $this->api = new JsonApi();
     }
 
-    public function test_default_value_used_if_field_not_present()
+    public function test_default_closure_value_used_if_field_not_present()
     {
         $this->api->resource(
             new MockResource(
@@ -52,7 +52,7 @@ class FieldDefaultTest extends AbstractTestCase
                 fields: [
                     Attribute::make('name')
                         ->writable()
-                        ->defaultLiteral('default'),
+                        ->default('default'),
                 ],
             ),
         );

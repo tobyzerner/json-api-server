@@ -49,21 +49,15 @@ trait SetsValue
     }
 
     /**
-     * Set a default value for this field via a callback.
+     * Set a default value for this field.
      */
-    public function default(?Closure $default): static
+    public function default(mixed $default): static
     {
+        if (!$default instanceof Closure) {
+            $default = fn() => $default;
+        }
+
         $this->default = $default;
-
-        return $this;
-    }
-
-    /**
-     * Set a literal default value for this field.
-     */
-    public function defaultLiteral(mixed $defaultLiteral): static
-    {
-        $this->default(fn(): mixed => $defaultLiteral);
 
         return $this;
     }
