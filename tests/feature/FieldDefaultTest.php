@@ -17,7 +17,7 @@ class FieldDefaultTest extends AbstractTestCase
         $this->api = new JsonApi();
     }
 
-    public function test_default_value_used_if_field_not_present()
+    public function test_default_closure_value_used_if_field_not_present()
     {
         $this->api->resource(
             new MockResource(
@@ -27,6 +27,32 @@ class FieldDefaultTest extends AbstractTestCase
                     Attribute::make('name')
                         ->writable()
                         ->default(fn() => 'default'),
+                ],
+            ),
+        );
+
+        $response = $this->api->handle(
+            $this->buildRequest('POST', '/users')->withParsedBody([
+                'data' => ['type' => 'users'],
+            ]),
+        );
+
+        $this->assertJsonApiDocumentSubset(
+            ['data' => ['attributes' => ['name' => 'default']]],
+            $response->getBody(),
+        );
+    }
+
+    public function test_default_literal_value_used_if_field_not_present()
+    {
+        $this->api->resource(
+            new MockResource(
+                'users',
+                endpoints: [Create::make()],
+                fields: [
+                    Attribute::make('name')
+                        ->writable()
+                        ->default('default'),
                 ],
             ),
         );

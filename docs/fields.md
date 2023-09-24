@@ -200,13 +200,18 @@ Str::make('email')->writableOnCreate();
 ### Default Values
 
 If you would like to provide a default value to be used when creating a new
-resource if there is no value provided in the request, you can pass a closure to
-the `default` method:
+resource if there is no value provided in the request, you can pass a closure or
+a literal value to the `default` method.
+
+A closure will receive the current request context as an argument when called.
 
 ```php
-use Tobyz\JsonApiServer\Field\DateTime;
+use Tobyz\JsonApiServer\Field;
 
-DateTime::make('joinedAt')->default(fn() => new \DateTime());
+Field\Str::make('name')->default('Anonymous');
+Field\DateTime::make('joinedAt')->default(
+    fn(Context $context) => new \DateTime(),
+);
 ```
 
 ### Required
