@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [1.0.0-beta.1] - 2023-09-24
+
 ### Added
 
 -   Add `Str::enum()` method
@@ -189,6 +191,7 @@ Still to come:
 
 -   Fix pagination next link appearing when it shouldn't
 
+[1.0.0-beta.1]: https://github.com/tobyzerner/json-api-server/compare/v1.0.0-alpha.2...v1.0.0-beta.1
 [1.0.0-alpha.2]:
     https://github.com/tobyzerner/json-api-server/compare/v1.0.0-alpha.1...v1.0.0-alpha.2
 [1.0.0-alpha.1]:
@@ -209,3 +212,5 @@ Still to come:
     https://github.com/tobyzerner/json-api-server/compare/v0.2.0-beta.1...v0.1.0-beta.1
 [unreleased]:
     https://github.com/tobyzerner/json-api-server/compare/v1.0.0-alpha.2...HEAD
+
+[unreleased]: https://github.com/tobyzerner/json-api-server/compare/v1.0.0-beta.1...HEAD
