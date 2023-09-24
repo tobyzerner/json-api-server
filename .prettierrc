@@ -6,7 +6,7 @@
     "plugins": ["@prettier/plugin-php"],
     "overrides": [
         {
-            "files": "docs/**/*",
+            "files": ["docs/**/*", "*.md"],
             "options": {
                 "printWidth": 80
             }
