@@ -3,13 +3,15 @@
 [![Pre Release](https://img.shields.io/packagist/vpre/tobyz/json-api-server.svg?style=flat)](https://github.com/tobyzerner/json-api-server/releases)
 [![License](https://img.shields.io/packagist/l/tobyz/json-api-server.svg?style=flat)](https://packagist.org/packages/tobyz/json-api-server)
 
-json-api-server is a [JSON:API](http://jsonapi.org) server implementation in PHP.
+json-api-server is a [JSON:API](http://jsonapi.org) server implementation in
+PHP.
 
-It allows you to build a feature-rich API by defining resource schema and connecting it to your
-application's database layer.
+It allows you to build a feature-rich API by defining resource schema and
+connecting it to your application's database layer.
 
-Based on your schema definition, the package will serve a complete API that conforms to the
-[JSON:API specification](https://jsonapi.org/format/), including support for:
+Based on your schema definition, the package will serve a complete API that
+conforms to the [JSON:API specification](https://jsonapi.org/format/), including
+support for:
 
 -   **Showing** individual resources (`GET /articles/1`)
 -   **Listing** resource collections (`GET /articles`)
@@ -29,9 +31,10 @@ Based on your schema definition, the package will serve a complete API that conf
 
 ## Example
 
-The following example uses an Eloquent model in a Laravel application. However, json-api-server can
-be used with any framework that can deal in PSR-7 Requests and Responses. Custom behavior can be
-implemented to support other ORMs and data persistence layers.
+The following example uses an Eloquent model in a Laravel application. However,
+json-api-server can be used with any framework that can deal in PSR-7 Requests
+and Responses. Custom behavior can be implemented to support other ORMs and data
+persistence layers.
 
 ```php
 use App\Models\User;
@@ -101,8 +104,8 @@ try {
 
 ## Contributing
 
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would
-like to change.
+Pull requests are welcome. For major changes, please open an issue first to
+discuss what you would like to change.
 
 ## License
 
