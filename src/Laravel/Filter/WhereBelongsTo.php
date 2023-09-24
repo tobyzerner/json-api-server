@@ -3,6 +3,7 @@
 namespace Tobyz\JsonApiServer\Laravel\Filter;
 
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Schema\Filter;
 
 class WhereBelongsTo extends Filter
@@ -25,9 +26,15 @@ class WhereBelongsTo extends Filter
     {
         $relationship = $query->getModel()->{$this->relationship ?: $this->name}();
 
+        if (!array_is_list($values = (array) $value)) {
+            throw new BadRequestException('filter value must be list', [
+                'parameter' => "filter[$this->name]",
+            ]);
+        }
+
         $query->whereIn(
             $relationship->getQualifiedForeignKeyName(),
-            array_merge(...array_map(fn($v) => explode(',', $v), (array) $value)),
+            array_merge(...array_map(fn($v) => explode(',', $v), $values)),
         );
     }
 }
