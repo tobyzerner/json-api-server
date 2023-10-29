@@ -51,13 +51,12 @@ class Create implements EndpointInterface
 
         $data = $this->parseData($context);
 
+        $context = $context->withModel($model = $resource->newModel($context));
+
         $this->assertFieldsValid($context, $data);
         $this->fillDefaultValues($context, $data);
         $this->deserializeValues($context, $data);
         $this->assertDataValid($context, $data, true);
-
-        $context = $context->withModel($model = $resource->newModel($context));
-
         $this->setValues($context, $data);
 
         $context = $context->withModel($model = $resource->create($model, $context));
