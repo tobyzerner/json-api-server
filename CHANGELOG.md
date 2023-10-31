@@ -11,6 +11,7 @@ and this project adheres to
 ### Fixed
 
 -   When creating a resource, set the context model prior to field validation
+-   Laravel: Fix `Has` filter not working without a `scope`
 
 ## [1.0.0-beta.1] - 2023-09-24
 

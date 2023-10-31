@@ -9,7 +9,7 @@ use Tobyz\JsonApiServer\Schema\Filter;
 class Has extends Filter
 {
     public ?string $relation = null;
-    public ?Closure $scope;
+    public ?Closure $scope = null;
 
     public static function make(string $name): static
     {
