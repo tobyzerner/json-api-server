@@ -62,7 +62,7 @@ abstract class EloquentBuffer
 
                 if ($relation instanceof MorphTo) {
                     $relation->constrain($constrain);
-                } else {
+                } elseif ($constrain) {
                     reset($constrain)($query);
                 }
             },
