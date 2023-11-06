@@ -11,19 +11,31 @@ use function Tobyz\JsonApiServer\apply_filters;
 
 class WhereHas extends Filter
 {
+    public Relationship|string|null $field = null;
+
     public static function make(string $name): static
     {
         return new static($name);
     }
 
+    public function field(Relationship|string|null $field): static
+    {
+        $this->field = $field;
+
+        return $this;
+    }
+
     public function apply(object $query, array|string $value, Context $context): void
     {
         $value = (array) $value;
-        $field = $context->fields($context->resource)[$this->name] ?? null;
+        $field =
+            $this->field instanceof Relationship
+                ? $this->field
+                : $context->fields($context->resource)[$this->field ?: $this->name] ?? null;
 
         if (!$field instanceof Relationship || count($field->types) !== 1) {
             throw new LogicException(
-                'The WhereHas filter must have a corresponding non-polymorphic relationship field',
+                'The WhereHas filter must have a non-polymorphic relationship field',
             );
         }
 
@@ -35,9 +47,7 @@ class WhereHas extends Filter
             $context,
         ) {
             if (array_is_list($value)) {
-                $query->whereKey(
-                    array_merge(...array_map(fn($v) => explode(',', $v), (array) $value)),
-                );
+                $query->whereKey(array_merge(...array_map(fn($v) => explode(',', $v), $value)));
             } else {
                 apply_filters(
                     $query,
