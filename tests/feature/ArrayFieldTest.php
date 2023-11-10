@@ -204,8 +204,7 @@ class ArrayFieldTest extends AbstractTestCase
                 'description' => null,
                 'nullable' => false,
             ],
-            ArrayField::make('featureToggles')
-                ->getSchema(),
+            ArrayField::make('featureToggles')->getSchema(),
         );
 
         $this->assertEquals(
@@ -225,10 +224,7 @@ class ArrayFieldTest extends AbstractTestCase
                 ->minItems(1)
                 ->maxItems(10)
                 ->uniqueItems()
-                ->items(
-                    Str::make('')
-                        ->enum(['valid1', 'valid2'])
-                )
+                ->items(Str::make('')->enum(['valid1', 'valid2']))
                 ->getSchema(),
         );
     }
