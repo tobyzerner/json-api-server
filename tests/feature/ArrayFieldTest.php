@@ -6,6 +6,7 @@ use Tobyz\JsonApiServer\Endpoint\Create;
 use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Field\ArrayField;
+use Tobyz\JsonApiServer\Schema\Field\Str;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockResource;
 
@@ -133,6 +134,56 @@ class ArrayFieldTest extends AbstractTestCase
 
         $this->assertJsonApiDocumentSubset(
             ['data' => ['attributes' => ['featureToggles' => [1, 2, 3]]]],
+            $response->getBody(),
+            true,
+        );
+    }
+
+    public function test_invalid_item_schema()
+    {
+        $this->api->resource(
+            new MockResource(
+                'customers',
+                endpoints: [Create::make()],
+                fields: [
+                    ArrayField::make('featureToggles')
+                        ->items(Str::make('')->enum(['valid']))
+                        ->writable(),
+                ],
+            ),
+        );
+
+        $this->expectException(UnprocessableEntityException::class);
+
+        $this->api->handle(
+            $this->buildRequest('POST', '/customers')->withParsedBody([
+                'data' => ['type' => 'customers', 'attributes' => ['featureToggles' => ['valid','invalid']]],
+            ]),
+        );
+    }
+
+    public function test_valid_item_schema()
+    {
+        $this->api->resource(
+            new MockResource(
+                'customers',
+                endpoints: [Create::make()],
+                fields: [
+                    ArrayField::make('featureToggles')
+                        ->items(Str::make('')->enum(['valid1','valid2']))
+                        ->writable(),
+                ],
+            ),
+        );
+
+        $response = $this->api->handle(
+            $this->buildRequest('POST', '/customers')->withParsedBody([
+                'data' => ['type' => 'customers', 'attributes' => ['featureToggles' => ['valid1', 'valid2']]],
+            ]),
+        );
+
+        $this->assertJsonApiDocumentSubset(
+            ['data' => ['attributes' => ['featureToggles' => ['valid1', 'valid2']]]],
             $response->getBody(),
             true,
         );
