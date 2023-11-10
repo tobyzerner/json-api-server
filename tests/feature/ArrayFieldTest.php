@@ -201,6 +201,8 @@ class ArrayFieldTest extends AbstractTestCase
                 'maxItems' => null,
                 'uniqueItems' => false,
                 'items' => null,
+                'description' => null,
+                'nullable' => false,
             ],
             ArrayField::make('featureToggles')
                 ->getSchema(),
@@ -216,6 +218,8 @@ class ArrayFieldTest extends AbstractTestCase
                     'type' => 'string',
                     'enum' => ['valid1', 'valid2'],
                 ],
+                'description' => null,
+                'nullable' => false,
             ],
             ArrayField::make('featureToggles')
                 ->minItems(1)
