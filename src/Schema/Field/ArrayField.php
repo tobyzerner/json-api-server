@@ -38,12 +38,8 @@ class ArrayField extends Field
             }
 
             if ($this->items) {
-                foreach ($value as $position => $item) {
-                    $itemFail = function ($detail = null) use ($fail, $position) {
-                        $fail('item at position ' . $position . ' ' . $detail);
-                    };
-
-                    $this->items->validateValue($item, $itemFail, $context);
+                foreach ($value as $item) {
+                    $this->items->validateValue($item, $fail, $context);
                 }
             }
         });
