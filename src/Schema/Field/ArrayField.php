@@ -43,7 +43,7 @@ class ArrayField extends Field
                         $fail('item at position ' . $position . ' ' . $detail);
                     };
 
-                    $this->items->validateValue($itemFail, $fail, $context);
+                    $this->items->validateValue($item, $itemFail, $context);
                 }
             }
         });
