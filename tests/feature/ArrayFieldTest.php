@@ -24,10 +24,7 @@ class ArrayFieldTest extends AbstractTestCase
             new MockResource(
                 'customers',
                 endpoints: [Create::make()],
-                fields: [
-                    ArrayField::make('featureToggles')
-                        ->writable(),
-                ],
+                fields: [ArrayField::make('featureToggles')->writable()],
             ),
         );
 
