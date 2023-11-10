@@ -72,4 +72,15 @@ class ArrayField extends Field
 
         return $this;
     }
+
+    public function getSchema(): array
+    {
+        return parent::getSchema() + [
+            'type' => 'array',
+            'minItems' => $this->minItems,
+            'maxItems' => $this->maxItems,
+            'uniqueItems' => $this->uniqueItems,
+            'items' => $this->items?->getSchema(),
+        ];
+    }
 }

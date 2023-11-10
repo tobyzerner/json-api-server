@@ -136,7 +136,7 @@ class ArrayFieldTest extends AbstractTestCase
         );
     }
 
-    public function test_invalid_item_schema()
+    public function test_invalid_items()
     {
         $this->api->resource(
             new MockResource(
@@ -162,7 +162,7 @@ class ArrayFieldTest extends AbstractTestCase
         );
     }
 
-    public function test_valid_item_schema()
+    public function test_valid_items()
     {
         $this->api->resource(
             new MockResource(
@@ -189,6 +189,43 @@ class ArrayFieldTest extends AbstractTestCase
             ['data' => ['attributes' => ['featureToggles' => ['valid1', 'valid2']]]],
             $response->getBody(),
             true,
+        );
+    }
+
+    public function test_schema()
+    {
+        $this->assertEquals(
+            [
+                'type' => 'array',
+                'minItems' => 0,
+                'maxItems' => null,
+                'uniqueItems' => false,
+                'items' => null,
+            ],
+            ArrayField::make('featureToggles')
+                ->getSchema(),
+        );
+
+        $this->assertEquals(
+            [
+                'type' => 'array',
+                'minItems' => 1,
+                'maxItems' => 10,
+                'uniqueItems' => true,
+                'items' => [
+                    'type' => 'string',
+                    'enum' => ['valid1', 'valid2'],
+                ],
+            ],
+            ArrayField::make('featureToggles')
+                ->minItems(1)
+                ->maxItems(10)
+                ->uniqueItems()
+                ->items(
+                    Str::make('')
+                        ->enum(['valid1', 'valid2'])
+                )
+                ->getSchema(),
         );
     }
 }
