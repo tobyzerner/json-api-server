@@ -154,7 +154,10 @@ class ArrayFieldTest extends AbstractTestCase
 
         $this->api->handle(
             $this->buildRequest('POST', '/customers')->withParsedBody([
-                'data' => ['type' => 'customers', 'attributes' => ['featureToggles' => ['valid','invalid']]],
+                'data' => [
+                    'type' => 'customers',
+                    'attributes' => ['featureToggles' => ['valid', 'invalid']],
+                ],
             ]),
         );
     }
@@ -167,7 +170,7 @@ class ArrayFieldTest extends AbstractTestCase
                 endpoints: [Create::make()],
                 fields: [
                     ArrayField::make('featureToggles')
-                        ->items(Str::make('')->enum(['valid1','valid2']))
+                        ->items(Str::make('')->enum(['valid1', 'valid2']))
                         ->writable(),
                 ],
             ),
@@ -175,7 +178,10 @@ class ArrayFieldTest extends AbstractTestCase
 
         $response = $this->api->handle(
             $this->buildRequest('POST', '/customers')->withParsedBody([
-                'data' => ['type' => 'customers', 'attributes' => ['featureToggles' => ['valid1', 'valid2']]],
+                'data' => [
+                    'type' => 'customers',
+                    'attributes' => ['featureToggles' => ['valid1', 'valid2']],
+                ],
             ]),
         );
 
