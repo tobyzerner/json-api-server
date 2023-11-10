@@ -216,6 +216,12 @@ class ArrayFieldTest extends AbstractTestCase
                 'items' => [
                     'type' => 'string',
                     'enum' => ['valid1', 'valid2'],
+                    'description' => null,
+                    'nullable' => false,
+                    'minLength' => 0,
+                    'maxLength' => null,
+                    'pattern' => null,
+                    'format' => null,
                 ],
                 'description' => null,
                 'nullable' => false,
