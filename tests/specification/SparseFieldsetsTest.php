@@ -4,7 +4,7 @@ namespace Tobyz\Tests\JsonApiServer\specification;
 
 use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\JsonApi;
-use Tobyz\JsonApiServer\Schema\Field\Str;
+use Tobyz\JsonApiServer\Schema\Field\Attribute;
 use Tobyz\JsonApiServer\Schema\Field\ToOne;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockResource;
@@ -24,7 +24,7 @@ class SparseFieldsetsTest extends AbstractTestCase
             new MockResource(
                 'users',
                 models: [($user1 = (object) ['id' => '1', 'name' => 'Toby', 'color' => 'yellow'])],
-                fields: [Str::make('name'), Str::make('color')],
+                fields: [Attribute::make('name'), Attribute::make('color')],
             ),
         );
 
@@ -42,9 +42,9 @@ class SparseFieldsetsTest extends AbstractTestCase
                 ],
                 endpoints: [Show::make()],
                 fields: [
-                    Str::make('title'),
-                    Str::make('body'),
-                    Str::make('exclude'),
+                    Attribute::make('title'),
+                    Attribute::make('body'),
+                    Attribute::make('exclude'),
                     ToOne::make('author')
                         ->type('users')
                         ->includable(),

@@ -8,7 +8,7 @@ use Tobyz\JsonApiServer\Endpoint\Update;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Extension\Atomic;
 use Tobyz\JsonApiServer\JsonApi;
-use Tobyz\JsonApiServer\Schema\Field\Str;
+use Tobyz\JsonApiServer\Schema\Field\Attribute;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockResource;
 
@@ -32,7 +32,7 @@ class AtomicOperationsTest extends AbstractTestCase
                 'users',
                 models: [(object) ['id' => '1', 'name' => 'Toby']],
                 endpoints: [Create::make(), Update::make(), Delete::make()],
-                fields: [Str::make('name')->writable()],
+                fields: [Attribute::make('name')->writable()],
             ),
         );
     }

@@ -8,9 +8,9 @@ use PhpBench\Attributes\Iterations;
 use PhpBench\Attributes\Revs;
 use Tobyz\JsonApiServer\Endpoint\Index;
 use Tobyz\JsonApiServer\JsonApi;
-use Tobyz\JsonApiServer\Schema\Field\Str;
 use Tobyz\JsonApiServer\Schema\Field\ToMany;
 use Tobyz\JsonApiServer\Schema\Field\ToOne;
+use Tobyz\JsonApiServer\Schema\Type\Str;
 use Tobyz\Tests\JsonApiServer\MockResource;
 
 #[BeforeMethods('setUp')]

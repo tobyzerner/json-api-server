@@ -6,7 +6,8 @@ use Tobyz\JsonApiServer\Endpoint\Create;
 use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
 use Tobyz\JsonApiServer\JsonApi;
-use Tobyz\JsonApiServer\Schema\Field\Number;
+use Tobyz\JsonApiServer\Schema\Field\Attribute;
+use Tobyz\JsonApiServer\Schema\Type\Number;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockResource;
 
@@ -26,7 +27,7 @@ class NumberTest extends AbstractTestCase
                 'users',
                 models: [(object) ['id' => '1', 'count' => '1.23']],
                 endpoints: [Show::make()],
-                fields: [Number::make('count')],
+                fields: [Attribute::make('count')->type(Number::make())],
             ),
         );
 
@@ -45,7 +46,11 @@ class NumberTest extends AbstractTestCase
             new MockResource(
                 'users',
                 endpoints: [Create::make()],
-                fields: [Number::make('count')->writable()],
+                fields: [
+                    Attribute::make('count')
+                        ->type(Number::make())
+                        ->writable(),
+                ],
             ),
         );
 

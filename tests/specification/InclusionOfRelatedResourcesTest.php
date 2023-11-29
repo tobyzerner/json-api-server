@@ -5,7 +5,7 @@ namespace Tobyz\Tests\JsonApiServer\specification;
 use Tobyz\JsonApiServer\Endpoint\Index;
 use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\JsonApi;
-use Tobyz\JsonApiServer\Schema\Field\Str;
+use Tobyz\JsonApiServer\Schema\Field\Attribute;
 use Tobyz\JsonApiServer\Schema\Field\ToMany;
 use Tobyz\JsonApiServer\Schema\Field\ToOne;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
@@ -29,7 +29,7 @@ class InclusionOfRelatedResourcesTest extends AbstractTestCase
                     ($user1 = (object) ['id' => '1', 'name' => 'Toby']),
                     ($user2 = (object) ['id' => '2', 'name' => 'Franz']),
                 ],
-                fields: [Str::make('name')],
+                fields: [Attribute::make('name')],
             ),
         );
 
@@ -61,7 +61,7 @@ class InclusionOfRelatedResourcesTest extends AbstractTestCase
                 ],
                 endpoints: [Show::make(), Index::make()],
                 fields: [
-                    Str::make('title'),
+                    Attribute::make('title'),
                     ToOne::make('author')
                         ->type('users')
                         ->includable(),

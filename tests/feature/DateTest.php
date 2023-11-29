@@ -6,7 +6,8 @@ use Tobyz\JsonApiServer\Endpoint\Create;
 use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
 use Tobyz\JsonApiServer\JsonApi;
-use Tobyz\JsonApiServer\Schema\Field\Date;
+use Tobyz\JsonApiServer\Schema\Field\Attribute;
+use Tobyz\JsonApiServer\Schema\Type\Date;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockResource;
 
@@ -26,7 +27,7 @@ class DateTest extends AbstractTestCase
                 'users',
                 models: [(object) ['id' => '1', 'dob' => new \DateTime('2023-01-01')]],
                 endpoints: [Show::make()],
-                fields: [Date::make('dob')],
+                fields: [Attribute::make('dob')->type(Date::make())],
             ),
         );
 
@@ -44,7 +45,11 @@ class DateTest extends AbstractTestCase
             $resource = new MockResource(
                 'users',
                 endpoints: [Create::make()],
-                fields: [Date::make('dob')->writable()],
+                fields: [
+                    Attribute::make('dob')
+                        ->type(Date::make())
+                        ->writable(),
+                ],
             ),
         );
 
@@ -63,7 +68,11 @@ class DateTest extends AbstractTestCase
             new MockResource(
                 'users',
                 endpoints: [Create::make()],
-                fields: [Date::make('dob')->writable()],
+                fields: [
+                    Attribute::make('dob')
+                        ->type(Date::make())
+                        ->writable(),
+                ],
             ),
         );
 

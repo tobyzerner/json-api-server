@@ -6,7 +6,8 @@ use Tobyz\JsonApiServer\Endpoint\Create;
 use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
 use Tobyz\JsonApiServer\JsonApi;
-use Tobyz\JsonApiServer\Schema\Field\Boolean;
+use Tobyz\JsonApiServer\Schema\Field\Attribute;
+use Tobyz\JsonApiServer\Schema\Type\Boolean;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockResource;
 
@@ -26,7 +27,7 @@ class BooleanTest extends AbstractTestCase
                 'users',
                 models: [(object) ['id' => '1', 'name' => 'hello']],
                 endpoints: [Show::make()],
-                fields: [Boolean::make('name')],
+                fields: [Attribute::make('name')->type(Boolean::make())],
             ),
         );
 
@@ -45,7 +46,11 @@ class BooleanTest extends AbstractTestCase
             new MockResource(
                 'users',
                 endpoints: [Create::make()],
-                fields: [Boolean::make('name')->writable()],
+                fields: [
+                    Attribute::make('name')
+                        ->type(Boolean::make())
+                        ->writable(),
+                ],
             ),
         );
 

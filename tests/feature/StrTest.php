@@ -6,7 +6,8 @@ use Tobyz\JsonApiServer\Endpoint\Create;
 use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
 use Tobyz\JsonApiServer\JsonApi;
-use Tobyz\JsonApiServer\Schema\Field\Str;
+use Tobyz\JsonApiServer\Schema\Field\Attribute;
+use Tobyz\JsonApiServer\Schema\Type\Str;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockResource;
 
@@ -26,7 +27,7 @@ class StrTest extends AbstractTestCase
                 'users',
                 models: [(object) ['id' => '1', 'name' => 1]],
                 endpoints: [Show::make()],
-                fields: [Str::make('name')],
+                fields: [Attribute::make('name')->type(Str::make())],
             ),
         );
 
@@ -45,7 +46,11 @@ class StrTest extends AbstractTestCase
             new MockResource(
                 'users',
                 endpoints: [Create::make()],
-                fields: [Str::make('name')->writable()],
+                fields: [
+                    Attribute::make('name')
+                        ->type(Str::make())
+                        ->writable(),
+                ],
             ),
         );
 
@@ -65,9 +70,9 @@ class StrTest extends AbstractTestCase
                 'users',
                 endpoints: [Create::make()],
                 fields: [
-                    Str::make('type')
-                        ->writable()
-                        ->enum(['A', 'B']),
+                    Attribute::make('type')
+                        ->type(Str::make()->enum(['A', 'B']))
+                        ->writable(),
                 ],
             ),
         );
@@ -88,9 +93,9 @@ class StrTest extends AbstractTestCase
                 'users',
                 endpoints: [Create::make()],
                 fields: [
-                    Str::make('type')
-                        ->writable()
-                        ->enum(['A', 'B']),
+                    Attribute::make('type')
+                        ->type(Str::make()->enum(['A', 'B']))
+                        ->writable(),
                 ],
             ),
         );

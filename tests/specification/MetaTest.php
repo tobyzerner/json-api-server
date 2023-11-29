@@ -8,7 +8,7 @@ use Tobyz\JsonApiServer\Endpoint\Index;
 use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\Endpoint\Update;
 use Tobyz\JsonApiServer\JsonApi;
-use Tobyz\JsonApiServer\Schema\Field\Str;
+use Tobyz\JsonApiServer\Schema\Field\Attribute;
 use Tobyz\JsonApiServer\Schema\Field\ToMany;
 use Tobyz\JsonApiServer\Schema\Field\ToOne;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
@@ -33,7 +33,7 @@ class MetaTest extends AbstractTestCase
                 'users',
                 models: [(object) ['id' => '1', 'foo' => 'bar']],
                 endpoints: [Show::make()],
-                meta: [Str::make('foo')],
+                meta: [Attribute::make('foo')],
             ),
         );
 
@@ -52,7 +52,7 @@ class MetaTest extends AbstractTestCase
                 'users',
                 models: [(object) ['id' => '1']],
                 endpoints: [Show::make()],
-                fields: [ToOne::make('pet')->meta([Str::make('foo')->get(fn() => 'bar')])],
+                fields: [ToOne::make('pet')->meta([Attribute::make('foo')->get(fn() => 'bar')])],
             ),
         );
 
@@ -71,7 +71,7 @@ class MetaTest extends AbstractTestCase
                 'users',
                 models: [(object) ['id' => '1']],
                 endpoints: [Show::make()],
-                fields: [ToMany::make('pets')->meta([Str::make('foo')->get(fn() => 'bar')])],
+                fields: [ToMany::make('pets')->meta([Attribute::make('foo')->get(fn() => 'bar')])],
             ),
         );
 
@@ -89,7 +89,7 @@ class MetaTest extends AbstractTestCase
             new MockResource(
                 'users',
                 models: [(object) ['id' => '1', 'foo' => 'bar']],
-                endpoints: [Show::make()->meta([Str::make('foo')->get(fn() => 'bar')])],
+                endpoints: [Show::make()->meta([Attribute::make('foo')->get(fn() => 'bar')])],
             ),
         );
 
@@ -104,7 +104,7 @@ class MetaTest extends AbstractTestCase
             new MockResource(
                 'users',
                 models: [(object) ['id' => '1', 'foo' => 'bar']],
-                endpoints: [Update::make()->meta([Str::make('foo')->get(fn() => 'bar')])],
+                endpoints: [Update::make()->meta([Attribute::make('foo')->get(fn() => 'bar')])],
             ),
         );
 
@@ -123,7 +123,7 @@ class MetaTest extends AbstractTestCase
             new MockResource(
                 'users',
                 models: [(object) ['id' => '1', 'foo' => 'bar']],
-                endpoints: [Delete::make()->meta([Str::make('foo')->get(fn() => 'bar')])],
+                endpoints: [Delete::make()->meta([Attribute::make('foo')->get(fn() => 'bar')])],
             ),
         );
 
@@ -137,7 +137,7 @@ class MetaTest extends AbstractTestCase
         $this->api->resource(
             new MockResource(
                 'users',
-                endpoints: [Index::make()->meta([Str::make('foo')->get(fn() => 'bar')])],
+                endpoints: [Index::make()->meta([Attribute::make('foo')->get(fn() => 'bar')])],
             ),
         );
 
@@ -151,7 +151,7 @@ class MetaTest extends AbstractTestCase
         $this->api->resource(
             new MockResource(
                 'users',
-                endpoints: [Create::make()->meta([Str::make('foo')->get(fn() => 'bar')])],
+                endpoints: [Create::make()->meta([Attribute::make('foo')->get(fn() => 'bar')])],
             ),
         );
 

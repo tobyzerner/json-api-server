@@ -8,7 +8,7 @@ use Tobyz\JsonApiServer\Exception\ConflictException;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\JsonApi;
-use Tobyz\JsonApiServer\Schema\Field\Str;
+use Tobyz\JsonApiServer\Schema\Field\Attribute;
 use Tobyz\JsonApiServer\Schema\Field\ToOne;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockResource;
@@ -28,7 +28,7 @@ class CreatingResourcesTest extends AbstractTestCase
             new MockResource(
                 'users',
                 endpoints: [Create::make()],
-                fields: [Str::make('name')->writable(), ToOne::make('pet')->writable()],
+                fields: [Attribute::make('name')->writable(), ToOne::make('pet')->writable()],
             ),
         );
     }

@@ -6,7 +6,7 @@ use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Index;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\CustomFilter;
-use Tobyz\JsonApiServer\Schema\Field\Str;
+use Tobyz\JsonApiServer\Schema\Field\Attribute;
 use Tobyz\JsonApiServer\Schema\Field\ToOne;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockResource;
@@ -32,7 +32,7 @@ class FilteringTest extends AbstractTestCase
                     ($user2 = (object) ['id' => '2', 'name' => 'Franz']),
                 ],
                 endpoints: [Index::make()],
-                fields: [Str::make('name')],
+                fields: [Attribute::make('name')],
                 filters: [
                     CustomFilter::make('name', function ($query, $value) {
                         $query->models = array_filter(

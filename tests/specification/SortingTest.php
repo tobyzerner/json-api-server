@@ -4,7 +4,7 @@ namespace Tobyz\Tests\JsonApiServer\specification;
 
 use Tobyz\JsonApiServer\Endpoint\Index;
 use Tobyz\JsonApiServer\JsonApi;
-use Tobyz\JsonApiServer\Schema\Field\Str;
+use Tobyz\JsonApiServer\Schema\Field\Attribute;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockResource;
 use Tobyz\Tests\JsonApiServer\MockSort;
@@ -29,7 +29,7 @@ class SortingTest extends AbstractTestCase
                     (object) ['id' => '3', 'title' => 'B', 'body' => 'B'],
                 ],
                 endpoints: [Index::make()],
-                fields: [Str::make('title'), Str::make('body')],
+                fields: [Attribute::make('title'), Attribute::make('body')],
                 sorts: [MockSort::make('title'), MockSort::make('body')],
             ),
         );
