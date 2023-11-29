@@ -48,8 +48,8 @@ trait SavesData
             throw new ForbiddenException('Client-generated IDs are not supported');
         }
 
-        if ($body['data']['type'] !== $context->resource->type()) {
-            throw new ConflictException('data.type does not match the resource type');
+        if (!in_array($body['data']['type'], $context->collection->resources())) {
+            throw new ConflictException('collection does not support this resource type');
         }
 
         if (isset($body['data']['attributes']) && !is_array($body['data']['attributes'])) {

@@ -7,6 +7,7 @@ use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
+use Tobyz\Tests\JsonApiServer\MockCollection;
 use Tobyz\Tests\JsonApiServer\MockResource;
 
 /**
@@ -88,5 +89,29 @@ class FetchingResourcesTest extends AbstractTestCase
         $this->api->resource(new MockResource('articles', endpoints: [Show::make()]));
 
         $this->api->handle($this->buildRequest('GET', '/articles/404'));
+    }
+
+    public function test_data_for_collection_is_array_of_resource_objects()
+    {
+        $this->api->resource(new MockResource('dogs'));
+        $this->api->resource(new MockResource('cats'));
+
+        $this->api->collection(
+            new MockCollection(
+                'animals',
+                models: [
+                    'dogs' => [(object) ['id' => '1']],
+                    'cats' => [(object) ['id' => '1']],
+                ],
+                endpoints: [Index::make()],
+            ),
+        );
+
+        $response = $this->api->handle($this->buildRequest('GET', '/animals'));
+
+        $this->assertJsonApiDocumentSubset(
+            ['data' => [['type' => 'dogs', 'id' => '1'], ['type' => 'cats', 'id' => '1']]],
+            $response->getBody(),
+        );
     }
 }

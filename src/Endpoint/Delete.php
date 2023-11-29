@@ -38,15 +38,17 @@ class Delete implements EndpointInterface
             throw new MethodNotAllowedException();
         }
 
-        $resource = $context->resource;
+        $model = $this->findResource($context, $segments[1]);
+
+        $context = $context->withResource(
+            $resource = $context->resource($context->collection->resource($model, $context)),
+        );
 
         if (!$resource instanceof Deletable) {
             throw new RuntimeException(
                 sprintf('%s must implement %s', get_class($resource), Deletable::class),
             );
         }
-
-        $model = $this->findResource($context, $segments[1]);
 
         if (!$this->isVisible($context = $context->withModel($model))) {
             throw new ForbiddenException();

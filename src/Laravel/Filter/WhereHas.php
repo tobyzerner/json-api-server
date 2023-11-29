@@ -4,6 +4,7 @@ namespace Tobyz\JsonApiServer\Laravel\Filter;
 
 use LogicException;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Laravel\EloquentResource;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
 use Tobyz\JsonApiServer\Schema\Filter;
 
@@ -11,6 +12,8 @@ use function Tobyz\JsonApiServer\apply_filters;
 
 class WhereHas extends Filter
 {
+    protected const QUERY_BUILDER_METHOD = 'whereHas';
+
     public Relationship|string|null $field = null;
 
     public static function make(string $name): static
@@ -27,33 +30,42 @@ class WhereHas extends Filter
 
     public function apply(object $query, array|string $value, Context $context): void
     {
+        $resource = $context->collection;
+
+        if (!$resource instanceof EloquentResource) {
+            throw new LogicException(
+                sprintf('The %s filter can only be used for Eloquent resources', get_class($this)),
+            );
+        }
+
         $value = (array) $value;
         $field =
             $this->field instanceof Relationship
                 ? $this->field
-                : $context->fields($context->resource)[$this->field ?: $this->name] ?? null;
+                : $context->fields($resource)[$this->field ?: $this->name] ?? null;
 
-        if (!$field instanceof Relationship || count($field->types) !== 1) {
+        if (!$field instanceof Relationship || count($field->collections) !== 1) {
             throw new LogicException(
-                'The WhereHas filter must have a non-polymorphic relationship field',
+                sprintf(
+                    'The %s filter must have a non-polymorphic relationship field',
+                    get_class($this),
+                ),
             );
         }
 
-        $relatedResource = $context->resource($field->types[0]);
+        $relatedCollection = $context->api->getCollection($field->collections[0]);
 
-        $query->whereHas($field->property ?: $field->name, function ($query) use (
-            $value,
-            $relatedResource,
-            $context,
-        ) {
+        $query->{static::QUERY_BUILDER_METHOD}($field->property ?: $field->name, function (
+            $query,
+        ) use ($value, $relatedCollection, $context) {
             if (array_is_list($value)) {
                 $query->whereKey(array_merge(...array_map(fn($v) => explode(',', $v), $value)));
             } else {
                 apply_filters(
                     $query,
                     $value,
-                    $relatedResource,
-                    $context->withResource($relatedResource),
+                    $relatedCollection,
+                    $context->withCollection($relatedCollection),
                 );
             }
         });

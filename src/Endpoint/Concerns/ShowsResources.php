@@ -15,7 +15,11 @@ trait ShowsResources
     {
         $serializer = new Serializer($context);
 
-        $serializer->addPrimary($context->resource, $model, $this->getInclude($context));
+        $serializer->addPrimary(
+            $context->resource($context->collection->resource($model, $context)),
+            $model,
+            $this->getInclude($context),
+        );
 
         [$primary, $included] = $serializer->serialize();
 

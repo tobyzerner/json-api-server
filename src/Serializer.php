@@ -143,12 +143,10 @@ class Serializer
 
     private function resourceForModel(Relationship $field, $model): ResourceInterface
     {
-        if (count($field->types) === 1) {
-            return $this->context->api->getResource(reset($field->types));
-        }
+        foreach ($field->collections as $name) {
+            $collection = $this->context->api->getCollection($name);
 
-        foreach ($field->types as $class => $type) {
-            if (is_string($class) && $model instanceof $class) {
+            if ($type = $collection->resource($model, $this->context)) {
                 return $this->context->api->getResource($type);
             }
         }

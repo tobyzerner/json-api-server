@@ -2,7 +2,6 @@
 
 namespace Tobyz\Tests\JsonApiServer\feature;
 
-use stdClass;
 use Tobyz\JsonApiServer\Endpoint\Create;
 use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
@@ -262,7 +261,7 @@ class RelationshipToManyTest extends AbstractTestCase
                 endpoints: [Create::make()],
                 fields: [
                     ToMany::make('friends')
-                        ->type(['users', stdClass::class => 'animals'])
+                        ->type(['users', 'animals'])
                         ->writable(),
                 ],
             ),

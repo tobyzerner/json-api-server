@@ -5,8 +5,23 @@ namespace Tobyz\JsonApiServer\Resource;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Schema\Field\Field;
 
-abstract class Resource implements ResourceInterface
+abstract class Resource implements ResourceInterface, CollectionInterface
 {
+    public function name(): string
+    {
+        return $this->type();
+    }
+
+    public function resources(): array
+    {
+        return [$this->type()];
+    }
+
+    public function resource(object $model, Context $context): ?string
+    {
+        return $this->type();
+    }
+
     public function endpoints(): array
     {
         return [];

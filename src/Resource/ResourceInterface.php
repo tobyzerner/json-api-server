@@ -14,11 +14,6 @@ interface ResourceInterface
     public function type(): string;
 
     /**
-     * The resource's endpoints.
-     */
-    public function endpoints(): array;
-
-    /**
      * Get the fields for this resource.
      *
      * @return Field[]

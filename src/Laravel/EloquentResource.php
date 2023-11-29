@@ -32,6 +32,17 @@ abstract class EloquentResource extends Resource implements
     Updatable,
     Deletable
 {
+    public function resource(object $model, Context $context): ?string
+    {
+        $eloquentModel = $this->newModel($context);
+
+        if ($model instanceof $eloquentModel) {
+            return $this->type();
+        }
+
+        return null;
+    }
+
     public function getId(object $model, Context $context): string
     {
         return $model->getKey();

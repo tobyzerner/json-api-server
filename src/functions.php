@@ -6,8 +6,8 @@ use Closure;
 use Nyholm\Psr7\Response;
 use Nyholm\Psr7\Stream;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Resource\CollectionInterface;
 use Tobyz\JsonApiServer\Resource\Listable;
-use Tobyz\JsonApiServer\Resource\ResourceInterface;
 use Tobyz\JsonApiServer\Schema\Field\Field;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
 
@@ -74,11 +74,11 @@ function parse_sort_string(string $string): array
 function apply_filters(
     $query,
     array $filters,
-    ResourceInterface&Listable $resource,
+    CollectionInterface&Listable $collection,
     Context $context,
 ): void {
-    $context = $context->withResource($resource);
-    $availableFilters = $resource->filters();
+    $context = $context->withCollection($collection);
+    $availableFilters = $collection->filters();
 
     foreach ($filters as $name => $value) {
         foreach ($availableFilters as $filter) {

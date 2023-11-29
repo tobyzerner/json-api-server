@@ -68,11 +68,11 @@ class Index implements EndpointInterface
             throw new MethodNotAllowedException();
         }
 
-        $resource = $context->resource;
+        $collection = $context->collection;
 
-        if (!$resource instanceof Listable) {
+        if (!$collection instanceof Listable) {
             throw new RuntimeException(
-                sprintf('%s must implement %s', get_class($resource), Listable::class),
+                sprintf('%s must implement %s', get_class($collection), Listable::class),
             );
         }
 
@@ -80,7 +80,7 @@ class Index implements EndpointInterface
             throw new ForbiddenException();
         }
 
-        $query = $resource->query($context);
+        $query = $collection->query($context);
 
         $context = $context->withQuery($query);
 
@@ -91,24 +91,28 @@ class Index implements EndpointInterface
         $links = [];
 
         if (
-            $resource instanceof Countable &&
-            !is_null($total = $resource->count($query, $context))
+            $collection instanceof Countable &&
+            !is_null($total = $collection->count($query, $context))
         ) {
-            $meta['page']['total'] = $resource->count($query, $context);
+            $meta['page']['total'] = $collection->count($query, $context);
         }
 
         if ($pagination = ($this->paginationResolver)($context)) {
             $pagination->apply($query);
         }
 
-        $models = $resource->results($query, $context);
+        $models = $collection->results($query, $context);
 
         $serializer = new Serializer($context);
 
         $include = $this->getInclude($context);
 
         foreach ($models as $model) {
-            $serializer->addPrimary($resource, $model, $include);
+            $serializer->addPrimary(
+                $context->resource($collection->resource($model, $context)),
+                $model,
+                $include,
+            );
         }
 
         [$data, $included] = $serializer->serialize();
@@ -127,7 +131,7 @@ class Index implements EndpointInterface
             return;
         }
 
-        $sorts = $context->resource->sorts();
+        $sorts = $context->collection->sorts();
 
         foreach (parse_sort_string($sortString) as [$name, $direction]) {
             foreach ($sorts as $field) {
@@ -152,7 +156,7 @@ class Index implements EndpointInterface
         }
 
         try {
-            apply_filters($query, $filters, $context->resource, $context);
+            apply_filters($query, $filters, $context->collection, $context);
         } catch (BadRequestException $e) {
             throw $e->prependSource(['parameter' => 'filter']);
         }

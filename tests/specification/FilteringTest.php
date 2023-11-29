@@ -67,8 +67,13 @@ class FilteringTest extends AbstractTestCase
                             $context,
                         ) {
                             /** @var ToOne $relationship */
-                            $relationship = $context->fields($context->resource)['author'];
-                            $relatedResource = $context->api->getResource($relationship->types[0]);
+                            $resource = $context->resource(
+                                $context->collection->resource($model, $context),
+                            );
+                            $relationship = $context->fields($resource)['author'];
+                            $relatedResource = $context->api->getResource(
+                                $relationship->collections[0],
+                            );
 
                             apply_filters(
                                 $q = (object) ['models' => [$model->author]],

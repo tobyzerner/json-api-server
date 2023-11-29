@@ -37,11 +37,11 @@ class Create implements EndpointInterface
             throw new MethodNotAllowedException();
         }
 
-        $resource = $context->resource;
+        $collection = $context->collection;
 
-        if (!$resource instanceof Creatable) {
+        if (!$collection instanceof Creatable) {
             throw new RuntimeException(
-                sprintf('%s must implement %s', get_class($resource), Creatable::class),
+                sprintf('%s must implement %s', get_class($collection), Creatable::class),
             );
         }
 
@@ -51,7 +51,9 @@ class Create implements EndpointInterface
 
         $data = $this->parseData($context);
 
-        $context = $context->withModel($model = $resource->newModel($context));
+        $context = $context
+            ->withResource($resource = $context->resource($data['type']))
+            ->withModel($model = $collection->newModel($context));
 
         $this->assertFieldsValid($context, $data);
         $this->fillDefaultValues($context, $data);

@@ -4,12 +4,14 @@ namespace Tobyz\JsonApiServer;
 
 use Psr\Http\Message\ServerRequestInterface;
 use Tobyz\JsonApiServer\Endpoint\EndpointInterface;
+use Tobyz\JsonApiServer\Resource\CollectionInterface;
 use Tobyz\JsonApiServer\Resource\ResourceInterface;
 use Tobyz\JsonApiServer\Schema\Field\Field;
 use WeakMap;
 
 class Context
 {
+    public ?CollectionInterface $collection = null;
     public ?ResourceInterface $resource = null;
     public ?EndpointInterface $endpoint = null;
     public ?object $query = null;
@@ -152,6 +154,13 @@ class Context
         $new->sparseFields = new WeakMap();
         $new->body = null;
         $new->path = null;
+        return $new;
+    }
+
+    public function withCollection(CollectionInterface $collection): static
+    {
+        $new = clone $this;
+        $new->collection = $collection;
         return $new;
     }
 

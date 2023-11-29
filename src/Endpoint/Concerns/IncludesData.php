@@ -13,7 +13,14 @@ trait IncludesData
         if ($includeString = $context->request->getQueryParams()['include'] ?? null) {
             $include = $this->parseInclude($includeString);
 
-            $this->validateInclude($context, [$context->resource], $include);
+            $this->validateInclude(
+                $context,
+                array_map(
+                    fn($resource) => $context->resource($resource),
+                    $context->collection->resources(),
+                ),
+                $include,
+            );
 
             return $include;
         }
@@ -58,7 +65,7 @@ trait IncludesData
                     continue;
                 }
 
-                $types = $field->types;
+                $types = $field->collections;
 
                 $relatedResources = $types
                     ? array_map(fn($type) => $context->api->getResource($type), $types)

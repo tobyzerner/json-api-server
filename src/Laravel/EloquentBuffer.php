@@ -43,7 +43,7 @@ abstract class EloquentBuffer
                 // could possibly contain.
                 $resources = $context->api->resources;
 
-                if ($type = $relationship->types) {
+                if ($type = $relationship->collections) {
                     $resources = array_intersect_key($resources, array_flip($type));
                 }
 

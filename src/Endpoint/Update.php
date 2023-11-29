@@ -39,15 +39,17 @@ class Update implements EndpointInterface
             throw new MethodNotAllowedException();
         }
 
-        $resource = $context->resource;
+        $model = $this->findResource($context, $segments[1]);
+
+        $context = $context->withResource(
+            $resource = $context->resource($context->collection->resource($model, $context)),
+        );
 
         if (!$resource instanceof Updatable) {
             throw new RuntimeException(
                 sprintf('%s must implement %s', get_class($resource), Updatable::class),
             );
         }
-
-        $model = $this->findResource($context, $segments[1]);
 
         if (!$this->isVisible($context = $context->withModel($model))) {
             throw new ForbiddenException();

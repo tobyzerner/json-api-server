@@ -23,13 +23,13 @@ class OffsetPagination implements PaginationInterface
 
     public function apply($query): void
     {
-        $resource = $this->context->resource;
+        $collection = $this->context->collection;
 
-        if (!$resource instanceof Paginatable) {
-            throw new NotImplementedException('Resource not paginatable');
+        if (!$collection instanceof Paginatable) {
+            throw new NotImplementedException('Collection not paginatable');
         }
 
-        $resource->paginate($query, $this);
+        $collection->paginate($query, $this);
     }
 
     public function meta(): array

@@ -16,7 +16,7 @@ use Tobyz\JsonApiServer\Exception\NotFoundException;
 use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\Exception\UnsupportedMediaTypeException;
 use Tobyz\JsonApiServer\Extension\Extension;
-use Tobyz\JsonApiServer\Resource\Resource;
+use Tobyz\JsonApiServer\Resource\CollectionInterface;
 use Tobyz\JsonApiServer\Resource\ResourceInterface;
 
 class JsonApi implements RequestHandlerInterface
@@ -30,9 +30,14 @@ class JsonApi implements RequestHandlerInterface
     public array $extensions = [];
 
     /**
-     * @var Resource[]
+     * @var ResourceInterface[]
      */
     public array $resources = [];
+
+    /**
+     * @var CollectionInterface[]
+     */
+    public array $collections = [];
 
     public function __construct(public string $basePath = '')
     {
@@ -48,11 +53,37 @@ class JsonApi implements RequestHandlerInterface
     }
 
     /**
+     * Define a new collection.
+     */
+    public function collection(CollectionInterface $collection): void
+    {
+        $this->collections[$collection->name()] = $collection;
+    }
+
+    /**
      * Define a new resource.
      */
     public function resource(ResourceInterface $resource): void
     {
         $this->resources[$resource->type()] = $resource;
+
+        if ($resource instanceof CollectionInterface) {
+            $this->collection($resource);
+        }
+    }
+
+    /**
+     * Get a collection by name.
+     *
+     * @throws ResourceNotFoundException if the collection has not been defined.
+     */
+    public function getCollection(string $type): CollectionInterface
+    {
+        if (!isset($this->collections[$type])) {
+            throw new ResourceNotFoundException($type);
+        }
+
+        return $this->collections[$type];
     }
 
     /**
@@ -88,9 +119,9 @@ class JsonApi implements RequestHandlerInterface
         if (!$response) {
             $segments = explode('/', trim($context->path(), '/'), 2);
 
-            $context = $context->withResource($this->getResource($segments[0]));
+            $context = $context->withCollection($this->getCollection($segments[0]));
 
-            foreach ($context->resource->endpoints() as $endpoint) {
+            foreach ($context->collection->endpoints() as $endpoint) {
                 try {
                     if ($response = $endpoint->handle($context->withEndpoint($endpoint))) {
                         break;

@@ -12,18 +12,26 @@ abstract class Relationship extends Field
     use HasMeta;
     use FindsResources;
 
-    public array $types;
+    public array $collections;
     public bool $includable = false;
     public bool $linkage = false;
 
     /**
-     * Set the resource type that this relationship is to.
+     * Set the collection(s) that this relationship is to.
+     */
+    public function collection(string|array $type): static
+    {
+        $this->collections = (array) $type;
+
+        return $this;
+    }
+
+    /**
+     * Set the collection(s) that this relationship is to.
      */
     public function type(string|array $type): static
     {
-        $this->types = (array) $type;
-
-        return $this;
+        return $this->collection($type);
     }
 
     /**
@@ -66,14 +74,22 @@ abstract class Relationship extends Field
             throw new BadRequestException('id not specified');
         }
 
-        if (!in_array($identifier['type'], $this->types)) {
-            throw new BadRequestException("type [{$identifier['type']}] not allowed", [
-                'pointer' => '/type',
-            ]);
+        $collections = array_map(
+            fn($collection) => $context->api->getCollection($collection),
+            $this->collections,
+        );
+
+        foreach ($collections as $collection) {
+            if (in_array($identifier['type'], $collection->resources())) {
+                return $this->findResource(
+                    $context->withCollection($collection),
+                    $identifier['id'],
+                );
+            }
         }
 
-        $resource = $context->api->getResource($identifier['type']);
-
-        return $this->findResource($context->withResource($resource), $identifier['id']);
+        throw new BadRequestException("type [{$identifier['type']}] not allowed", [
+            'pointer' => '/type',
+        ]);
     }
 }
