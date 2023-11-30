@@ -3,16 +3,37 @@
 namespace Tobyz\JsonApiServer\Laravel;
 
 use Illuminate\Contracts\Database\Query\Builder;
+use Illuminate\Support\Collection;
 
 class UnionBuilder implements Builder
 {
-    private array $queryCalls = [];
     private array $outerQueryCalls = [];
     private ?int $limit = null;
     private int $offset = 0;
 
     public function __construct(protected array $queries)
     {
+    }
+
+    public function for(string $type): Builder
+    {
+        return $this->queries[$type];
+    }
+
+    public function inner(callable $callback): static
+    {
+        foreach ($this->queries as $query) {
+            $callback($query);
+        }
+
+        return $this;
+    }
+
+    public function outer(callable $callback): static
+    {
+        $this->outerQueryCalls[] = $callback;
+
+        return $this;
     }
 
     public function skip(int $value): static
@@ -41,36 +62,21 @@ class UnionBuilder implements Builder
         return $this;
     }
 
-    public function orderBy($column, $direction = 'asc'): static
-    {
-        $this->queryCalls[] = fn($query) => $query
-            ->addSelect($column)
-            ->orderBy($column, $direction);
-
-        $this->outerQueryCalls[] = fn($query) => $query->orderBy($column, $direction);
-
-        return $this;
-    }
-
     public function count($columns = '*'): int
     {
         return $this->buildQuery()->count($columns);
     }
 
-    public function get($columns = ['*'])
+    public function get($columns = ['*']): Collection
     {
         return $this->buildQuery()->get($columns);
     }
 
-    protected function buildQuery()
+    protected function buildQuery(): Builder
     {
         $queries = array_map(fn($query) => clone $query, $this->queries);
 
         foreach ($queries as $query) {
-            foreach ($this->queryCalls as $call) {
-                $call($query);
-            }
-
             if ($this->limit) {
                 $query->take($this->offset + $this->limit);
             }
@@ -95,7 +101,10 @@ class UnionBuilder implements Builder
 
     public function __call($method, $parameters)
     {
-        $this->queryCalls[] = fn($query) => $query->$method(...$parameters);
+        $callback = fn($query) => $query->$method(...$parameters);
+
+        $this->inner($callback);
+        $this->outer($callback);
 
         return $this;
     }

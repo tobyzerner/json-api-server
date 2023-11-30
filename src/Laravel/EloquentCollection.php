@@ -50,25 +50,27 @@ abstract class EloquentCollection implements CollectionInterface, Listable, Pagi
 
     public function query(Context $context): object
     {
-        $queries = array_map(function ($resource) use ($context) {
+        $queries = [];
+
+        foreach ($this->eloquentResources($context) as $resource) {
             $keyName = $resource->newModel($context)->getQualifiedKeyName();
             $type = $resource->type();
 
-            $query = $resource
+            $queries[$type] = $resource
                 ->query($context)
                 ->toBase()
                 ->select("$keyName as id")
                 ->selectRaw('? as type', [$type]);
+        }
 
-            $this->scope($query, $type);
+        $query = new UnionBuilder($queries);
 
-            return $query;
-        }, $this->eloquentResources($context));
+        $this->scope($query, $context);
 
-        return new UnionBuilder($queries);
+        return $query;
     }
 
-    public function scope(Builder $query, string $type): void
+    public function scope(UnionBuilder $query, Context $context): void
     {
     }
 
