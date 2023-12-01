@@ -7,6 +7,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
+use Tobyz\JsonApiServer\Exception\Sourceable;
 
 use function Tobyz\JsonApiServer\json_api_response;
 
@@ -37,10 +38,9 @@ class Atomic extends Extension
         $operations = $body['atomic:operations'] ?? null;
 
         if (!is_array($operations)) {
-            throw new BadRequestException(
+            throw (new BadRequestException(
                 'atomic:operations must be an array of operation objects',
-                ['pointer' => '/atomic:operations'],
-            );
+            ))->setSource(['pointer' => '/atomic:operations']);
         }
 
         $results = [];
@@ -58,13 +58,8 @@ class Atomic extends Extension
                     'remove' => $this->remove($context, $operation, $lids),
                     default => throw new BadRequestException('Invalid operation'),
                 };
-            } catch (BadRequestException $e) {
-                if (!$e->source || isset($e->source['pointer'])) {
-                    $e->setSource([
-                        'pointer' => "/atomic:operations/$i" . ($e->source['pointer'] ?? ''),
-                    ]);
-                }
-                throw $e;
+            } catch (Sourceable $e) {
+                throw $e->prependSource(['pointer' => "/atomic:operations/$i"]);
             }
 
             $results[] = json_decode($response->getBody(), true);
@@ -76,8 +71,8 @@ class Atomic extends Extension
     private function add(Context $context, array $operation, array &$lids): Response
     {
         if (isset($operation['ref'])) {
-            throw new BadRequestException('ref is not supported for add operations', [
-                'source' => '/ref',
+            throw (new BadRequestException('ref is not supported for add operations'))->setSource([
+                'pointer' => '/ref',
             ]);
         }
 

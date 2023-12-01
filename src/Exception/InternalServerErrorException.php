@@ -3,19 +3,13 @@
 namespace Tobyz\JsonApiServer\Exception;
 
 use RuntimeException;
-use Tobyz\JsonApiServer\ErrorProviderInterface;
+use Tobyz\JsonApiServer\Exception\Concerns\SingleError;
 
-class InternalServerErrorException extends RuntimeException implements ErrorProviderInterface
+class InternalServerErrorException extends RuntimeException implements
+    ErrorProviderInterface,
+    Sourceable
 {
-    public function getJsonApiErrors(): array
-    {
-        return [
-            [
-                'title' => 'Internal Server Error',
-                'status' => $this->getJsonApiStatus(),
-            ],
-        ];
-    }
+    use SingleError;
 
     public function getJsonApiStatus(): string
     {

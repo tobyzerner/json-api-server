@@ -4,6 +4,7 @@ namespace Tobyz\JsonApiServer\Schema\Field;
 
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Exception\Sourceable;
 
 class ToMany extends Relationship
 {
@@ -45,10 +46,9 @@ class ToMany extends Relationship
         }
 
         if (!array_is_list($value['data'])) {
-            throw new BadRequestException(
+            throw (new BadRequestException(
                 'relationship data must be a list of identifier objects',
-                ['pointer' => '/data'],
-            );
+            ))->setSource(['pointer' => '/data']);
         }
 
         $models = [];
@@ -56,7 +56,7 @@ class ToMany extends Relationship
         foreach ($value['data'] as $i => $identifier) {
             try {
                 $models[] = $this->findResourceForIdentifier($identifier, $context);
-            } catch (BadRequestException $e) {
+            } catch (Sourceable $e) {
                 throw $e->prependSource(['pointer' => "/data/$i"]);
             }
         }

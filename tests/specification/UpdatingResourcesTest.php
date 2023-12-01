@@ -117,7 +117,7 @@ class UpdatingResourcesTest extends AbstractTestCase
         );
     }
 
-    public function test_conflict_error_if_type_and_id_does_not_match_endpoint()
+    public function test_conflict_error_if_type_does_not_match_endpoint()
     {
         $this->expectException(ConflictException::class);
 
@@ -126,6 +126,20 @@ class UpdatingResourcesTest extends AbstractTestCase
                 'data' => [
                     'type' => 'pets',
                     'id' => '1',
+                ],
+            ]),
+        );
+    }
+
+    public function test_conflict_error_if_id_does_not_match_endpoint()
+    {
+        $this->expectException(ConflictException::class);
+
+        $this->api->handle(
+            $this->buildRequest('PATCH', '/users/1')->withParsedBody([
+                'data' => [
+                    'type' => 'users',
+                    'id' => '2',
                 ],
             ]),
         );

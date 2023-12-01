@@ -88,7 +88,7 @@ abstract class Relationship extends Field
             }
         }
 
-        throw new BadRequestException("type [{$identifier['type']}] not allowed", [
+        throw (new BadRequestException("type [{$identifier['type']}] not allowed"))->setSource([
             'pointer' => '/type',
         ]);
     }

@@ -26,7 +26,7 @@ The interface defines two methods:
 
 ```php
 use JsonApiPhp\JsonApi\Error;
-use Tobyz\JsonApiServer\ErrorProviderInterface;
+use Tobyz\JsonApiServer\Exception\ErrorProviderInterface;
 
 class ImATeapotException implements ErrorProviderInterface
 {

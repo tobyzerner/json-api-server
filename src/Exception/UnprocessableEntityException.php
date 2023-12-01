@@ -3,13 +3,25 @@
 namespace Tobyz\JsonApiServer\Exception;
 
 use DomainException;
-use Tobyz\JsonApiServer\ErrorProviderInterface;
 
-class UnprocessableEntityException extends DomainException implements ErrorProviderInterface
+class UnprocessableEntityException extends DomainException implements
+    ErrorProviderInterface,
+    Sourceable
 {
     public function __construct(public array $errors)
     {
         parent::__construct(print_r($errors, true));
+    }
+
+    public function prependSource(array $source): static
+    {
+        foreach ($this->errors as &$error) {
+            foreach ($source as $k => $v) {
+                $error['source'][$k] = $v . ($error['source'][$k] ?? '');
+            }
+        }
+
+        return $this;
     }
 
     public function getJsonApiErrors(): array

@@ -1,15 +1,11 @@
 <?php
 
-namespace Tobyz\JsonApiServer;
-
-use JsonApiPhp\JsonApi\Error;
+namespace Tobyz\JsonApiServer\Exception;
 
 interface ErrorProviderInterface
 {
     /**
      * Get JSON:API error objects that represent this error.
-     *
-     * @return Error[]
      */
     public function getJsonApiErrors(): array;
 

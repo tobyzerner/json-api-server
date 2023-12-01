@@ -2,7 +2,7 @@
 
 namespace Tobyz\Tests\JsonApiServer;
 
-use Tobyz\JsonApiServer\ErrorProviderInterface;
+use Tobyz\JsonApiServer\Exception\ErrorProviderInterface;
 
 class MockException implements ErrorProviderInterface
 {

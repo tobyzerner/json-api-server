@@ -2,27 +2,20 @@
 
 namespace Tobyz\JsonApiServer\Exception;
 
-use RuntimeException;
-use Tobyz\JsonApiServer\ErrorProviderInterface;
+use DomainException;
+use Tobyz\JsonApiServer\Exception\Concerns\SingleError;
 
-class ResourceNotFoundException extends RuntimeException implements ErrorProviderInterface
+class ResourceNotFoundException extends DomainException implements
+    ErrorProviderInterface,
+    Sourceable
 {
+    use SingleError;
+
     public function __construct(public readonly string $type, public readonly ?string $id = null)
     {
         parent::__construct(
             sprintf('Resource [%s] not found.', $type . ($id !== null ? '.' . $id : '')),
         );
-    }
-
-    public function getJsonApiErrors(): array
-    {
-        return [
-            [
-                'title' => 'Resource Not Found',
-                'status' => $this->getJsonApiStatus(),
-                'detail' => $this->getMessage(),
-            ],
-        ];
     }
 
     public function getJsonApiStatus(): string

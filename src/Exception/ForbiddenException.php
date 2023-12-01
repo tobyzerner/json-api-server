@@ -3,20 +3,11 @@
 namespace Tobyz\JsonApiServer\Exception;
 
 use DomainException;
-use Tobyz\JsonApiServer\ErrorProviderInterface;
+use Tobyz\JsonApiServer\Exception\Concerns\SingleError;
 
-class ForbiddenException extends DomainException implements ErrorProviderInterface
+class ForbiddenException extends DomainException implements ErrorProviderInterface, Sourceable
 {
-    public function getJsonApiErrors(): array
-    {
-        return [
-            [
-                'title' => 'Forbidden',
-                'status' => $this->getJsonApiStatus(),
-                ...$this->message ? ['detail' => $this->message] : [],
-            ],
-        ];
-    }
+    use SingleError;
 
     public function getJsonApiStatus(): string
     {

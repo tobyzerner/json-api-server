@@ -2,20 +2,14 @@
 
 namespace Tobyz\JsonApiServer\Exception;
 
-use DomainException as DomainExceptionAlias;
-use Tobyz\JsonApiServer\ErrorProviderInterface;
+use DomainException;
+use Tobyz\JsonApiServer\Exception\Concerns\SingleError;
 
-class MethodNotAllowedException extends DomainExceptionAlias implements ErrorProviderInterface
+class MethodNotAllowedException extends DomainException implements
+    ErrorProviderInterface,
+    Sourceable
 {
-    public function getJsonApiErrors(): array
-    {
-        return [
-            [
-                'title' => 'Method Not Allowed',
-                'status' => $this->getJsonApiStatus(),
-            ],
-        ];
-    }
+    use SingleError;
 
     public function getJsonApiStatus(): string
     {

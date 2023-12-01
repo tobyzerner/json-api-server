@@ -3,19 +3,11 @@
 namespace Tobyz\JsonApiServer\Exception;
 
 use DomainException;
-use Tobyz\JsonApiServer\ErrorProviderInterface;
+use Tobyz\JsonApiServer\Exception\Concerns\SingleError;
 
-class NotImplementedException extends DomainException implements ErrorProviderInterface
+class NotImplementedException extends DomainException implements ErrorProviderInterface, Sourceable
 {
-    public function getJsonApiErrors(): array
-    {
-        return [
-            [
-                'title' => 'Not Implemented',
-                'status' => $this->getJsonApiStatus(),
-            ],
-        ];
-    }
+    use SingleError;
 
     public function getJsonApiStatus(): string
     {

@@ -27,7 +27,7 @@ class WhereBelongsTo extends Filter
         $relationship = $query->getModel()->{$this->relationship ?: $this->name}();
 
         if (!array_is_list($values = (array) $value)) {
-            throw new BadRequestException('filter value must be list', [
+            throw (new BadRequestException('filter value must be list'))->setSource([
                 'parameter' => "filter[$this->name]",
             ]);
         }

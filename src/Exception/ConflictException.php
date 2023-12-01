@@ -3,20 +3,11 @@
 namespace Tobyz\JsonApiServer\Exception;
 
 use DomainException;
-use Tobyz\JsonApiServer\ErrorProviderInterface;
+use Tobyz\JsonApiServer\Exception\Concerns\SingleError;
 
-class ConflictException extends DomainException implements ErrorProviderInterface
+class ConflictException extends DomainException implements ErrorProviderInterface, Sourceable
 {
-    public function getJsonApiErrors(): array
-    {
-        return [
-            [
-                'title' => 'Conflict',
-                'status' => $this->getJsonApiStatus(),
-                ...$this->message ? ['detail' => $this->message] : [],
-            ],
-        ];
-    }
+    use SingleError;
 
     public function getJsonApiStatus(): string
     {

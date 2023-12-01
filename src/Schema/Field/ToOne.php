@@ -5,6 +5,7 @@ namespace Tobyz\JsonApiServer\Schema\Field;
 use Doctrine\Inflector\InflectorFactory;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Exception\Sourceable;
 
 class ToOne extends Relationship
 {
@@ -58,7 +59,7 @@ class ToOne extends Relationship
 
         try {
             return $this->findResourceForIdentifier($value['data'], $context);
-        } catch (BadRequestException $e) {
+        } catch (Sourceable $e) {
             throw $e->prependSource(['pointer' => '/data']);
         }
     }

@@ -10,6 +10,7 @@ use Tobyz\JsonApiServer\Endpoint\Concerns\IncludesData;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
+use Tobyz\JsonApiServer\Exception\Sourceable;
 use Tobyz\JsonApiServer\Pagination\OffsetPagination;
 use Tobyz\JsonApiServer\Resource\Countable;
 use Tobyz\JsonApiServer\Resource\Listable;
@@ -141,7 +142,9 @@ class Index implements EndpointInterface
                 }
             }
 
-            throw new BadRequestException("Invalid sort: $name", ['parameter' => 'sort']);
+            throw (new BadRequestException("Invalid sort: $name"))->setSource([
+                'parameter' => 'sort',
+            ]);
         }
     }
 
@@ -152,12 +155,14 @@ class Index implements EndpointInterface
         }
 
         if (!is_array($filters)) {
-            throw new BadRequestException('filter must be an array', ['parameter' => 'filter']);
+            throw (new BadRequestException('filter must be an array'))->setSource([
+                'parameter' => 'filter',
+            ]);
         }
 
         try {
             apply_filters($query, $filters, $context->collection, $context);
-        } catch (BadRequestException $e) {
+        } catch (Sourceable $e) {
             throw $e->prependSource(['parameter' => 'filter']);
         }
     }

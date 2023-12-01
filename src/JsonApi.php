@@ -9,6 +9,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Exception\ErrorProviderInterface;
 use Tobyz\JsonApiServer\Exception\InternalServerErrorException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
 use Tobyz\JsonApiServer\Exception\NotAcceptableException;
@@ -171,7 +172,7 @@ class JsonApi implements RequestHandlerInterface
                 !preg_match('/[^a-z]/', $key) &&
                 !in_array($key, ['include', 'fields', 'filter', 'page', 'sort'])
             ) {
-                throw new BadRequestException("Invalid query parameter: $key", [
+                throw (new BadRequestException("Invalid query parameter: $key"))->setSource([
                     'parameter' => $key,
                 ]);
             }

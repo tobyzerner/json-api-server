@@ -2,20 +2,12 @@
 
 namespace Tobyz\JsonApiServer\Exception;
 
-use RuntimeException;
-use Tobyz\JsonApiServer\ErrorProviderInterface;
+use DomainException;
+use Tobyz\JsonApiServer\Exception\Concerns\SingleError;
 
-class NotFoundException extends RuntimeException implements ErrorProviderInterface
+class NotFoundException extends DomainException implements ErrorProviderInterface, Sourceable
 {
-    public function getJsonApiErrors(): array
-    {
-        return [
-            [
-                'title' => 'Not Found',
-                'status' => $this->getJsonApiStatus(),
-            ],
-        ];
-    }
+    use SingleError;
 
     public function getJsonApiStatus(): string
     {

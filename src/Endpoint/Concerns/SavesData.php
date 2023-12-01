@@ -6,6 +6,7 @@ use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\ConflictException;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
+use Tobyz\JsonApiServer\Exception\Sourceable;
 use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
 
 use function Tobyz\JsonApiServer\get_value;
@@ -27,39 +28,49 @@ trait SavesData
         $body = (array) $context->body();
 
         if (!isset($body['data']) || !is_array($body['data'])) {
-            throw new BadRequestException('data must be an object', ['pointer' => '/data']);
+            throw (new BadRequestException('data must be an object'))->setSource([
+                'pointer' => '/data',
+            ]);
         }
 
         if (!isset($body['data']['type'])) {
-            throw new BadRequestException('data.type must be present', ['pointer' => '/data/type']);
+            throw (new BadRequestException('data.type must be present'))->setSource([
+                'pointer' => '/data/type',
+            ]);
         }
 
         if (isset($context->model)) {
             if (!isset($body['data']['id'])) {
-                throw new BadRequestException('data.id must be present', ['pointer' => '/data/id']);
+                throw (new BadRequestException('data.id must be present'))->setSource([
+                    'pointer' => '/data/id',
+                ]);
             }
 
             if ($body['data']['id'] !== $context->resource->getId($context->model, $context)) {
-                throw new ConflictException('data.id does not match the resource ID', [
+                throw (new ConflictException('data.id does not match the resource ID'))->setSource([
                     'pointer' => '/data/id',
                 ]);
             }
         } elseif (isset($body['data']['id'])) {
-            throw new ForbiddenException('Client-generated IDs are not supported');
+            throw (new ForbiddenException('Client-generated IDs are not supported'))->setSource([
+                'pointer' => '/data/id',
+            ]);
         }
 
         if (!in_array($body['data']['type'], $context->collection->resources())) {
-            throw new ConflictException('collection does not support this resource type');
+            throw (new ConflictException(
+                'collection does not support this resource type',
+            ))->setSource(['pointer' => '/data/type']);
         }
 
         if (isset($body['data']['attributes']) && !is_array($body['data']['attributes'])) {
-            throw new BadRequestException('data.attributes must be an object', [
+            throw (new BadRequestException('data.attributes must be an object'))->setSource([
                 'pointer' => '/data/attributes',
             ]);
         }
 
         if (isset($body['data']['relationships']) && !is_array($body['data']['relationships'])) {
-            throw new BadRequestException('data.relationships must be an object', [
+            throw (new BadRequestException('data.relationships must be an object'))->setSource([
                 'pointer' => '/data/relationships',
             ]);
         }
@@ -88,7 +99,7 @@ trait SavesData
         foreach (['attributes', 'relationships'] as $location) {
             foreach ($data[$location] as $name => $value) {
                 if (!isset($fields[$name]) || $location !== location($fields[$name])) {
-                    throw new BadRequestException("Unknown field [$name]", [
+                    throw (new BadRequestException("Unknown field [$name]"))->setSource([
                         'pointer' => "/data/$location/$name",
                     ]);
                 }
@@ -109,7 +120,9 @@ trait SavesData
             }
 
             if (!$field->isWritable($context->withField($field))) {
-                throw new ForbiddenException("Field [$field->name] is not writable");
+                throw (new ForbiddenException("Field [$field->name] is not writable"))->setSource([
+                    'pointer' => '/data/' . location($field) . '/' . $field->name,
+                ]);
             }
         }
     }
@@ -128,7 +141,7 @@ trait SavesData
 
             try {
                 set_value($data, $field, $field->deserializeValue($value, $context));
-            } catch (BadRequestException $e) {
+            } catch (Sourceable $e) {
                 throw $e->prependSource([
                     'pointer' => '/data/' . location($field) . '/' . $field->name,
                 ]);

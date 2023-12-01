@@ -2,20 +2,12 @@
 
 namespace Tobyz\JsonApiServer\Exception;
 
-use RuntimeException;
-use Tobyz\JsonApiServer\ErrorProviderInterface;
+use DomainException;
+use Tobyz\JsonApiServer\Exception\Concerns\SingleError;
 
-class NotAcceptableException extends RuntimeException implements ErrorProviderInterface
+class NotAcceptableException extends DomainException implements ErrorProviderInterface, Sourceable
 {
-    public function getJsonApiErrors(): array
-    {
-        return [
-            [
-                'title' => 'Not Acceptable',
-                'status' => $this->getJsonApiStatus(),
-            ],
-        ];
-    }
+    use SingleError;
 
     public function getJsonApiStatus(): string
     {

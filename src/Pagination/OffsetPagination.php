@@ -2,9 +2,9 @@
 
 namespace Tobyz\JsonApiServer\Pagination;
 
+use RuntimeException;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
-use Tobyz\JsonApiServer\Exception\NotImplementedException;
 use Tobyz\JsonApiServer\Resource\Paginatable;
 
 class OffsetPagination implements PaginationInterface
@@ -26,7 +26,9 @@ class OffsetPagination implements PaginationInterface
         $collection = $this->context->collection;
 
         if (!$collection instanceof Paginatable) {
-            throw new NotImplementedException('Collection not paginatable');
+            throw new RuntimeException(
+                sprintf('%s must implement %s', get_class($collection), Paginatable::class),
+            );
         }
 
         $collection->paginate($query, $this);
@@ -103,7 +105,9 @@ class OffsetPagination implements PaginationInterface
     {
         if ($offset = $context->queryParam('page')['offset'] ?? null) {
             if (preg_match('/\D+/', $offset) || $offset < 0) {
-                throw new BadRequestException('page[offset] must be a non-negative integer', [
+                throw (new BadRequestException(
+                    'page[offset] must be a non-negative integer',
+                ))->setSource([
                     'parameter' => 'page[offset]',
                 ]);
             }
@@ -120,7 +124,7 @@ class OffsetPagination implements PaginationInterface
             if (preg_match('/\D+/', $limit) || $limit < 1) {
                 throw (new BadRequestException(
                     'page[limit] must be a positive integer',
-                ))->setSourceParameter('page[limit]');
+                ))->setSource(['parameter' => 'page[limit]']);
             }
 
             if ($this->maxLimit) {

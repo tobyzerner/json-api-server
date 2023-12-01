@@ -2,20 +2,14 @@
 
 namespace Tobyz\JsonApiServer\Exception;
 
-use RuntimeException;
-use Tobyz\JsonApiServer\ErrorProviderInterface;
+use DomainException;
+use Tobyz\JsonApiServer\Exception\Concerns\SingleError;
 
-class UnsupportedMediaTypeException extends RuntimeException implements ErrorProviderInterface
+class UnsupportedMediaTypeException extends DomainException implements
+    ErrorProviderInterface,
+    Sourceable
 {
-    public function getJsonApiErrors(): array
-    {
-        return [
-            [
-                'title' => 'Unsupported Media Type',
-                'status' => $this->getJsonApiStatus(),
-            ],
-        ];
-    }
+    use SingleError;
 
     public function getJsonApiStatus(): string
     {

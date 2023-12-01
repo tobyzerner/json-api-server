@@ -76,7 +76,7 @@ trait IncludesData
                 continue 2;
             }
 
-            throw new BadRequestException("Invalid include [{$path}{$name}]", [
+            throw (new BadRequestException("Invalid include [$path$name]"))->setSource([
                 'parameter' => 'include',
             ]);
         }
