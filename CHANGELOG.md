@@ -8,10 +8,34 @@ and this project adheres to
 
 ## [Unreleased]
 
+### ⚠️ Breaking Changes
+
+-   Types are now their own construct instead of being subclasses of
+    `Attribute`. See the
+    [Attributes](https://tobyzerner.github.io/json-api-server/attributes.html)
+    documentation for more information.
+-   Removed support for defining polymorphic relationships by passing a map of
+    model classes to resource types. You should use heterogeneous collections
+    instead. See the
+    [Relationships](https://tobyzerner.github.io/json-api-server/relationships.html#polymorphic-relationships)
+    documentation for more information.
+
+### Added
+
+-   Add support for
+    [heterogeneous collections](https://tobyzerner.github.io/json-api-server/collections.html)
+-   Add `Arr` type for defining array attributes
+    ([#88](https://github.com/tobyzerner/json-api-server/pull/88) by
+    @bertramakers)
+-   Laravel: Allow `WhereHas` field to be specified manually
+
 ### Fixed
 
 -   When creating a resource, set the context model prior to field validation
+-   Fix error when updating a resource with a conflicting ID
+    ([#85](https://github.com/tobyzerner/json-api-server/issues/85))
 -   Laravel: Fix `Has` filter not working without a `scope`
+-   Laravel: Don't apply relationship loading constraints if there aren't any
 
 ## [1.0.0-beta.1] - 2023-09-24
 
