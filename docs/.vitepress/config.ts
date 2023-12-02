@@ -14,14 +14,14 @@ export default defineConfig({
                     { text: 'Introduction', link: '/' },
                     { text: 'Installation', link: '/install' },
                     { text: 'Handling Requests', link: '/requests' },
-                    { text: 'Defining Resources', link: '/resources' },
                     { text: 'Laravel Integration', link: '/laravel' },
                 ],
             },
             {
-                text: 'Schema',
+                text: 'Resources',
                 items: [
-                    { text: 'Fields', link: '/fields' },
+                    { text: 'Defining Resources', link: '/resources' },
+                    { text: 'Defining Fields', link: '/fields' },
                     { text: 'Attributes', link: '/attributes' },
                     { text: 'Relationships', link: '/relationships' },
                 ],
@@ -29,7 +29,7 @@ export default defineConfig({
             {
                 text: 'Endpoints',
                 items: [
-                    { text: 'List', link: '/list' },
+                    { text: 'Index', link: '/list' },
                     { text: 'Create', link: '/create' },
                     { text: 'Show', link: '/show' },
                     { text: 'Update', link: '/update' },
@@ -40,9 +40,14 @@ export default defineConfig({
                 text: 'Advanced',
                 items: [
                     { text: 'Context', link: '/context' },
+                    { text: 'Deferred Values', link: '/deferred' },
                     { text: 'Error Handling', link: '/errors' },
                     { text: 'Extensions', link: '/extensions' },
-                    { text: 'OpenAPI', link: '/openapi' },
+                    {
+                        text: 'Heterogeneous Collections',
+                        link: '/collections',
+                    },
+                    { text: 'OpenAPI Definitions', link: '/openapi' },
                 ],
             },
         ],
@@ -58,8 +63,5 @@ export default defineConfig({
             pattern:
                 'https://github.com/tobyzerner/json-api-server/edit/main/docs/:path',
         },
-    },
-    markdown: {
-        theme: 'nord',
     },
 });

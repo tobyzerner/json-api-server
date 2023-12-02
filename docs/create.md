@@ -1,11 +1,11 @@
-# Create
+# Create Endpoint
 
-Use the Create endpoint to allow a resource to be created.
+The `Create` endpoint handles POST requests to the collection root (e.g.
+`POST /posts`) and responds with a JSON:API document containing the created
+resource object.
 
-The Create endpoint handles POST requests to the resource root and responds with
-a JSON:API document containing the created resource object.
-
-To enable it for a resource, add the Create endpoint to your `endpoints` array:
+To enable it for a resource or collection, add the `Create` endpoint to the
+`endpoints` array:
 
 ```php
 use Tobyz\JsonApiServer\Endpoint\Create;
@@ -34,7 +34,7 @@ Create::make()->visible(
 
 ## Implementation
 
-The Create endpoint requires the resource to implement the
+The `Create` endpoint requires the resource or collection to implement the
 `Tobyz\JsonApiServer\Resource\Creatable` interface (which overlaps with the
 `Updatable` interface). The endpoint will:
 

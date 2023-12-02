@@ -16,6 +16,9 @@ class Context
     // The request that is currently being handled
     public ServerRequestInterface $request;
 
+    // The collection that the request is for
+    public ?CollectionInterface $collection = null;
+
     // The resource that the request is for
     public ?ResourceInterface $resource = null;
 

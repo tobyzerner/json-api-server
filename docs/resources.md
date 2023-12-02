@@ -1,16 +1,34 @@
 # Defining Resources
 
-Resource classes describe the types of JSON:API resources that exist within your
-server, and the endpoints that they expose.
+## Resources & Collections
 
-They also define behavior for how the JSON:API server interacts with your
-storage to query, create, read, update, and delete resources.
+**Resources** describe the different types of resources that exist within your
+JSON:API server, their field schema, and behaviour for create, update, and
+delete operations.
+
+**Collections** describe the API endpoints through which these resources are
+exposed, and behaviour for querying and retrieving resource data from your
+storage.
+
+Most of the time, collections are homogenous, meaning they contain a single kind
+of resource. For example, a GET request to the `/posts` collection will return a
+list of `posts` resources.
+
+When you define a resource type by extending the base `Resource` class, a
+collection for that resource type is automatically defined as well. In addition
+to the resource's field schema and storage behaviour, you can define the
+collection's endpoints and behaviour directly on your resource class.
+
+It is also possible for collections to be heterogeneous – containing multiple
+kinds of resources. See [Heterogeneous Collections](collections) for more
+information.
 
 ## Defining Resources
 
 To define a resource type within your API, create a new class that extends
 `Tobyz\JsonApi\Resource\Resource`, and implement the `type()` method to return
-the name of your resource type:
+the name of your resource type. This will also be used as the collection path
+for your resource.
 
 ```php
 use Tobyz\JsonApiServer\Resource\Resource;
@@ -65,12 +83,12 @@ Each resource class contains a `fields()` method which returns an array of field
 objects. These will be used to serialize models into JSON:API resource objects.
 
 The following example demonstrates some basic field definitions. You can learn
-more about [field definitions](fields.md), as well as the available types of
+more about [field definitions](fields.md), as well as
 [attributes](attributes.md) and [relationships](relationships.md).
 
-<!-- prettier-ignore -->
 ```php
-use Tobyz\JsonApiServer\Field;
+use Tobyz\JsonApiServer\Schema\Field;
+use Tobyz\JsonApiServer\Schema\Type;
 
 class PostsResource extends Resource
 {
@@ -79,10 +97,22 @@ class PostsResource extends Resource
     public function fields(): array
     {
         return [
-            Field\Str::make('title')->writable(),
-            Field\Str::make('body')->writable(),
-            Field\DateTime::make('createdAt'),
-            Field\ToOne::make('author')->type('users')->includable(),
+            Field\Attribute::make('title')
+                ->type(Type\Str::make())
+                ->writable(),
+
+            Field\Attribute::make('body')
+                ->type(Type\Str::make())
+                ->writable(),
+
+            Field\Attribute::make('createdAt')
+                ->type(Type\DateTime::make())
+                ->default(fn() => new DateTime()),
+
+            Field\ToOne::make('author')
+                ->type('users')
+                ->includable(),
+
             Field\ToMany::make('comments'),
         ];
     }
@@ -117,13 +147,12 @@ class UsersResource extends Resource
 ```
 
 The main endpoints available for use are listed in the table below. Each of
-these endpoints requires the implementation of an interface on your resource
-class to define the behavior of how the endpoint should interact with your
-storage.
+these endpoints requires the implementation of an interface on your class to
+define the behavior of how the endpoint should interact with your storage.
 
 | Method | URI           | Endpoint            | Interface                                |
 | ------ | ------------- | ------------------- | ---------------------------------------- |
-| GET    | `/users`      | [Index](index.md)   | `Tobyz\JsonApiServer\Resource\Listable`  |
+| GET    | `/users`      | [Index](list.md)    | `Tobyz\JsonApiServer\Resource\Listable`  |
 | POST   | `/users`      | [Create](create.md) | `Tobyz\JsonApiServer\Resource\Creatable` |
 | GET    | `/users/{id}` | [Show](show.md)     | `Tobyz\JsonApiServer\Resource\Findable`  |
 | PATCH  | `/users/{id}` | [Update](update.md) | `Tobyz\JsonApiServer\Resource\Updatable` |
@@ -132,6 +161,6 @@ storage.
 ::: tip Laravel Integration  
 For Laravel applications with Eloquent-backed resources, you can extend the
 `Tobyz\JsonApiServer\Laravel\EloquentResource` class which implements all of
-these interfaces. Learn more on the
+these interfaces for you. Learn more on the
 [Laravel Integration](laravel.md#eloquent-resources) page.  
 :::

@@ -1,18 +1,8 @@
 :root {
-    --vp-c-brand: #0000ff;
+    --vp-c-brand-1: #0000ff;
+    --vp-c-brand-2: var(--vp-c-brand-1);
 }
 
 .dark {
-    --vp-c-brand: #8a8aff;
-}
-
-.vp-doc h1 + p {
-    font-size: 140%;
-    line-height: 1.5;
-}
-
-.vp-doc a:not(.header-anchor) {
-    text-decoration: underline;
-    text-decoration-style: solid;
-    font-weight: inherit;
+    --vp-c-brand-1: #8a8aff;
 }

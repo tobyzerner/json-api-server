@@ -40,7 +40,7 @@ You can then retrieve the value from the request via the
 ```php
 use Tobyz\JsonApiServer\Context;
 
-Str::make('email')->visible(
+Attribute::make('email')->visible(
     fn($model, Context $context) => $model->id ===
         $context->request->getAttribute('user')->id,
 );

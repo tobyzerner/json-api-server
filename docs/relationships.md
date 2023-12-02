@@ -13,12 +13,12 @@ ToMany::make('comments');
 
 ## Resource Type
 
-By default, the resource type that the relationship corresponds to will be the
+By default, the resource that the relationship corresponds to will be the
 pluralized form of the relationship name. In the example above, the `user`
-relationship would correspond to the `users` resource type, while `comments`
-would correspond to `comments`.
+relationship would correspond to the `users` collection, while `comments` would
+correspond to `comments`.
 
-If you'd like to use a different resource type, call the `type` method:
+If you'd like to use a different resource, call the `type` method:
 
 ```php
 ToOne::make('author')->type('people');
@@ -26,16 +26,18 @@ ToOne::make('author')->type('people');
 
 ### Polymorphic Relationships
 
-You can define a polymorphic relationship by passing an array to the `type`
-method containing a map of model classes to resource types:
+To define a polymorphic relationship, you will need to first create a
+[heterogeneous collection](collections.md) to define the resource types that may
+exist in the relationship, and logic for mapping models to their representative
+resource types.
+
+Once you have defined and registered the collection, you can use it for a
+relationship by calling the `collection` method with the name of the collection:
 
 ```php
 use App\Models\{Article, Post};
 
-ToOne::make('commentable')->type([
-    Article::class => 'articles',
-    Post::class => 'posts',
-]);
+ToMany::make('activity')->collection('activity');
 ```
 
 ## Resource Linkage

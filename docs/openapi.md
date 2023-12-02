@@ -1,3 +1,3 @@
-# OpenAPI
+# OpenAPI Definitions
 
 Coming soon...

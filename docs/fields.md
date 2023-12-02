@@ -1,4 +1,4 @@
-# Fields
+# Defining Fields
 
 A resource object's attributes and relationships are collectively called its
 "fields".
@@ -10,9 +10,9 @@ name, nor can it have an attribute or relationship named `type` or `id`.
 Each resource class contains a `fields` method. This method returns an array of
 fields, which define the attributes and relationships of the resource.
 
-<!-- prettier-ignore -->
 ```php
-use Tobyz\JsonApiServer\Field;
+use Tobyz\JsonApiServer\Schema\Field;
+use Tobyz\JsonApiServer\Schema\Type;
 
 class PostsResource extends Resource
 {
@@ -21,17 +21,29 @@ class PostsResource extends Resource
     public function fields(): array
     {
         return [
-            Field\Str::make('title')->writable(),
-            Field\Str::make('body')->writable(),
-            Field\DateTime::make('createdAt'),
-            Field\ToOne::make('author')->type('users')->includable(),
+            Field\Attribute::make('title')
+                ->type(Type\Str::make())
+                ->writable(),
+
+            Field\Attribute::make('body')
+                ->type(Type\Str::make())
+                ->writable(),
+
+            Field\Attribute::make('createdAt')
+                ->type(Type\DateTime::make())
+                ->default(fn() => new DateTime()),
+
+            Field\ToOne::make('author')
+                ->type('users')
+                ->includable(),
+
             Field\ToMany::make('comments'),
         ];
     }
 }
 ```
 
-Learn more about the available [Attributes](attributes.md) and
+Learn more about [Attributes](attributes.md) and
 [Relationships](relationships.md).
 
 ## Visibility
@@ -47,9 +59,9 @@ when the authenticated user is viewing their own profile:
 
 ```php
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Field\Str;
+use Tobyz\JsonApiServer\Schema\Field\Attribute;
 
-Str::make('email')->visible(
+Attribute::make('email')->visible(
     fn($model, Context $context) => $model->id ===
         $context->request->getAttribute('userId'),
 );
@@ -59,7 +71,7 @@ Hiding a field completely is useful when you want it the field to be available
 for writing but not reading – for example, a password field:
 
 ```php
-Str::make('password')
+Attribute::make('password')
     ->hidden()
     ->writable();
 ```
@@ -75,7 +87,7 @@ in the base `Resource` class:
 
 ```php
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Field\Field;
+use Tobyz\JsonApiServer\Schema\Field;
 
 class Resource
 {
@@ -101,8 +113,8 @@ field's `name`.
 To configure which property a field represents, use the `property` method:
 
 ```php
-Str::make('firstName'); // Reads from $model->firstName
-Str::make('firstName')->property('fname'); // Reads from $model->fname
+Attribute::make('firstName'); // Reads from $model->firstName
+Attribute::make('firstName')->property('fname'); // Reads from $model->fname
 ```
 
 ### Getters
@@ -112,7 +124,7 @@ method. This will be used to retrieve the value from the model instead of the
 resource's `getValue` method:
 
 ```php
-Str::make('firstName')->get(
+Attribute::make('firstName')->get(
     fn($model, Context $context) => $model->getFirstName(),
 );
 ```
@@ -123,49 +135,10 @@ Once a value has been retrieved, if you would like to perform any conversion
 before it appears in the JSON output, you can use the `serialize` method:
 
 ```php
-Str::make('firstName')->serialize(
+Attribute::make('firstName')->serialize(
     fn($value, Context $context) => ucfirst($value),
 );
 ```
-
-### Deferred Values
-
-Sometimes you may need to defer retrieving the value of a field until after all
-other fields have been processed. For example, if a relationship needs to be
-loaded from the database, it might be best to wait until you know all the models
-that it needs to be loaded for so that it can be done in a single database
-query.
-
-In these cases, you can return a closure from your resource's `getValue` method,
-or a field's getter, to be evaluated at the end of serialization:
-
-```php
-use Tobyz\JsonApiServer\Schema\Field\Relationship;
-
-class PostsResource extends Resource
-{
-    // ...
-
-    public function getValue(
-        object $model,
-        Field $field,
-        Context $context,
-    ): mixed {
-        if ($field instanceof Relationship) {
-            Buffer::add($model, $field);
-
-            return fn() => Buffer::load($model, $field, $context);
-        }
-
-        return parent::getValue($model, $field, $context);
-    }
-}
-```
-
-In the above example, the exact implementation of `Buffer` is up to you. The
-concept is that every post being serialized will be added to the buffer; then,
-when the first deferred value is evaluated, the buffer can load the relationship
-for all of the buffered posts at once.
 
 ## Writing
 
@@ -181,9 +154,9 @@ writable by the self:
 
 ```php
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Field\Str;
+use Tobyz\JsonApiServer\Schema\Field\Str;
 
-Str::make('email')->writable(
+Attribute::make('email')->writable(
     fn($model, Context $context) => $model->id ===
         $context->request->getAttribute('userId'),
 );
@@ -194,7 +167,7 @@ not when an existing resource is being updated, you may use the
 `writableOnCreate` method:
 
 ```php
-Str::make('email')->writableOnCreate();
+Attribute::make('email')->writableOnCreate();
 ```
 
 ### Default Values
@@ -206,12 +179,14 @@ a literal value to the `default` method.
 A closure will receive the current request context as an argument when called.
 
 ```php
-use Tobyz\JsonApiServer\Field;
+use Tobyz\JsonApiServer\Schema\Field\Attribute;
+use Tobyz\JsonApiServer\Schema\Type;
 
-Field\Str::make('name')->default('Anonymous');
-Field\DateTime::make('joinedAt')->default(
-    fn(Context $context) => new \DateTime(),
-);
+Attribute::make('name')->default('Anonymous');
+
+Attribute::make('joinedAt')
+    ->type(Type\DateTime::make())
+    ->default(fn(Context $context) => new \DateTime());
 ```
 
 ### Required
@@ -223,7 +198,7 @@ If you would like to mark a writable field as required, so that it must be
 provided when creating a new resource, you can use the `required` method:
 
 ```php
-Str::make('email')
+Attribute::make('email')
     ->writable()
     ->required();
 ```
@@ -235,7 +210,7 @@ you would like to allow `null` as a valid value for a field, you can use the
 `nullable` method:
 
 ```php
-Str::make('color')
+Attribute::make('color')
     ->writable()
     ->nullable();
 ```
@@ -246,7 +221,7 @@ If you want to perform any conversion on the data provided for a field before it
 is validated and saved, you can use the `deserialize` method:
 
 ```php
-Str::make('firstName')->deserialize(
+Attribute::make('firstName')->deserialize(
     fn($value, Context $context) => ucfirst($value),
 );
 ```
@@ -258,7 +233,7 @@ it is saved to the model. Provide a closure to the `validate` method, and call
 the `$fail` argument if validation fails:
 
 ```php
-Str::make('email')->validate(function (
+Attribute::make('email')->validate(function (
     $value,
     callable $fail,
     Context $context,
@@ -285,7 +260,7 @@ If you would like to define custom hydration logic for a specific field, use the
 `set` method:
 
 ```php
-Str::make('name')->set(function ($model, $value, Context $context) {
+Attribute::make('name')->set(function ($model, $value, Context $context) {
     $model->first_name = explode(' ', $value)[0];
     $model->last_name = explode(' ', $value)[1];
 });
@@ -299,7 +274,11 @@ been saved. If specified, the resource's `setValue` method will **not** be
 called for the field.
 
 ```php
-Str::attribute('locale')->save(function ($model, $value, Context $context) {
+Attribute::attribute('locale')->save(function (
+    $model,
+    $value,
+    Context $context,
+) {
     $model
         ->preferences()
         ->where('key', 'locale')

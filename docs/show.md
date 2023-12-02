@@ -1,11 +1,10 @@
-# Show
+# Show Endpoint
 
-Use the Show endpoint to allow resources to be retrieved by ID.
+The `Show` endpoint handles GET requests to resources (e.g. `GET /posts/1`) and
+responds with a JSON:API document containing a single resource object.
 
-The Show endpoint handles `GET /{type}/{id}` requests and responds with a
-JSON:API document containing a single resource object.
-
-To enable it for a resource, add the Show endpoint to your `endpoints` array:
+To enable it for a resource or collection, add the `Show` endpoint to the
+`endpoints` array:
 
 ```php
 use Tobyz\JsonApiServer\Endpoint\Show;
@@ -32,7 +31,7 @@ Show::make()->visible(fn($model, Context $context) => $model->is_public);
 
 ## Implementation
 
-The Show endpoint requires the resource to implement the
+The `Show` endpoint requires the resource or collection to implement the
 `Tobyz\JsonApiServer\Resource\Findable` interface. The endpoint will call the
 `find` method with the requested resource ID to retrieve the model instance.
 

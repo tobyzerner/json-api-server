@@ -1,11 +1,11 @@
-# Update
+# Update Endpoint
 
-Use the Update endpoint to allow resources to be updated.
+The `Update` endpoint handles PATCH requests to resources (e.g.
+`PATCH /posts/1`) and responds with a JSON:API document containing the updated
+resource object.
 
-The Update endpoint handles `PATCH /{type}/{id}` requests and responds with a
-JSON:API document containing the updated resource object.
-
-To enable it for a resource, add the Update endpoint to your `endpoints` array:
+To enable it for a resource or collection, add the `Update` endpoint to the
+`endpoints` array:
 
 ```php
 use Tobyz\JsonApiServer\Endpoint\Update;
@@ -32,7 +32,7 @@ Update::make()->visible(fn($model, Context $context) => $model->is_wiki);
 
 ## Implementation
 
-The Update endpoint requires the resource to implement the
+The `Update` endpoint requires the resource or collection to implement the
 `Tobyz\JsonApiServer\Resource\Updatable` interface (which extends the `Findable`
 interface, and overlaps with the `Creatable` interface). The endpoint will:
 

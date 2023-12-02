@@ -1,12 +1,11 @@
-# List
+# Index Endpoint
 
-Use the Index endpoint to allow a resource to be listed.
+The `Index` endpoint handles GET requests to the collection root (e.g.
+`GET /posts`) and responds with a JSON:API document containing a collection of
+resources.
 
-The Index endpoint handles GET requests to the resource root (e.g. `GET /posts`)
-and responds with a JSON:API document containing a collection of resource
-objects.
-
-To enable it for a resource, add the Index endpoint to your `endpoints` array:
+To enable it for a resource or collection, add an instance of the `Index`
+endpoint to the `endpoints` array:
 
 ```php
 use Tobyz\JsonApiServer\Endpoint\Index;
@@ -35,7 +34,7 @@ Index::make()->visible(
 
 ## Implementation
 
-The Index endpoint requires the resource to implement the
+The `Index` endpoint requires the resource or collection to implement the
 `Tobyz\JsonApiServer\Resource\Listable` interface. The endpoint will:
 
 1. Call the `query` method to create a query object.
@@ -160,7 +159,7 @@ SortColumn::make('example')->visible(
 ### Default Sort
 
 You can set a default sort to be used when none is specified by the client. To
-do this, use the `defaultSort` method on the Index endpoint:
+do this, use the `defaultSort` method on the `Index` endpoint:
 
 ```php
 Index::make()->defaultSort('-createdAt,title');
@@ -264,7 +263,7 @@ is planned.
 ### Offset Pagination
 
 In order to use offset pagination for your resource listing, call the `paginate`
-method on the Index endpoint:
+method on the `Index` endpoint:
 
 ```php
 Index::make()->paginate();
@@ -278,8 +277,9 @@ is 50. If you would like to use different values, pass them as arguments to the
 Index::make()->paginate(10, 100);
 ```
 
-You will also need to implement the `Paginatable` interface on your resource in
-order to apply the limit and offset values to the query:
+You will also need to implement the `Tobyz\JsonApiServer\Resource\Paginatable`
+interface on your resource and specify how the limit and offset values should be
+applied to your query:
 
 ```php
 use Tobyz\JsonApiServer\Context;
@@ -303,8 +303,8 @@ By default, offset pagination won't include a `last` link because there is no
 way to know the total number of resources.
 
 If you would like to include a `last` link, as well as include the total number
-of resources as `meta` information, you can implement the `Countable` interface
-on your resource:
+of resources as `meta` information, you can implement the
+`Tobyz\JsonApiServer\Resource\Countable` interface on your resource:
 
 ```php
 use Tobyz\JsonApiServer\Context;

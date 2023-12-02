@@ -40,9 +40,11 @@ The following example shows an API implementation in a Laravel application.
 ```php
 use App\Models\User;
 use Tobyz\JsonApiServer\Laravel;
-use Tobyz\JsonApiServer\Laravel\{EloquentResource, Filter};
+use Tobyz\JsonApiServer\Laravel\EloquentResource;
+use Tobyz\JsonApiServer\Laravel\Filter;
 use Tobyz\JsonApiServer\Endpoint;
 use Tobyz\JsonApiServer\Schema\Field;
+use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\JsonApiServer\JsonApi;
 
 class UsersResource extends EloquentResource
@@ -71,13 +73,14 @@ class UsersResource extends EloquentResource
     public function fields(): array
     {
         return [
-            Field\Str::make('name')
+            Field\Attribute::make('name')
+                ->type(Type\Str::make())
                 ->writable()
                 ->required(),
 
-            Field\HasOne::make('address')->includable(),
+            Field\ToOne::make('address')->includable(),
 
-            Field\HasMany::make('friends')
+            Field\ToMany::make('friends')
                 ->type('users')
                 ->includable(),
         ];

@@ -15,9 +15,9 @@ try {
 
 ## Error Providers
 
-Exceptions can implement `Tobyz\JsonApiServer\ErrorProviderInterface` to
-determine what status code will be used in the response, and any JSON:API error
-objects to be rendered in the document.
+Exceptions can implement `Tobyz\JsonApiServer\Exception\ErrorProviderInterface`
+to determine what status code will be used in the response, and any JSON:API
+error objects to be rendered in the document.
 
 The interface defines two methods:
 

@@ -1,11 +1,10 @@
-# Delete
+# Delete Endpoint
 
-Use the Delete endpoint to allow resources to be updated.
+The `Delete` endpoint handles DELETE requests to resources (e.g.
+`DELETE /posts/1`) and responds with a `204 No Content` response.
 
-The Delete endpoint handles `DELETE /{type}/{id}` requests and responds with a
-`204 No Content` response.
-
-To enable it for a resource, add the Delete endpoint to your `endpoints` array:
+To enable it for a resource or collection, add the `Delete` endpoint to the
+`endpoints` array:
 
 ```php
 use Tobyz\JsonApiServer\Endpoint\Delete;
@@ -32,7 +31,7 @@ Delete::make()->visible(fn($model, Context $context) => $model->is_wiki);
 
 ## Implementation
 
-The Delete endpoint requires the resource to implement the
+The `Delete` endpoint requires the resource or collection to implement the
 `Tobyz\JsonApiServer\Resource\Deletable` interface (which extends the `Findable`
 interface). The endpoint will:
 
