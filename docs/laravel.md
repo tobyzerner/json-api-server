@@ -73,7 +73,7 @@ class PostsResource extends EloquentResource
     public function fields(): array
     {
         return [
-            Field\Str::make('title'),
+            Field\Attribute::make('title'),
             Field\ToOne::make('author')->type('users'),
         ];
     }
@@ -124,11 +124,13 @@ requests, and force delete a resource using a `DELETE` request.
 
 To expose the soft-delete capability to the client, add the
 `Tobyz\JsonApiServer\Laravel\SoftDeletes` trait to your Eloquent resource, and a
-nullable `DateTime` field to your fields array:
+nullable [`DateTime` field](attributes.md#date-and-datetime) to your fields
+array:
 
 ```php
 use Tobyz\JsonApiServer\Laravel\SoftDeletes; // [!code ++]
-use Tobyz\JsonApiServer\Schema\Field\DateTime; // [!code ++]
+use Tobyz\JsonApiServer\Schema\Field\Attribute; // [!code ++]
+use Tobyz\JsonApiServer\Schema\Type\DateTime; // [!code ++]
 
 class PostsResource extends EloquentResource
 {
@@ -139,7 +141,9 @@ class PostsResource extends EloquentResource
     public function fields(): array
     {
         return [
-            DateTime::make('deletedAt')->nullable(), // [!code ++]
+            Attribute::make('deletedAt') // [!code ++]
+                ->type(DateTime::make()), // [!code ++]
+                ->nullable(), // [!code ++]
         ];
     }
 }
@@ -147,7 +151,7 @@ class PostsResource extends EloquentResource
 
 If you prefer to use a boolean to indicate whether or not a resource is
 soft-deleted instead of a nullable date-time value, you can use a
-`BooleanDateTime` field instead:
+[`BooleanDateTime` attribute](attributes.md#booleandatetime) instead:
 
 ```php
 use Tobyz\JsonApiServer\Schema\Field\BooleanDateTime;
@@ -290,7 +294,7 @@ rules to be applied to the value:
 ```php
 use function Tobyz\JsonApiServer\Laravel\rules;
 
-Str::make('password')->validate(rules(['password']));
+Attribute::make('password')->validate(rules(['password']));
 ```
 
 Note that values are validated one at a time, so interdependent rules such as
@@ -300,23 +304,17 @@ You can add an `{id}` placeholder to database rules such as `unique` which will
 be substituted if a model is being updated:
 
 ```php
-Str::make('email')
-    ->format('email')
+Attribute::make('email')
+    ->type(Str::make()->format('email'))
     ->validate(Laravel\rules(['email', 'unique:users,email,{id}']));
 ```
 
 Validating array contents is also supported:
 
 ```php
-$type
-    ->attribute('jobs')
-    ->validate(
-        Laravel\rules([
-            'required',
-            'array',
-            '*' => ['string', 'min:3', 'max:255'],
-        ]),
-    );
+Attribute::make('jobs')->validate(
+    Laravel\rules(['required', 'array', '*' => ['string', 'min:3', 'max:255']]),
+);
 ```
 
 You can also pass an array of custom messages and custom attribute names as the
