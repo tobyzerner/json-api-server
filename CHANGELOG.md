@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [1.0.0-beta.2] - 2023-12-02
+
 ### ⚠️ Breaking Changes
 
 -   Types are now their own construct instead of being subclasses of
@@ -220,6 +222,7 @@ Still to come:
 
 -   Fix pagination next link appearing when it shouldn't
 
+[1.0.0-beta.2]: https://github.com/tobyzerner/json-api-server/compare/v1.0.0-beta.1...v1.0.0-beta.2
 [1.0.0-beta.1]:
     https://github.com/tobyzerner/json-api-server/compare/v1.0.0-alpha.2...v1.0.0-beta.1
 [1.0.0-alpha.2]:
@@ -244,3 +247,5 @@ Still to come:
     https://github.com/tobyzerner/json-api-server/compare/v1.0.0-alpha.2...HEAD
 [unreleased]:
     https://github.com/tobyzerner/json-api-server/compare/v1.0.0-beta.1...HEAD
+
+[unreleased]: https://github.com/tobyzerner/json-api-server/compare/v1.0.0-beta.2...HEAD
