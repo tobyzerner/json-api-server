@@ -15,7 +15,7 @@ use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 
 use function Tobyz\JsonApiServer\json_api_response;
 
-class Delete implements EndpointInterface
+class Delete implements Endpoint
 {
     use HasMeta;
     use HasVisibility;

@@ -7,7 +7,7 @@ use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Resource\Paginatable;
 
-class OffsetPagination implements PaginationInterface
+class OffsetPagination implements Pagination
 {
     public int $offset;
     public int $limit;

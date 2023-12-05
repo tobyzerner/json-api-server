@@ -15,9 +15,9 @@ try {
 
 ## Error Providers
 
-Exceptions can implement `Tobyz\JsonApiServer\Exception\ErrorProviderInterface`
-to determine what status code will be used in the response, and any JSON:API
-error objects to be rendered in the document.
+Exceptions can implement the `Tobyz\JsonApiServer\Exception\ErrorProvider`
+interface to determine what status code will be used in the response, and any
+JSON:API error objects to be rendered in the document.
 
 The interface defines two methods:
 
@@ -26,9 +26,9 @@ The interface defines two methods:
 
 ```php
 use JsonApiPhp\JsonApi\Error;
-use Tobyz\JsonApiServer\Exception\ErrorProviderInterface;
+use Tobyz\JsonApiServer\Exception\ErrorProvider;
 
-class ImATeapotException implements ErrorProviderInterface
+class ImATeapotException implements ErrorProvider
 {
     public function getJsonApiErrors(): array
     {

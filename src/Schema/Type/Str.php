@@ -2,7 +2,7 @@
 
 namespace Tobyz\JsonApiServer\Schema\Type;
 
-class Str implements TypeInterface
+class Str implements Type
 {
     public int $minLength = 0;
     public ?int $maxLength = null;

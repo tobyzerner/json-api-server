@@ -4,7 +4,7 @@ namespace Tobyz\JsonApiServer\Resource;
 
 use Tobyz\JsonApiServer\Context;
 
-interface CollectionInterface
+interface Collection
 {
     /**
      * Get the collection name.

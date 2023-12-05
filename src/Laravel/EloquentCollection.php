@@ -7,12 +7,12 @@ use Illuminate\Support\Facades\Auth;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Pagination\OffsetPagination;
-use Tobyz\JsonApiServer\Resource\CollectionInterface;
+use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Countable;
 use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Resource\Paginatable;
 
-abstract class EloquentCollection implements CollectionInterface, Listable, Paginatable, Countable
+abstract class EloquentCollection implements Collection, Listable, Paginatable, Countable
 {
     public function resource(object $model, Context $context): ?string
     {

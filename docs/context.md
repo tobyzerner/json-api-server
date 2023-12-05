@@ -17,13 +17,13 @@ class Context
     public ServerRequestInterface $request;
 
     // The collection that the request is for
-    public ?CollectionInterface $collection = null;
+    public ?Collection $collection = null;
 
     // The resource that the request is for
-    public ?ResourceInterface $resource = null;
+    public ?Resource $resource = null;
 
     // The endpoint handling the request
-    public ?EndpointInterface $endpoint = null;
+    public ?Endpoint $endpoint = null;
 
     // The query being constructed by the Index endpoint
     public ?object $query = null;
@@ -54,13 +54,13 @@ class Context
     public function body(): ?array;
 
     // Get a resource by type
-    public function resource(string $type): ResourceInterface;
+    public function resource(string $type): Resource;
 
     // Get the fields for the given resource, keyed by name
-    public function fields(ResourceInterface $resource): array;
+    public function fields(Resource $resource): array;
 
     // Get only the requested fields for the given resource
-    public function sparseFields(ResourceInterface $resource): array;
+    public function sparseFields(Resource $resource): array;
 
     // Determine whether a field has been requested in a sparse fieldset
     public function fieldRequested(string $type, string $field, bool $default = true): bool;

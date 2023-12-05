@@ -3,57 +3,37 @@
 namespace Tobyz\JsonApiServer\Resource;
 
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Schema\Field\Attribute;
 use Tobyz\JsonApiServer\Schema\Field\Field;
 
-abstract class Resource implements ResourceInterface, CollectionInterface
+interface Resource
 {
-    public function name(): string
-    {
-        return $this->type();
-    }
+    /**
+     * Get the resource type.
+     */
+    public function type(): string;
 
-    public function resources(): array
-    {
-        return [$this->type()];
-    }
+    /**
+     * Get the fields for this resource.
+     *
+     * @return Field[]
+     */
+    public function fields(): array;
 
-    public function resource(object $model, Context $context): ?string
-    {
-        return $this->type();
-    }
+    /**
+     * Get the meta attributes for this resource.
+     *
+     * @return Attribute[]
+     */
+    public function meta(): array;
 
-    public function endpoints(): array
-    {
-        return [];
-    }
+    /**
+     * Get the ID for a model.
+     */
+    public function getId(object $model, Context $context): string;
 
-    public function fields(): array
-    {
-        return [];
-    }
-
-    public function meta(): array
-    {
-        return [];
-    }
-
-    public function filters(): array
-    {
-        return [];
-    }
-
-    public function sorts(): array
-    {
-        return [];
-    }
-
-    public function getId(object $model, Context $context): string
-    {
-        return $model->id;
-    }
-
-    public function getValue(object $model, Field $field, Context $context): mixed
-    {
-        return $model->{$field->property ?: $field->name} ?? null;
-    }
+    /**
+     * Get the value of a field for a model.
+     */
+    public function getValue(object $model, Field $field, Context $context): mixed;
 }

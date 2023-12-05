@@ -5,7 +5,7 @@ namespace Tobyz\JsonApiServer\Exception;
 use DomainException;
 use Tobyz\JsonApiServer\Exception\Concerns\SingleError;
 
-class ConflictException extends DomainException implements ErrorProviderInterface, Sourceable
+class ConflictException extends DomainException implements ErrorProvider, Sourceable
 {
     use SingleError;
 

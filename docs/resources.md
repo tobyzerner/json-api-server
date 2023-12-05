@@ -31,9 +31,9 @@ the name of your resource type. This will also be used as the collection path
 for your resource.
 
 ```php
-use Tobyz\JsonApiServer\Resource\Resource;
+use Tobyz\JsonApiServer\Resource\AbstractResource;
 
-class PostsResource extends Resource
+class PostsResource extends AbstractResource
 {
     public function type(): string
     {

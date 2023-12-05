@@ -12,7 +12,7 @@ use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 
 use function Tobyz\JsonApiServer\json_api_response;
 
-class Show implements EndpointInterface
+class Show implements Endpoint
 {
     use HasVisibility;
     use FindsResources;

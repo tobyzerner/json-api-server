@@ -4,7 +4,7 @@ namespace Tobyz\Tests\JsonApiServer\unit;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tobyz\JsonApiServer\Schema\Type\Integer;
-use Tobyz\JsonApiServer\Schema\Type\TypeInterface;
+use Tobyz\JsonApiServer\Schema\Type\Type;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockedCaller;
 
@@ -16,7 +16,7 @@ class IntegerTest extends AbstractTestCase
     }
 
     #[DataProvider('serializationProvider')]
-    public function test_serialization(TypeInterface $type, mixed $value, mixed $expected)
+    public function test_serialization(Type $type, mixed $value, mixed $expected)
     {
         $this->assertSame($expected, $type->serialize($value));
     }
@@ -45,7 +45,7 @@ class IntegerTest extends AbstractTestCase
     }
 
     #[DataProvider('validationProvider')]
-    public function test_validation(TypeInterface $type, mixed $value, bool $valid)
+    public function test_validation(Type $type, mixed $value, bool $valid)
     {
         $fail = $this->createMock(MockedCaller::class);
 

@@ -4,7 +4,7 @@ namespace Tobyz\JsonApiServer\Schema\Type;
 
 use DateTimeInterface;
 
-class DateTime implements TypeInterface
+class DateTime implements Type
 {
     public static function make(): static
     {

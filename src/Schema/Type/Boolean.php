@@ -2,7 +2,7 @@
 
 namespace Tobyz\JsonApiServer\Schema\Type;
 
-class Boolean implements TypeInterface
+class Boolean implements Type
 {
     public static function make(): static
     {

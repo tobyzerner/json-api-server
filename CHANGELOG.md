@@ -8,6 +8,17 @@ and this project adheres to
 
 ## [Unreleased]
 
+### ⚠️ Breaking Changes
+
+-   Drop `Interface` suffix from various interfaces:
+    -   `Resource` class renamed to `AbstractResource`
+    -   `ResourceInterface` renamed to `Resource`
+    -   `CollectionInterface` renamed to `Collection`
+    -   `ErrorProviderInterface` renamed to `ErrorProvider`
+    -   `PaginationInterface` renamed to `Pagination`
+    -   `EndpointInterface` renamed to `Endpoint`
+    -   `TypeInterface` renamed to `Type`
+
 ## [1.0.0-beta.2] - 2023-12-02
 
 ### ⚠️ Breaking Changes

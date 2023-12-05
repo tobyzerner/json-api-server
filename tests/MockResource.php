@@ -4,17 +4,17 @@ namespace Tobyz\Tests\JsonApiServer;
 
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Pagination\OffsetPagination;
+use Tobyz\JsonApiServer\Resource\AbstractResource;
 use Tobyz\JsonApiServer\Resource\Countable;
 use Tobyz\JsonApiServer\Resource\Creatable;
 use Tobyz\JsonApiServer\Resource\Deletable;
 use Tobyz\JsonApiServer\Resource\Findable;
 use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Resource\Paginatable;
-use Tobyz\JsonApiServer\Resource\Resource;
 use Tobyz\JsonApiServer\Resource\Updatable;
 use Tobyz\JsonApiServer\Schema\Field\Field;
 
-class MockResource extends Resource implements
+class MockResource extends AbstractResource implements
     Findable,
     Listable,
     Countable,

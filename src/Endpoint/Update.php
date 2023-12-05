@@ -15,7 +15,7 @@ use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 
 use function Tobyz\JsonApiServer\json_api_response;
 
-class Update implements EndpointInterface
+class Update implements Endpoint
 {
     use HasVisibility;
     use FindsResources;

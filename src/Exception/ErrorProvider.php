@@ -2,7 +2,7 @@
 
 namespace Tobyz\JsonApiServer\Exception;
 
-interface ErrorProviderInterface
+interface ErrorProvider
 {
     /**
      * Get JSON:API error objects that represent this error.

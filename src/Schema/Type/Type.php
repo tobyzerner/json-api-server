@@ -2,7 +2,7 @@
 
 namespace Tobyz\JsonApiServer\Schema\Type;
 
-interface TypeInterface
+interface Type
 {
     public function serialize(mixed $value): mixed;
 

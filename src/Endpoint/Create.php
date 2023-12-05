@@ -16,7 +16,7 @@ use function Tobyz\JsonApiServer\has_value;
 use function Tobyz\JsonApiServer\json_api_response;
 use function Tobyz\JsonApiServer\set_value;
 
-class Create implements EndpointInterface
+class Create implements Endpoint
 {
     use HasVisibility;
     use SavesData;

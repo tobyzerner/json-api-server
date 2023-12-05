@@ -2,12 +2,12 @@
 
 namespace Tobyz\JsonApiServer\Schema\Type;
 
-class Arr implements TypeInterface
+class Arr implements Type
 {
     private int $minItems = 0;
     private ?int $maxItems = null;
     private bool $uniqueItems = false;
-    private ?TypeInterface $items = null;
+    private ?Type $items = null;
 
     public static function make(): static
     {
@@ -82,7 +82,7 @@ class Arr implements TypeInterface
         return $this;
     }
 
-    public function items(?TypeInterface $type): static
+    public function items(?Type $type): static
     {
         $this->items = $type;
 

@@ -4,7 +4,7 @@ namespace Tobyz\JsonApiServer\Schema\Type;
 
 use InvalidArgumentException;
 
-class Number implements TypeInterface
+class Number implements Type
 {
     private ?float $minimum = null;
     private bool $exclusiveMinimum = false;

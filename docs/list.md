@@ -47,9 +47,9 @@ An example implementation might look like:
 ```php
 use App\Models\Post;
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Resource\{Listable, Resource};
+use Tobyz\JsonApiServer\Resource\{Listable, AbstractResource};
 
-class PostsResource extends Resource implements Listable
+class PostsResource extends AbstractResource implements Listable
 {
     // ...
 
@@ -284,9 +284,9 @@ applied to your query:
 ```php
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Pagination\OffsetPagination;
-use Tobyz\JsonApiServer\Resource\{Listable, Paginatable, Resource};
+use Tobyz\JsonApiServer\Resource\{Listable, Paginatable, AbstractResource};
 
-class PostsResource extends Resource implements Listable, Paginatable
+class PostsResource extends AbstractResource implements Listable, Paginatable
 {
     // ...
 
@@ -309,9 +309,17 @@ of resources as `meta` information, you can implement the
 ```php
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Pagination\OffsetPagination;
-use Tobyz\JsonApiServer\Resource\{Countable, Listable, Paginatable, Resource};
+use Tobyz\JsonApiServer\Resource\{
+    Countable,
+    Listable,
+    Paginatable,
+    AbstractResource,
+};
 
-class PostsResource extends Resource implements Listable, Paginatable, Countable
+class PostsResource extends AbstractResource implements
+    Listable,
+    Paginatable,
+    Countable
 {
     // ...
 

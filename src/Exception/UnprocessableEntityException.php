@@ -4,9 +4,7 @@ namespace Tobyz\JsonApiServer\Exception;
 
 use DomainException;
 
-class UnprocessableEntityException extends DomainException implements
-    ErrorProviderInterface,
-    Sourceable
+class UnprocessableEntityException extends DomainException implements ErrorProvider, Sourceable
 {
     public function __construct(public array $errors)
     {

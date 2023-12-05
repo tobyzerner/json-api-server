@@ -3,17 +3,17 @@
 namespace Tobyz\JsonApiServer;
 
 use Psr\Http\Message\ServerRequestInterface;
-use Tobyz\JsonApiServer\Endpoint\EndpointInterface;
-use Tobyz\JsonApiServer\Resource\CollectionInterface;
-use Tobyz\JsonApiServer\Resource\ResourceInterface;
+use Tobyz\JsonApiServer\Endpoint\Endpoint;
+use Tobyz\JsonApiServer\Resource\Collection;
+use Tobyz\JsonApiServer\Resource\Resource;
 use Tobyz\JsonApiServer\Schema\Field\Field;
 use WeakMap;
 
 class Context
 {
-    public ?CollectionInterface $collection = null;
-    public ?ResourceInterface $resource = null;
-    public ?EndpointInterface $endpoint = null;
+    public ?Collection $collection = null;
+    public ?Resource $resource = null;
+    public ?Endpoint $endpoint = null;
     public ?object $query = null;
     public ?Serializer $serializer = null;
     public mixed $model = null;
@@ -72,7 +72,7 @@ class Context
     /**
      * Get a resource by its type.
      */
-    public function resource(string $type): ResourceInterface
+    public function resource(string $type): Resource
     {
         return $this->api->getResource($type);
     }
@@ -82,7 +82,7 @@ class Context
      *
      * @return array<string, Field>
      */
-    public function fields(ResourceInterface $resource): array
+    public function fields(Resource $resource): array
     {
         if (isset($this->fields[$resource])) {
             return $this->fields[$resource];
@@ -102,7 +102,7 @@ class Context
      *
      * @return array<string, Field>
      */
-    public function sparseFields(ResourceInterface $resource): array
+    public function sparseFields(Resource $resource): array
     {
         if (isset($this->sparseFields[$resource])) {
             return $this->sparseFields[$resource];
@@ -157,21 +157,21 @@ class Context
         return $new;
     }
 
-    public function withCollection(CollectionInterface $collection): static
+    public function withCollection(Collection $collection): static
     {
         $new = clone $this;
         $new->collection = $collection;
         return $new;
     }
 
-    public function withResource(ResourceInterface $resource): static
+    public function withResource(Resource $resource): static
     {
         $new = clone $this;
         $new->resource = $resource;
         return $new;
     }
 
-    public function withEndpoint(EndpointInterface $endpoint): static
+    public function withEndpoint(Endpoint $endpoint): static
     {
         $new = clone $this;
         $new->endpoint = $endpoint;

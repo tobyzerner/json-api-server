@@ -4,7 +4,7 @@ namespace Tobyz\JsonApiServer\Schema\Type;
 
 use DateTimeInterface;
 
-class Date implements TypeInterface
+class Date implements Type
 {
     private const FORMAT = 'Y-m-d';
 

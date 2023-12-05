@@ -4,11 +4,11 @@ namespace Tobyz\Tests\JsonApiServer;
 
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Pagination\OffsetPagination;
-use Tobyz\JsonApiServer\Resource\CollectionInterface;
+use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Resource\Paginatable;
 
-class MockCollection implements CollectionInterface, Listable, Paginatable
+class MockCollection implements Collection, Listable, Paginatable
 {
     public function __construct(
         private readonly string $name,

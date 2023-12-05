@@ -9,7 +9,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
-use Tobyz\JsonApiServer\Exception\ErrorProviderInterface;
+use Tobyz\JsonApiServer\Exception\ErrorProvider;
 use Tobyz\JsonApiServer\Exception\InternalServerErrorException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
 use Tobyz\JsonApiServer\Exception\NotAcceptableException;
@@ -17,8 +17,8 @@ use Tobyz\JsonApiServer\Exception\NotFoundException;
 use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\Exception\UnsupportedMediaTypeException;
 use Tobyz\JsonApiServer\Extension\Extension;
-use Tobyz\JsonApiServer\Resource\CollectionInterface;
-use Tobyz\JsonApiServer\Resource\ResourceInterface;
+use Tobyz\JsonApiServer\Resource\Collection;
+use Tobyz\JsonApiServer\Resource\Resource;
 
 class JsonApi implements RequestHandlerInterface
 {
@@ -31,12 +31,12 @@ class JsonApi implements RequestHandlerInterface
     public array $extensions = [];
 
     /**
-     * @var ResourceInterface[]
+     * @var Resource[]
      */
     public array $resources = [];
 
     /**
-     * @var CollectionInterface[]
+     * @var Collection[]
      */
     public array $collections = [];
 
@@ -56,7 +56,7 @@ class JsonApi implements RequestHandlerInterface
     /**
      * Define a new collection.
      */
-    public function collection(CollectionInterface $collection): void
+    public function collection(Collection $collection): void
     {
         $this->collections[$collection->name()] = $collection;
     }
@@ -64,11 +64,11 @@ class JsonApi implements RequestHandlerInterface
     /**
      * Define a new resource.
      */
-    public function resource(ResourceInterface $resource): void
+    public function resource(Resource $resource): void
     {
         $this->resources[$resource->type()] = $resource;
 
-        if ($resource instanceof CollectionInterface) {
+        if ($resource instanceof Collection) {
             $this->collection($resource);
         }
     }
@@ -78,7 +78,7 @@ class JsonApi implements RequestHandlerInterface
      *
      * @throws ResourceNotFoundException if the collection has not been defined.
      */
-    public function getCollection(string $type): CollectionInterface
+    public function getCollection(string $type): Collection
     {
         if (!isset($this->collections[$type])) {
             throw new ResourceNotFoundException($type);
@@ -92,7 +92,7 @@ class JsonApi implements RequestHandlerInterface
      *
      * @throws ResourceNotFoundException if the resource has not been defined.
      */
-    public function getResource(string $type): ResourceInterface
+    public function getResource(string $type): Resource
     {
         if (!isset($this->resources[$type])) {
             throw new ResourceNotFoundException($type);
@@ -247,7 +247,7 @@ class JsonApi implements RequestHandlerInterface
      */
     public function error($e): Response
     {
-        if (!$e instanceof ErrorProviderInterface) {
+        if (!$e instanceof ErrorProvider) {
             $e = new InternalServerErrorException();
         }
 

@@ -22,7 +22,7 @@ use function Tobyz\JsonApiServer\apply_filters;
 use function Tobyz\JsonApiServer\json_api_response;
 use function Tobyz\JsonApiServer\parse_sort_string;
 
-class Index implements EndpointInterface
+class Index implements Endpoint
 {
     use HasMeta;
     use HasVisibility;

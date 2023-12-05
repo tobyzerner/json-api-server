@@ -3,13 +3,13 @@
 namespace Tobyz\JsonApiServer\Schema\Field;
 
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Schema\Type\TypeInterface;
+use Tobyz\JsonApiServer\Schema\Type\Type;
 
 class Attribute extends Field
 {
-    public ?TypeInterface $type = null;
+    public ?Type $type = null;
 
-    public function type(?TypeInterface $type): static
+    public function type(?Type $type): static
     {
         $this->type = $type;
 

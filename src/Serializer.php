@@ -4,7 +4,7 @@ namespace Tobyz\JsonApiServer;
 
 use Closure;
 use RuntimeException;
-use Tobyz\JsonApiServer\Resource\ResourceInterface;
+use Tobyz\JsonApiServer\Resource\Resource;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
 
 class Serializer
@@ -22,7 +22,7 @@ class Serializer
     /**
      * Add a primary resource to the document.
      */
-    public function addPrimary(ResourceInterface $resource, mixed $model, array $include): void
+    public function addPrimary(Resource $resource, mixed $model, array $include): void
     {
         $data = $this->addToMap($resource, $model, $include);
 
@@ -45,7 +45,7 @@ class Serializer
         return [$primary, $included];
     }
 
-    private function addToMap(ResourceInterface $resource, mixed $model, array $include): array
+    private function addToMap(Resource $resource, mixed $model, array $include): array
     {
         $context = $this->context->withResource($resource)->withModel($model);
 
@@ -141,7 +141,7 @@ class Serializer
         ];
     }
 
-    private function resourceForModel(Relationship $field, $model): ResourceInterface
+    private function resourceForModel(Relationship $field, $model): Resource
     {
         foreach ($field->collections as $name) {
             $collection = $this->context->api->getCollection($name);

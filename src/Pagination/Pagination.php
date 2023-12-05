@@ -2,7 +2,7 @@
 
 namespace Tobyz\JsonApiServer\Pagination;
 
-interface PaginationInterface
+interface Pagination
 {
     public function meta(): array;
 

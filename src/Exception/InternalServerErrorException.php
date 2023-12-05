@@ -5,9 +5,7 @@ namespace Tobyz\JsonApiServer\Exception;
 use RuntimeException;
 use Tobyz\JsonApiServer\Exception\Concerns\SingleError;
 
-class InternalServerErrorException extends RuntimeException implements
-    ErrorProviderInterface,
-    Sourceable
+class InternalServerErrorException extends RuntimeException implements ErrorProvider, Sourceable
 {
     use SingleError;
 

@@ -7,8 +7,8 @@ use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
-use Tobyz\Tests\JsonApiServer\MockCollection;
 use Tobyz\Tests\JsonApiServer\MockResource;
+use Tobyz\Tests\JsonApiServer\MockCollection;
 
 /**
  * @see https://jsonapi.org/format/1.1/#fetching-resources
