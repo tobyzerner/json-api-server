@@ -10,8 +10,8 @@ also used for defining
 
 ## Defining Collections
 
-To define a heterogeneous collection, create a new class that implements
-`Tobyz\JsonApi\Resource\Collection`:
+To define a heterogeneous collection, create a new class that implements the
+`Tobyz\JsonApi\Resource\Collection` interface:
 
 ```php
 use Tobyz\JsonApiServer\Resource\Collection;

@@ -14,7 +14,7 @@ Most of the time, collections are homogenous, meaning they contain a single kind
 of resource. For example, a GET request to the `/posts` collection will return a
 list of `posts` resources.
 
-When you define a resource type by extending the base `Resource` class, a
+When you define a resource type by extending the `AbstractResource` class, a
 collection for that resource type is automatically defined as well. In addition
 to the resource's field schema and storage behaviour, you can define the
 collection's endpoints and behaviour directly on your resource class.
@@ -26,9 +26,9 @@ information.
 ## Defining Resources
 
 To define a resource type within your API, create a new class that extends
-`Tobyz\JsonApi\Resource\Resource`, and implement the `type()` method to return
-the name of your resource type. This will also be used as the collection path
-for your resource.
+`Tobyz\JsonApi\Resource\AbstractResource`, and implement the `type()` method to
+return the name of your resource type. This will also be used as the collection
+path for your resource.
 
 ```php
 use Tobyz\JsonApiServer\Resource\AbstractResource;
@@ -57,13 +57,13 @@ $api->resource(new PostsResource());
 
 When serializing a model into a JSON:API resource object, the `getId` method on
 your resource class will be used to get the `id` for the model. A default
-implementation is provided in the `Resource` class which assumes that your
-models have an `id` property. You may override this if needed:
+implementation is provided in the `AbstractResource` class which assumes that
+your models have an `id` property. You may override this if needed:
 
 ```php
 use Tobyz\JsonApiServer\Context;
 
-class PostsResource extends Resource
+class PostsResource extends AbstractResource
 {
     // ...
 
@@ -90,7 +90,7 @@ more about [field definitions](fields.md), as well as
 use Tobyz\JsonApiServer\Schema\Field;
 use Tobyz\JsonApiServer\Schema\Type;
 
-class PostsResource extends Resource
+class PostsResource extends AbstractResource
 {
     // ...
 
@@ -129,7 +129,7 @@ that can handle an incoming request and return a response.
 ```php
 use Tobyz\JsonApiServer\Endpoint;
 
-class UsersResource extends Resource
+class UsersResource extends AbstractResource
 {
     // ...
 
