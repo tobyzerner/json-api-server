@@ -22,11 +22,13 @@ class Attribute extends Field
             return null;
         }
 
+        $value = parent::serializeValue($value, $context);
+
         if ($this->type) {
             $value = $this->type->serialize($value);
         }
 
-        return parent::serializeValue($value, $context);
+        return $value;
     }
 
     public function deserializeValue(mixed $value, Context $context): mixed
