@@ -19,6 +19,15 @@ and this project adheres to
     -   `EndpointInterface` renamed to `Endpoint`
     -   `TypeInterface` renamed to `Type`
 
+### Fixed
+
+-   Call user-defined serializer before type serializer
+    ([#91](https://github.com/tobyzerner/json-api-server/issues/91))
+-   Fix finding resource when creating polymorphic relationship
+    ([#93](https://github.com/tobyzerner/json-api-server/issues/93))
+-   Prevent relationship value from being retrieved if it won't be used (not
+    included and no linkage)
+
 ## [1.0.0-beta.2] - 2023-12-02
 
 ### ⚠️ Breaking Changes
