@@ -74,18 +74,18 @@ abstract class Relationship extends Field
             throw new BadRequestException('id not specified');
         }
 
-        $collections = array_map(
-            fn($collection) => $context->api->getCollection($collection),
-            $this->collections,
+        $resources = array_merge(
+            ...array_map(
+                fn($collection) => $context->api->getCollection($collection)->resources(),
+                $this->collections,
+            ),
         );
 
-        foreach ($collections as $collection) {
-            if (in_array($identifier['type'], $collection->resources())) {
-                return $this->findResource(
-                    $context->withCollection($collection),
-                    $identifier['id'],
-                );
-            }
+        if (in_array($identifier['type'], $resources)) {
+            return $this->findResource(
+                $context->withCollection($context->resource($identifier['type'])),
+                $identifier['id'],
+            );
         }
 
         throw (new BadRequestException("type [{$identifier['type']}] not allowed"))->setSource([

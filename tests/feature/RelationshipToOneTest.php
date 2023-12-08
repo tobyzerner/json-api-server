@@ -2,7 +2,6 @@
 
 namespace Tobyz\Tests\JsonApiServer\feature;
 
-use stdClass;
 use Tobyz\JsonApiServer\Endpoint\Create;
 use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
@@ -10,6 +9,7 @@ use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Field\ToOne;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
+use Tobyz\Tests\JsonApiServer\MockCollection;
 use Tobyz\Tests\JsonApiServer\MockResource;
 
 class RelationshipToOneTest extends AbstractTestCase
@@ -213,16 +213,18 @@ class RelationshipToOneTest extends AbstractTestCase
 
     public function test_to_one_create_polymorphic()
     {
-        $this->api->resource(new MockResource('animals', models: [(object) ['id' => '1']]));
+        $this->api->resource(
+            new MockResource('animals', models: [($friend = (object) ['id' => '1'])]),
+        );
 
         $this->api->resource(
-            new MockResource(
+            $resource = new MockResource(
                 'users',
                 models: [(object) ['id' => '1']],
                 endpoints: [Create::make()],
                 fields: [
                     ToOne::make('friend')
-                        ->type(['users', stdClass::class => 'animals'])
+                        ->type(['users', 'animals'])
                         ->writable(),
                 ],
             ),
@@ -238,6 +240,44 @@ class RelationshipToOneTest extends AbstractTestCase
         );
 
         $this->assertEquals(201, $response->getStatusCode());
+        $this->assertSame($friend, $resource->models[1]->friend);
+    }
+
+    public function test_to_one_create_collection()
+    {
+        $this->api->collection(
+            new MockCollection('animals', [
+                'dogs' => [(object) ['id' => '1']],
+                'cats' => [($cat = (object) ['id' => '1'])],
+            ]),
+        );
+
+        $this->api->resource(new MockResource('cats', models: [$cat]));
+
+        $this->api->resource(
+            $resource = new MockResource(
+                'users',
+                models: [(object) ['id' => '1']],
+                endpoints: [Create::make()],
+                fields: [
+                    ToOne::make('pet')
+                        ->collection('animals')
+                        ->writable(),
+                ],
+            ),
+        );
+
+        $response = $this->api->handle(
+            $this->buildRequest('POST', '/users')->withParsedBody([
+                'data' => [
+                    'type' => 'users',
+                    'relationships' => ['pet' => ['data' => ['type' => 'cats', 'id' => '1']]],
+                ],
+            ]),
+        );
+
+        $this->assertEquals(201, $response->getStatusCode());
+        $this->assertSame($cat, $resource->models[1]->pet);
     }
 
     public function test_to_one_create_null_not_nullable()
