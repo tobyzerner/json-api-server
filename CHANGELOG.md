@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [1.0.0-beta.3] - 2023-12-09
+
 ### ⚠️ Breaking Changes
 
 -   Drop `Interface` suffix from various interfaces:
@@ -242,6 +244,7 @@ Still to come:
 
 -   Fix pagination next link appearing when it shouldn't
 
+[1.0.0-beta.3]: https://github.com/tobyzerner/json-api-server/compare/v1.0.0-beta.2...v1.0.0-beta.3
 [1.0.0-beta.2]:
     https://github.com/tobyzerner/json-api-server/compare/v1.0.0-beta.1...v1.0.0-beta.2
 [1.0.0-beta.1]:
@@ -270,3 +273,5 @@ Still to come:
     https://github.com/tobyzerner/json-api-server/compare/v1.0.0-beta.1...HEAD
 [unreleased]:
     https://github.com/tobyzerner/json-api-server/compare/v1.0.0-beta.2...HEAD
+
+[unreleased]: https://github.com/tobyzerner/json-api-server/compare/v1.0.0-beta.3...HEAD
