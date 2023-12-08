@@ -35,8 +35,6 @@ Once you have defined and registered the collection, you can use it for a
 relationship by calling the `collection` method with the name of the collection:
 
 ```php
-use App\Models\{Article, Post};
-
 ToMany::make('activity')->collection('activity');
 ```
 
