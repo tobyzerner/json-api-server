@@ -3,11 +3,13 @@ name: Deploy Docs
 on:
   workflow_dispatch: {}
   push:
-    branches: [main]
+    tags:
+      - 'v*'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
     permissions:
       pages: write
       id-token: write
