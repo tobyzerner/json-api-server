@@ -64,6 +64,15 @@ abstract class Relationship extends Field
         return $this;
     }
 
+    public function getValue(Context $context): mixed
+    {
+        if ($context->include === null && !$this->linkage) {
+            return null;
+        }
+
+        return parent::getValue($context);
+    }
+
     protected function findResourceForIdentifier(array $identifier, Context $context): mixed
     {
         if (!isset($identifier['type'])) {
