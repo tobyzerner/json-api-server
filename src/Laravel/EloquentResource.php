@@ -84,7 +84,7 @@ abstract class EloquentResource extends AbstractResource implements
                         $morphType = MorphTo::getMorphedModel($morphType) ?? $morphType;
 
                         if (class_exists($morphType)) {
-                            $related = new $morphType;
+                            $related = new $morphType();
                         }
                     }
 
