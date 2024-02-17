@@ -63,13 +63,19 @@ trait SavesData
             ))->setSource(['pointer' => '/data/type']);
         }
 
-        if (array_key_exists('attributes', $body['data']) && !is_array($body['data']['attributes'])) {
+        if (
+            array_key_exists('attributes', $body['data']) &&
+            !is_array($body['data']['attributes'])
+        ) {
             throw (new BadRequestException('data.attributes must be an object'))->setSource([
                 'pointer' => '/data/attributes',
             ]);
         }
 
-        if (array_key_exists('relationships', $body['data']) && !is_array($body['data']['relationships'])) {
+        if (
+            array_key_exists('relationships', $body['data']) &&
+            !is_array($body['data']['relationships'])
+        ) {
             throw (new BadRequestException('data.relationships must be an object'))->setSource([
                 'pointer' => '/data/relationships',
             ]);
