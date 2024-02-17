@@ -72,12 +72,18 @@ trait IncludesData
                     ? array_map(fn($type) => $context->api->getResource($type), $types)
                     : array_values($context->api->resources);
 
-                $this->validateInclude($context, $relatedResources, $nested, $name . '.', $allowInvalid || $field->collection);
+                $this->validateInclude(
+                    $context,
+                    $relatedResources,
+                    $nested,
+                    $name . '.',
+                    $allowInvalid || $field->collection,
+                );
 
                 continue 2;
             }
 
-            if (! $allowInvalid) {
+            if (!$allowInvalid) {
                 throw (new BadRequestException("Invalid include [$path$name]"))->setSource([
                     'parameter' => 'include',
                 ]);
