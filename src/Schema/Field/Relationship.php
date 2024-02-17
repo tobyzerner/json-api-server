@@ -15,6 +15,7 @@ abstract class Relationship extends Field
     public array $collections;
     public bool $includable = false;
     public bool $linkage = false;
+    public bool $collection = false;
 
     /**
      * Set the collection(s) that this relationship is to.
@@ -22,6 +23,7 @@ abstract class Relationship extends Field
     public function collection(string|array $type): static
     {
         $this->collections = (array) $type;
+        $this->collection = true;
 
         return $this;
     }
@@ -31,7 +33,10 @@ abstract class Relationship extends Field
      */
     public function type(string|array $type): static
     {
-        return $this->collection($type);
+        $this->collections = (array) $type;
+        $this->collection = count($this->collections) > 1;
+
+        return $this;
     }
 
     /**
