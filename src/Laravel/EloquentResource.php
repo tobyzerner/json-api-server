@@ -67,7 +67,7 @@ abstract class EloquentResource extends AbstractResource implements
     {
         $method = $this->method($field);
 
-        if (method_exists($model, $method)) {
+        if ($model->isRelation($method)) {
             $relation = $model->$method();
 
             // If this is a belongs-to relationship, and we only need to get the ID
