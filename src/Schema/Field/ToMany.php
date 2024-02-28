@@ -8,11 +8,20 @@ use Tobyz\JsonApiServer\Exception\Sourceable;
 
 class ToMany extends Relationship
 {
+    public ?int $limit = null;
+
     public function __construct(string $name)
     {
         parent::__construct($name);
 
         $this->type($name);
+    }
+
+    public function limit(?int $limit): static
+    {
+        $this->limit = $limit;
+
+        return $this;
     }
 
     public function serializeValue($value, Context $context): mixed
