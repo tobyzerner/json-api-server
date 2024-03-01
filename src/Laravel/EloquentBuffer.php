@@ -57,7 +57,11 @@ abstract class EloquentBuffer
                     $modelClass = get_class($resource->newModel($context));
 
                     if ($resource instanceof EloquentResource && !isset($constrain[$modelClass])) {
-                        $constrain[$modelClass] = function ($query) use ($resource, $context, $relationship) {
+                        $constrain[$modelClass] = function ($query) use (
+                            $resource,
+                            $context,
+                            $relationship,
+                        ) {
                             $resource->scope($query, $context);
 
                             if ($relationship instanceof ToMany && $relationship->constrain) {
