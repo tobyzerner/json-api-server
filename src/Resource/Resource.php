@@ -18,7 +18,7 @@ interface Resource
      *
      * @return Field[]
      */
-    public function fields(): array;
+    public function resolveFields(): array;
 
     /**
      * Get the meta attributes for this resource.

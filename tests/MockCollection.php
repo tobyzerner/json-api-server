@@ -40,17 +40,17 @@ class MockCollection implements Collection, Listable, Paginatable
         return null;
     }
 
-    public function endpoints(): array
+    public function resolveEndpoints(): array
     {
         return $this->endpoints;
     }
 
-    public function filters(): array
+    public function resolveFilters(): array
     {
         return $this->filters;
     }
 
-    public function sorts(): array
+    public function resolveSorts(): array
     {
         return $this->sorts;
     }

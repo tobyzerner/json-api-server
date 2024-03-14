@@ -122,7 +122,7 @@ class JsonApi implements RequestHandlerInterface
 
             $context = $context->withCollection($this->getCollection($segments[0]));
 
-            foreach ($context->collection->endpoints() as $endpoint) {
+            foreach ($context->collection->resolveEndpoints() as $endpoint) {
                 try {
                     if ($response = $endpoint->handle($context->withEndpoint($endpoint))) {
                         break;
