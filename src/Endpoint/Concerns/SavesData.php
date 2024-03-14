@@ -154,7 +154,7 @@ trait SavesData
      *
      * @throws UnprocessableEntityException if any fields do not pass validation.
      */
-    private function assertDataValid(Context $context, array $data, bool $validateAll): void
+    protected function assertDataValid(Context $context, array $data, bool $validateAll): void
     {
         $errors = [];
 
