@@ -26,5 +26,5 @@ interface Collection
     /**
      * The collection's endpoints.
      */
-    public function endpoints(): array;
+    public function resolveEndpoints(): array;
 }

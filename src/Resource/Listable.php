@@ -23,12 +23,12 @@ interface Listable
      *
      * @return Filter[]
      */
-    public function filters(): array;
+    public function resolveFilters(): array;
 
     /**
      * Sorts that can be applied to the resource list.
      *
      * @return Sort[]
      */
-    public function sorts(): array;
+    public function resolveSorts(): array;
 }

@@ -27,9 +27,19 @@ abstract class AbstractResource implements Resource, Collection
         return [];
     }
 
+    public function resolveEndpoints(): array
+    {
+        return $this->endpoints();
+    }
+
     public function fields(): array
     {
         return [];
+    }
+
+    public function resolveFields(): array
+    {
+        return $this->fields();
     }
 
     public function meta(): array
@@ -42,9 +52,19 @@ abstract class AbstractResource implements Resource, Collection
         return [];
     }
 
+    public function resolveFilters(): array
+    {
+        return $this->filters();
+    }
+
     public function sorts(): array
     {
         return [];
+    }
+
+    public function resolveSorts(): array
+    {
+        return $this->sorts();
     }
 
     public function getId(object $model, Context $context): string

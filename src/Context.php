@@ -90,7 +90,7 @@ class Context
 
         $fields = [];
 
-        foreach ($resource->fields() as $field) {
+        foreach ($resource->resolveFields() as $field) {
             $fields[$field->name] = $field;
         }
 

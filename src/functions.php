@@ -78,7 +78,7 @@ function apply_filters(
     Context $context,
 ): void {
     $context = $context->withCollection($collection);
-    $availableFilters = $collection->filters();
+    $availableFilters = $collection->resolveFilters();
 
     foreach ($filters as $name => $value) {
         foreach ($availableFilters as $filter) {
