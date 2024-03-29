@@ -76,10 +76,16 @@ trait IncludesData
                     continue;
                 }
 
-                $types = $field->collections;
-
-                $relatedResources = $types
-                    ? array_map(fn($type) => $context->api->getResource($type), $types)
+                $relatedResources = $field->collections
+                    ? array_merge(
+                        ...array_map(
+                            fn($collection) => array_map(
+                                fn($resource) => $context->api->getResource($resource),
+                                $context->api->getCollection($collection)->resources(),
+                            ),
+                            $field->collections,
+                        ),
+                    )
                     : array_values($context->api->resources);
 
                 $this->validateInclude($context, $relatedResources, $nested, $name . '.');

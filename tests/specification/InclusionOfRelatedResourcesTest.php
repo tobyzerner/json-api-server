@@ -9,6 +9,7 @@ use Tobyz\JsonApiServer\Schema\Field\Attribute;
 use Tobyz\JsonApiServer\Schema\Field\ToMany;
 use Tobyz\JsonApiServer\Schema\Field\ToOne;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
+use Tobyz\Tests\JsonApiServer\MockCollection;
 use Tobyz\Tests\JsonApiServer\MockResource;
 
 /**
@@ -176,6 +177,94 @@ class InclusionOfRelatedResourcesTest extends AbstractTestCase
                         'type' => 'users',
                         'id' => '2',
                         'attributes' => ['name' => 'Franz'],
+                    ],
+                ],
+            ],
+            $response->getBody(),
+        );
+    }
+
+    public function test_relationship_inclusion_for_polymorphic_relationship()
+    {
+        $api = new JsonApi();
+
+        $api->resource(
+            new MockResource(
+                'users',
+                models: [($user1 = (object) ['id' => '1', 'name' => 'Toby'])],
+                fields: [Attribute::make('name')],
+            ),
+        );
+
+        $api->resource(
+            new MockResource(
+                'posts',
+                models: [($post1 = (object) ['id' => '1', 'author' => $user1])],
+                fields: [
+                    ToOne::make('author')
+                        ->type('users')
+                        ->includable(),
+                ],
+            ),
+        );
+
+        $api->collection(
+            new MockCollection('subjects', [
+                'users' => [$user1],
+                'posts' => [$post1],
+            ]),
+        );
+
+        $api->resource(
+            new MockResource(
+                'notifications',
+                models: [
+                    ((object) ['id' => '1', 'subject' => $post1]),
+                    ((object) ['id' => '2', 'subject' => $user1]),
+                ],
+                endpoints: [Index::make()],
+                fields: [
+                    ToOne::make('subject')
+                        ->collection('subjects')
+                        ->includable(),
+                ],
+            ),
+        );
+
+        $response = $api->handle(
+            $this->buildRequest('GET', '/notifications?include=subject.author'),
+        );
+
+        $this->assertJsonApiDocumentSubset(
+            [
+                'data' => [
+                    [
+                        'type' => 'notifications',
+                        'id' => '1',
+                        'relationships' => [
+                            'subject' => [
+                                'data' => ['type' => 'posts', 'id' => '1'],
+                            ],
+                        ],
+                    ],
+                    [
+                        'type' => 'notifications',
+                        'id' => '2',
+                        'relationships' => [
+                            'subject' => [
+                                'data' => ['type' => 'users', 'id' => '1'],
+                            ],
+                        ],
+                    ],
+                ],
+                'included' => [
+                    [
+                        'type' => 'posts',
+                        'id' => '1',
+                    ],
+                    [
+                        'type' => 'users',
+                        'id' => '1',
                     ],
                 ],
             ],
