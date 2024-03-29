@@ -8,9 +8,20 @@ use Tobyz\JsonApiServer\Schema\Field\Relationship;
 
 trait IncludesData
 {
+    protected ?array $defaultInclude = null;
+
+    public function defaultInclude(array $include): static
+    {
+        $this->defaultInclude = $include;
+
+        return $this;
+    }
+
     private function getInclude(Context $context): array
     {
-        if ($includeString = $context->request->getQueryParams()['include'] ?? null) {
+        if (
+            $includeString = $context->request->getQueryParams()['include'] ?? $this->defaultInclude
+        ) {
             $include = $this->parseInclude($includeString);
 
             $this->validateInclude(
