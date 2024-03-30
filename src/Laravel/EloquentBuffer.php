@@ -6,8 +6,9 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Laravel\Field\ToMany;
+use Tobyz\JsonApiServer\Laravel\Field\ToOne;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
-use Tobyz\JsonApiServer\Schema\Field\ToMany;
 
 abstract class EloquentBuffer
 {
@@ -64,8 +65,8 @@ abstract class EloquentBuffer
                         ) {
                             $resource->scope($query, $context);
 
-                            if ($relationship instanceof ToMany && $relationship->constrain) {
-                                ($relationship->constrain)($query, $context);
+                            if (($relationship instanceof ToMany || $relationship instanceof ToOne) && $relationship->scope) {
+                                ($relationship->scope)($query, $context);
                             }
                         };
                     }

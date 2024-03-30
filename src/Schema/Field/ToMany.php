@@ -9,20 +9,11 @@ use Tobyz\JsonApiServer\Exception\Sourceable;
 
 class ToMany extends Relationship
 {
-    public ?Closure $constrain = null;
-
     public function __construct(string $name)
     {
         parent::__construct($name);
 
         $this->type($name);
-    }
-
-    public function constrain(?Closure $constrain): static
-    {
-        $this->constrain = $constrain;
-
-        return $this;
     }
 
     public function serializeValue($value, Context $context): mixed
