@@ -77,18 +77,13 @@ abstract class EloquentResource extends AbstractResource implements
             // related model with the value of the ID filled.
             if ($relation instanceof BelongsTo && $context->include === null) {
                 if ($key = $model->getAttribute($relation->getForeignKeyName())) {
-                    $related = null;
-
                     if ($relation instanceof MorphTo) {
                         $morphType = $model->{$relation->getMorphType()};
                         $morphType = MorphTo::getMorphedModel($morphType) ?? $morphType;
-
-                        if (class_exists($morphType)) {
-                            $related = new $morphType();
-                        }
+                        $related = $relation->createModelByType($morphType);
+                    } else {
+                        $related = $relation->getRelated();
                     }
-
-                    $related ??= $relation->getRelated();
 
                     return $related->newInstance()->forceFill([$related->getKeyName() => $key]);
                 }
