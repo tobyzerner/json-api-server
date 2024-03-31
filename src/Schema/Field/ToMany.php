@@ -2,6 +2,7 @@
 
 namespace Tobyz\JsonApiServer\Schema\Field;
 
+use Closure;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\Sourceable;
