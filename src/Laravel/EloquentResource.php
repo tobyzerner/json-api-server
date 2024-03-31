@@ -79,7 +79,6 @@ abstract class EloquentResource extends AbstractResource implements
                 if ($key = $model->getAttribute($relation->getForeignKeyName())) {
                     if ($relation instanceof MorphTo) {
                         $morphType = $model->{$relation->getMorphType()};
-                        $morphType = MorphTo::getMorphedModel($morphType) ?? $morphType;
                         $related = $relation->createModelByType($morphType);
                     } else {
                         $related = $relation->getRelated();
