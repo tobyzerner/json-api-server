@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Str;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Pagination\OffsetPagination;
@@ -76,7 +77,13 @@ abstract class EloquentResource extends AbstractResource implements
             // related model with the value of the ID filled.
             if ($relation instanceof BelongsTo && $context->include === null) {
                 if ($key = $model->getAttribute($relation->getForeignKeyName())) {
-                    $related = $relation->getRelated();
+                    if ($relation instanceof MorphTo) {
+                        $morphType = $model->{$relation->getMorphType()};
+                        $related = $relation->createModelByType($morphType);
+                    } else {
+                        $related = $relation->getRelated();
+                    }
+
                     return $related->newInstance()->forceFill([$related->getKeyName() => $key]);
                 }
 
