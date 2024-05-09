@@ -11,9 +11,13 @@ use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
 use Tobyz\JsonApiServer\Exception\Sourceable;
+use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\OpenApi\OpenApiPathsProvider;
 use Tobyz\JsonApiServer\Pagination\OffsetPagination;
+use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Countable;
 use Tobyz\JsonApiServer\Resource\Listable;
+use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
 use Tobyz\JsonApiServer\Schema\Concerns\HasMeta;
 use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 use Tobyz\JsonApiServer\Serializer;
@@ -22,11 +26,12 @@ use function Tobyz\JsonApiServer\apply_filters;
 use function Tobyz\JsonApiServer\json_api_response;
 use function Tobyz\JsonApiServer\parse_sort_string;
 
-class Index implements Endpoint
+class Index implements Endpoint, OpenApiPathsProvider
 {
     use HasMeta;
     use HasVisibility;
     use IncludesData;
+    use HasDescription;
 
     public Closure $paginationResolver;
     public ?string $defaultSort = null;
@@ -165,5 +170,45 @@ class Index implements Endpoint
         } catch (Sourceable $e) {
             throw $e->prependSource(['parameter' => 'filter']);
         }
+    }
+
+    public function getOpenApiPaths(Collection $collection): array
+    {
+        $resources = array_map(
+            fn($resource) => [
+                '$ref' => "#/components/schemas/$resource",
+            ],
+            $collection->resources(),
+        );
+
+        return [
+            "/{$collection->name()}" => [
+                'get' => [
+                    'description' => $this->getDescription(),
+                    'tags' => [$collection->name()],
+                    'responses' => [
+                        '200' => [
+                            'content' => [
+                                JsonApi::MEDIA_TYPE => [
+                                    'schema' => [
+                                        'type' => 'object',
+                                        'required' => ['data'],
+                                        'properties' => [
+                                            'data' => [
+                                                'type' => 'array',
+                                                'items' =>
+                                                    count($resources) === 1
+                                                        ? $resources[0]
+                                                        : ['oneOf' => $resources],
+                                            ],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
     }
 }
