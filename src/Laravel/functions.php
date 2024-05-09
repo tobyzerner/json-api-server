@@ -56,13 +56,13 @@ function authenticated(): Closure
     return fn() => Auth::check();
 }
 
-function can(string $ability, ...$args): Closure
+function can(string|array $ability, ...$args): Closure
 {
     return function ($arg) use ($ability, $args) {
         if ($arg instanceof Model && !count($args)) {
             $args = [$arg];
         }
 
-        return Gate::allows($ability, $args);
+        return Gate::any($ability, $args);
     };
 }
