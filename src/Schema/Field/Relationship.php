@@ -6,6 +6,7 @@ use Closure;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Concerns\FindsResources;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Concerns\HasMeta;
 
 abstract class Relationship extends Field
@@ -81,6 +82,18 @@ abstract class Relationship extends Field
         return $this->linkage;
     }
 
+    protected function getRelatedResources(JsonApi $api): array
+    {
+        return array_merge(
+            ...array_map(
+                fn($collection) => isset($api->collections[$collection])
+                    ? $api->getCollection($collection)->resources()
+                    : [],
+                $this->collections,
+            ),
+        );
+    }
+
     protected function findResourceForIdentifier(array $identifier, Context $context): mixed
     {
         if (!isset($identifier['type'])) {
@@ -91,12 +104,7 @@ abstract class Relationship extends Field
             throw new BadRequestException('id not specified');
         }
 
-        $resources = array_merge(
-            ...array_map(
-                fn($collection) => $context->api->getCollection($collection)->resources(),
-                $this->collections,
-            ),
-        );
+        $resources = $this->getRelatedResources($context->api);
 
         if (in_array($identifier['type'], $resources)) {
             return $this->findResource(
@@ -109,4 +117,16 @@ abstract class Relationship extends Field
             'pointer' => '/type',
         ]);
     }
+
+    public function getSchema(JsonApi $api): array
+    {
+        return ['nullable' => false] +
+            parent::getSchema($api) + [
+                'type' => 'object',
+                'properties' => ['data' => $this->getDataSchema($api)],
+                'required' => $this->required ? ['data'] : [],
+            ];
+    }
+
+    abstract protected function getDataSchema(JsonApi $api): array;
 }

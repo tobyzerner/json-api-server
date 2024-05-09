@@ -55,14 +55,29 @@ class Str implements Type
 
     public function schema(): array
     {
-        return [
-            'type' => 'string',
-            'minLength' => $this->minLength,
-            'maxLength' => $this->maxLength,
-            'pattern' => $this->pattern,
-            'format' => $this->format,
-            'enum' => $this->enum,
-        ];
+        $schema = ['type' => 'string'];
+
+        if ($this->minLength) {
+            $schema['minLength'] = $this->minLength;
+        }
+
+        if ($this->maxLength !== null) {
+            $schema['maxLength'] = $this->maxLength;
+        }
+
+        if ($this->pattern !== null) {
+            $schema['pattern'] = $this->pattern;
+        }
+
+        if ($this->format !== null) {
+            $schema['format'] = $this->format;
+        }
+
+        if ($this->enum !== null) {
+            $schema['enum'] = $this->enum;
+        }
+
+        return $schema;
     }
 
     public function minLength(int $characters): static

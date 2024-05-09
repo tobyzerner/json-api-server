@@ -65,14 +65,29 @@ class Number implements Type
 
     public function schema(): array
     {
-        return [
-            'type' => 'number',
-            'minimum' => $this->minimum,
-            'exclusiveMinimum' => $this->exclusiveMinimum,
-            'maximum' => $this->maximum,
-            'exclusiveMaximum' => $this->exclusiveMaximum,
-            'multipleOf' => $this->multipleOf,
-        ];
+        $schema = ['type' => 'number'];
+
+        if ($this->minimum !== null) {
+            $schema['minimum'] = $this->minimum;
+        }
+
+        if ($this->exclusiveMinimum) {
+            $schema['exclusiveMinimum'] = $this->exclusiveMinimum;
+        }
+
+        if ($this->maximum !== null) {
+            $schema['maximum'] = $this->maximum;
+        }
+
+        if ($this->exclusiveMaximum) {
+            $schema['exclusiveMaximum'] = $this->exclusiveMaximum;
+        }
+
+        if ($this->multipleOf !== null) {
+            $schema['multipleOf'] = $this->multipleOf;
+        }
+
+        return $schema;
     }
 
     public function minimum(?float $minimum, bool $exclusive = false): static
