@@ -10,17 +10,22 @@ use Tobyz\JsonApiServer\Endpoint\Concerns\SavesData;
 use Tobyz\JsonApiServer\Endpoint\Concerns\ShowsResources;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
+use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\OpenApi\OpenApiPathsProvider;
+use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Updatable;
+use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
 use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 
 use function Tobyz\JsonApiServer\json_api_response;
 
-class Update implements Endpoint
+class Update implements Endpoint, OpenApiPathsProvider
 {
     use HasVisibility;
     use FindsResources;
     use SavesData;
     use ShowsResources;
+    use HasDescription;
 
     public static function make(): static
     {
@@ -41,9 +46,11 @@ class Update implements Endpoint
 
         $model = $this->findResource($context, $segments[1]);
 
-        $context = $context->withResource(
-            $resource = $context->resource($context->collection->resource($model, $context)),
-        );
+        $context = $context
+            ->withModel($model)
+            ->withResource(
+                $resource = $context->resource($context->collection->resource($model, $context)),
+            );
 
         if (!$resource instanceof Updatable) {
             throw new RuntimeException(
@@ -51,7 +58,7 @@ class Update implements Endpoint
             );
         }
 
-        if (!$this->isVisible($context = $context->withModel($model))) {
+        if (!$this->isVisible($context)) {
             throw new ForbiddenException();
         }
 
@@ -67,5 +74,67 @@ class Update implements Endpoint
         $this->saveFields($context, $data);
 
         return json_api_response($this->showResource($context, $model));
+    }
+
+    public function getOpenApiPaths(Collection $collection): array
+    {
+        $resources = array_map(
+            fn($resource) => [
+                '$ref' => "#/components/schemas/$resource",
+            ],
+            $collection->resources(),
+        );
+
+        return [
+            "/{$collection->name()}/{id}" => [
+                'patch' => [
+                    'description' => $this->getDescription(),
+                    'tags' => [$collection->name()],
+                    'parameters' => [
+                        [
+                            'name' => 'id',
+                            'in' => 'path',
+                            'required' => true,
+                            'schema' => ['type' => 'string'],
+                        ],
+                    ],
+                    'requestBody' => [
+                        'content' => [
+                            JsonApi::MEDIA_TYPE => [
+                                'schema' => [
+                                    'type' => 'object',
+                                    'required' => ['data'],
+                                    'properties' => [
+                                        'data' =>
+                                            count($resources) === 1
+                                                ? $resources[0]
+                                                : ['oneOf' => $resources],
+                                    ],
+                                ],
+                            ],
+                        ],
+                        'required' => true,
+                    ],
+                    'responses' => [
+                        '200' => [
+                            'content' => [
+                                JsonApi::MEDIA_TYPE => [
+                                    'schema' => [
+                                        'type' => 'object',
+                                        'required' => ['data'],
+                                        'properties' => [
+                                            'data' =>
+                                                count($resources) === 1
+                                                    ? $resources[0]
+                                                    : ['oneOf' => $resources],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
     }
 }

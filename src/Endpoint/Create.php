@@ -9,18 +9,23 @@ use Tobyz\JsonApiServer\Endpoint\Concerns\SavesData;
 use Tobyz\JsonApiServer\Endpoint\Concerns\ShowsResources;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
+use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\OpenApi\OpenApiPathsProvider;
+use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Creatable;
+use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
 use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 
 use function Tobyz\JsonApiServer\has_value;
 use function Tobyz\JsonApiServer\json_api_response;
 use function Tobyz\JsonApiServer\set_value;
 
-class Create implements Endpoint
+class Create implements Endpoint, OpenApiPathsProvider
 {
     use HasVisibility;
     use SavesData;
     use ShowsResources;
+    use HasDescription;
 
     public static function make(): static
     {
@@ -77,5 +82,62 @@ class Create implements Endpoint
                 set_value($data, $field, $default($context->withField($field)));
             }
         }
+    }
+
+    public function getOpenApiPaths(Collection $collection): array
+    {
+        $resourcesCreate = array_map(
+            fn($resource) => ['$ref' => "#/components/schemas/{$resource}Create"],
+            $collection->resources(),
+        );
+
+        $resources = array_map(
+            fn($resource) => ['$ref' => "#/components/schemas/$resource"],
+            $collection->resources(),
+        );
+
+        return [
+            "/{$collection->name()}" => [
+                'post' => [
+                    'description' => $this->getDescription(),
+                    'tags' => [$collection->name()],
+                    'requestBody' => [
+                        'content' => [
+                            JsonApi::MEDIA_TYPE => [
+                                'schema' => [
+                                    'type' => 'object',
+                                    'required' => ['data'],
+                                    'properties' => [
+                                        'data' =>
+                                            count($resourcesCreate) === 1
+                                                ? $resourcesCreate[0]
+                                                : ['oneOf' => $resourcesCreate],
+                                    ],
+                                ],
+                            ],
+                        ],
+                        'required' => true,
+                    ],
+                    'responses' => [
+                        '200' => [
+                            'content' => [
+                                JsonApi::MEDIA_TYPE => [
+                                    'schema' => [
+                                        'type' => 'object',
+                                        'required' => ['data'],
+                                        'properties' => [
+                                            'data' =>
+                                                count($resources) === 1
+                                                    ? $resources[0]
+                                                    : ['oneOf' => $resources],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
     }
 }

@@ -3,6 +3,7 @@
 namespace Tobyz\JsonApiServer\Schema\Field;
 
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Type\Type;
 
 class Attribute extends Field
@@ -51,5 +52,10 @@ class Attribute extends Field
         }
 
         parent::validateValue($value, $fail, $context);
+    }
+
+    public function getSchema(JsonApi $api): array
+    {
+        return parent::getSchema($api) + ($this->type?->schema() ?: []);
     }
 }

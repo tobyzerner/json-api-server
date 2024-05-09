@@ -2,6 +2,7 @@
 
 namespace Tobyz\JsonApiServer\Schema\Field;
 
+use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Concerns\GetsValue;
 use Tobyz\JsonApiServer\Schema\Concerns\HasProperty;
 use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
@@ -48,8 +49,12 @@ abstract class Field
         return $this;
     }
 
-    public function getSchema(): array
+    public function getSchema(JsonApi $api): array
     {
-        return $this->schema + ['description' => $this->description, 'nullable' => $this->nullable];
+        return $this->schema + [
+            'description' => $this->description,
+            'nullable' => $this->nullable,
+            'readOnly' => !$this->writable,
+        ];
     }
 }

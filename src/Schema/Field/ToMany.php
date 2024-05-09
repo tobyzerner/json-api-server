@@ -6,6 +6,7 @@ use Closure;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\Sourceable;
+use Tobyz\JsonApiServer\JsonApi;
 
 class ToMany extends Relationship
 {
@@ -67,5 +68,25 @@ class ToMany extends Relationship
         }
 
         return $models;
+    }
+
+    protected function getDataSchema(JsonApi $api): array
+    {
+        return [
+            'type' => 'array',
+            'items' => [
+                'allOf' => [
+                    ['$ref' => '#/components/schemas/jsonApiResourceIdentifier'],
+                    [
+                        'properties' => [
+                            'type' => [
+                                'type' => 'string',
+                                'enum' => $this->getRelatedResources($api),
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
     }
 }

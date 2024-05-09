@@ -6,6 +6,7 @@ use Doctrine\Inflector\InflectorFactory;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\Sourceable;
+use Tobyz\JsonApiServer\JsonApi;
 
 class ToOne extends Relationship
 {
@@ -62,5 +63,27 @@ class ToOne extends Relationship
         } catch (Sourceable $e) {
             throw $e->prependSource(['pointer' => '/data']);
         }
+    }
+
+    protected function getDataSchema(JsonApi $api): array
+    {
+        return [
+            'oneOf' => [
+                [
+                    'allOf' => [
+                        ['$ref' => '#/components/schemas/jsonApiResourceIdentifier'],
+                        [
+                            'properties' => [
+                                'type' => [
+                                    'type' => 'string',
+                                    'enum' => $this->getRelatedResources($api),
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                ['type' => 'null'],
+            ],
+        ];
     }
 }
