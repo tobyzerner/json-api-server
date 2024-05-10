@@ -37,9 +37,9 @@ abstract class Relationship extends Field
     /**
      * Allow this relationship to be included.
      */
-    public function includable(): static
+    public function includable(bool $includable = true): static
     {
-        $this->includable = true;
+        $this->includable = $includable;
 
         return $this;
     }
