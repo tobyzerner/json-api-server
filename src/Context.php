@@ -3,6 +3,7 @@
 namespace Tobyz\JsonApiServer;
 
 use Psr\Http\Message\ServerRequestInterface;
+use Tobyz\JsonApiServer\Endpoint\Create;
 use Tobyz\JsonApiServer\Endpoint\Endpoint;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Resource;
@@ -211,5 +212,10 @@ class Context
         $new = clone $this;
         $new->include = $include;
         return $new;
+    }
+
+    public function creating(): bool
+    {
+        return $this->endpoint instanceof Create;
     }
 }
