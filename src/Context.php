@@ -21,7 +21,7 @@ class Context
     public ?array $include = null;
 
     private ?array $body;
-    private string $path;
+    private ?string $path;
 
     private WeakMap $fields;
     private WeakMap $sparseFields;
