@@ -33,7 +33,7 @@ trait SetsValue
      */
     public function writableOnCreate(): static
     {
-        $this->writable = fn($model, Context $context) => $context->endpoint instanceof Create;
+        $this->writable = fn($model, Context $context) => $context->creating();
 
         return $this;
     }
