@@ -20,7 +20,7 @@ class ToMany extends Relationship
     {
         $meta = $this->serializeMeta($context);
 
-        if ((($context->include === null && !$this->linkage) || $value === null) && !$meta) {
+        if ((($context->include === null && !$this->hasLinkage($context)) || $value === null) && !$meta) {
             return null;
         }
 
