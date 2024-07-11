@@ -58,6 +58,10 @@ class WhereHas extends Filter
         $query->{static::QUERY_BUILDER_METHOD}($field->property ?: $field->name, function (
             $query,
         ) use ($value, $relatedCollection, $context) {
+            if ($relatedCollection instanceof EloquentResource) {
+                $relatedCollection->scope($query, $context);
+            }
+
             if (array_is_list($value)) {
                 $query->whereKey(array_merge(...array_map(fn($v) => explode(',', $v), $value)));
             } else {
