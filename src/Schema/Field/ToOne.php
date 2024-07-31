@@ -26,7 +26,7 @@ class ToOne extends Relationship
     {
         $meta = $this->serializeMeta($context);
 
-        if ($context->include === null && !$this->linkage && !$meta) {
+        if ($context->include === null && !$this->hasLinkage($context) && !$meta) {
             return null;
         }
 
