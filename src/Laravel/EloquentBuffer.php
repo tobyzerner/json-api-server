@@ -62,7 +62,7 @@ abstract class EloquentBuffer
                             $resource,
                             $context,
                             $relationship,
-                            $relation
+                            $relation,
                         ) {
                             $resource->scope($query, $context);
 
