@@ -62,6 +62,7 @@ abstract class EloquentBuffer
                             $resource,
                             $context,
                             $relationship,
+                            $relation
                         ) {
                             $resource->scope($query, $context);
 
@@ -70,7 +71,7 @@ abstract class EloquentBuffer
                                     $relationship instanceof ToOne) &&
                                 $relationship->scope
                             ) {
-                                ($relationship->scope)($query, $context);
+                                ($relationship->scope)($relation, $context);
                             }
                         };
                     }
