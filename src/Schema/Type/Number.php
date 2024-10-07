@@ -50,7 +50,11 @@ class Number implements Type
             }
         }
 
-        if ($this->multipleOf !== null && (float) $value !== 0.0 && $value % $this->multipleOf !== 0) {
+        if (
+            $this->multipleOf !== null &&
+            (float) $value !== 0.0 &&
+            $value % $this->multipleOf !== 0
+        ) {
             $fail(sprintf('must be a multiple of %d', $this->multipleOf));
         }
     }
