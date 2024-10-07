@@ -50,7 +50,7 @@ class Number implements Type
             }
         }
 
-        if ($this->multipleOf !== null && $value % $this->multipleOf !== 0) {
+        if ($this->multipleOf !== null && (float) $value !== 0.0 && $value % $this->multipleOf !== 0) {
             $fail(sprintf('must be a multiple of %d', $this->multipleOf));
         }
     }
@@ -85,7 +85,7 @@ class Number implements Type
 
     public function multipleOf(?float $number): static
     {
-        if ($number <= 0) {
+        if ($number !== null && $number <= 0) {
             throw new InvalidArgumentException('multipleOf must be a positive number');
         }
 
