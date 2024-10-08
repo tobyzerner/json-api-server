@@ -59,7 +59,7 @@ class Number implements Type
             $this->multipleOf !== null &&
             (float) ($value / $this->multipleOf) !== round($value / $this->multipleOf)
         ) {
-            $fail(sprintf('must be a multiple of %d', $this->multipleOf));
+            $fail(sprintf('must be a multiple of %s', $this->multipleOf));
         }
     }
 
