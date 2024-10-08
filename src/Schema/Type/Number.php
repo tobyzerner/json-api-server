@@ -54,7 +54,7 @@ class Number implements Type
         // that has decimal places. (Since the modulo operator converts the multipleOf to int)
         if (
             $this->multipleOf !== null &&
-            $value / $this->multipleOf !== (float) round($value / $this->multipleOf)
+            $value / $this->multipleOf !== round($value / $this->multipleOf)
         ) {
             $fail(sprintf('must be a multiple of %d', $this->multipleOf));
         }
