@@ -90,7 +90,7 @@ class Number implements Type
 
     public function multipleOf(?float $number): static
     {
-        if ($number <= 0) {
+        if ($number !== null && $number <= 0) {
             throw new InvalidArgumentException('multipleOf must be a positive number');
         }
 
