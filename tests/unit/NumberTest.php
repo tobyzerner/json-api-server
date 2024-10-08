@@ -40,6 +40,10 @@ class NumberTest extends AbstractTestCase
             [Number::make()->maximum(10, exclusive: true), 10, false],
             [Number::make()->multipleOf(2), 1, false],
             [Number::make()->multipleOf(2), 2, true],
+            [Number::make()->multipleOf(0.01), 100, true],
+            [Number::make()->multipleOf(0.01), 100.5, true],
+            [Number::make()->multipleOf(0.01), 100.56, true],
+            [Number::make()->multipleOf(0.01), 100.567, false],
         ];
     }
 
@@ -55,5 +59,18 @@ class NumberTest extends AbstractTestCase
         }
 
         $type->validate($value, $fail);
+    }
+
+    public function test_multipleOf_reset(): void
+    {
+        $number = Number::make()
+            ->multipleOf(2)
+            ->multipleOf(null);
+
+        $fail = $this->createMock(MockedCaller::class)
+            ->expects($this->never())
+            ->method('__invoke');
+
+        $number->validate(5, $fail);
     }
 }
