@@ -50,7 +50,9 @@ class Number implements Type
             }
         }
 
-        if ($this->multipleOf !== null && $value % $this->multipleOf !== 0) {
+        // Divide the value by multipleOf instead of using the modulo operator to avoid bugs when using a multipleOf
+        // that has decimal places. (Since the modulo operator converts the multipleOf to int)
+        if ($this->multipleOf !== null && $value/$this->multipleOf !== (float) round($value/$this->multipleOf)) {
             $fail(sprintf('must be a multiple of %d', $this->multipleOf));
         }
     }
