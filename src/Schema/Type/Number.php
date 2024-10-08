@@ -52,9 +52,12 @@ class Number implements Type
 
         // Divide the value by multipleOf instead of using the modulo operator to avoid bugs when using a multipleOf
         // that has decimal places. (Since the modulo operator converts the multipleOf to int)
+        // Note that dividing two integers returns another integer if the result is a whole number. So to make the
+        // comparison work at all times we need to cast the result to float. Casting both to integer will not work
+        // as intended since then the result of the division would also be rounded.
         if (
             $this->multipleOf !== null &&
-            $value / $this->multipleOf !== round($value / $this->multipleOf)
+            (float) ($value / $this->multipleOf) !== round($value / $this->multipleOf)
         ) {
             $fail(sprintf('must be a multiple of %d', $this->multipleOf));
         }
