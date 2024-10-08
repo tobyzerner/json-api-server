@@ -68,8 +68,7 @@ class NumberTest extends AbstractTestCase
             ->multipleOf(null);
 
         $fail = $this->createMock(MockedCaller::class);
-        $fail->expects($this->never())
-            ->method('__invoke');
+        $fail->expects($this->never())->method('__invoke');
 
         $number->validate(5, $fail);
     }
