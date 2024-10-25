@@ -88,7 +88,10 @@ class Serializer
 
         // TODO: cache
         foreach ($resource->meta() as $field) {
-            if (!$field->isVisible($context)) {
+            if (
+                array_key_exists($field->name, $this->map[$key]['meta'] ?? []) ||
+                !$field->isVisible($context)
+            ) {
                 continue;
             }
 
