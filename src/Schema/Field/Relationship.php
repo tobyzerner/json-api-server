@@ -2,6 +2,7 @@
 
 namespace Tobyz\JsonApiServer\Schema\Field;
 
+use Closure;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Concerns\FindsResources;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
@@ -14,7 +15,7 @@ abstract class Relationship extends Field
 
     public array $collections;
     public bool $includable = false;
-    public bool $linkage = false;
+    public bool|Closure $linkage = false;
 
     /**
      * Set the collection(s) that this relationship is to.
@@ -47,9 +48,9 @@ abstract class Relationship extends Field
     /**
      * Include linkage for this relationship.
      */
-    public function withLinkage(): static
+    public function withLinkage(bool|Closure $condition = true): static
     {
-        $this->linkage = true;
+        $this->linkage = $condition;
 
         return $this;
     }
@@ -59,18 +60,25 @@ abstract class Relationship extends Field
      */
     public function withoutLinkage(): static
     {
-        $this->linkage = false;
-
-        return $this;
+        return $this->withLinkage(false);
     }
 
     public function getValue(Context $context): mixed
     {
-        if ($context->include === null && !$this->linkage) {
+        if ($context->include === null && !$this->hasLinkage($context)) {
             return null;
         }
 
         return parent::getValue($context);
+    }
+
+    public function hasLinkage(Context $context): mixed
+    {
+        if ($this->linkage instanceof Closure) {
+            return ($this->linkage)($context);
+        }
+
+        return $this->linkage;
     }
 
     protected function findResourceForIdentifier(array $identifier, Context $context): mixed
