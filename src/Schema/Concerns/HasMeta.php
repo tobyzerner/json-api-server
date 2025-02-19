@@ -2,11 +2,14 @@
 
 namespace Tobyz\JsonApiServer\Schema\Concerns;
 
-use Closure;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Schema\Field\Attribute;
 
 trait HasMeta
 {
+    /**
+     * @var Attribute[]
+     */
     public array $meta = [];
 
     /**
@@ -30,7 +33,7 @@ trait HasMeta
 
             $value = $field->getValue($context);
 
-            $meta[$field->name] = $value instanceof Closure ? $value() : $value;
+            $meta[$field->name] = $field->serializeValue($value, $context);
         }
 
         return $meta;
