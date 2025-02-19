@@ -55,26 +55,31 @@ abstract class EloquentBuffer
                 $constrain = [];
 
                 foreach ($resources as $resource) {
+                    if (!$resource instanceof EloquentResource) {
+                        continue;
+                    }
+
                     $modelClass = get_class($resource->newModel($context));
 
-                    if ($resource instanceof EloquentResource && !isset($constrain[$modelClass])) {
-                        $constrain[$modelClass] = function ($query) use (
-                            $resource,
-                            $context,
-                            $relationship,
-                            $relation,
-                        ) {
-                            $resource->scope($query, $context);
-
-                            if (
-                                ($relationship instanceof ToMany ||
-                                    $relationship instanceof ToOne) &&
-                                $relationship->scope
-                            ) {
-                                ($relationship->scope)($relation, $context);
-                            }
-                        };
+                    if (isset($constrain[$modelClass])) {
+                        continue;
                     }
+
+                    $constrain[$modelClass] = function ($query) use (
+                        $resource,
+                        $context,
+                        $relationship,
+                    $relation,) {
+                        $resource->scope($query, $context);
+
+                        if (
+                            ($relationship instanceof ToMany ||
+                                $relationship instanceof ToOne) &&
+                            $relationship->scope
+                        ) {
+                            ($relationship->scope)($relation, $context);
+                        }
+                    };
                 }
 
                 if ($relation instanceof MorphTo) {
