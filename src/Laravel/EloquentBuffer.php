@@ -73,8 +73,7 @@ abstract class EloquentBuffer
                         $resource->scope($query, $context);
 
                         if (
-                            ($relationship instanceof ToMany ||
-                                $relationship instanceof ToOne) &&
+                            ($relationship instanceof ToMany || $relationship instanceof ToOne) &&
                             $relationship->scope
                         ) {
                             ($relationship->scope)($relation, $context);
