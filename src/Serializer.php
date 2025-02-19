@@ -4,6 +4,7 @@ namespace Tobyz\JsonApiServer;
 
 use Closure;
 use RuntimeException;
+use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\Resource\Resource;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
 
@@ -51,16 +52,28 @@ class Serializer
 
         $key = $this->key($type = $resource->type(), $id = $resource->getId($model, $context));
 
-        $url = "{$context->api->basePath}/$type/$id";
-
         if (!isset($this->map[$key])) {
             $this->map[$key] = [
                 'type' => $type,
                 'id' => $id,
-                'links' => [
-                    'self' => $url,
-                ],
             ];
+
+            foreach ($this->context->api->collections as $collection) {
+                if (!in_array($resource->type(), $collection->resources())) {
+                    continue;
+                }
+
+                foreach ($collection->endpoints() as $endpoint) {
+                    if ($endpoint instanceof Show) {
+                        $this->map[$key]['links']['self'] = implode('/', [
+                            $context->api->basePath,
+                            $collection->name(),
+                            $id,
+                        ]);
+                        break;
+                    }
+                }
+            }
         }
 
         foreach ($this->context->sparseFields($resource) as $field) {
