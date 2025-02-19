@@ -67,23 +67,20 @@ class ToOne extends Relationship
 
     protected function getDataSchema(JsonApi $api): array
     {
-        return [
-            'oneOf' => [
+        $linkage = [
+            'allOf' => [
+                ['$ref' => '#/components/schemas/jsonApiResourceIdentifier'],
                 [
-                    'allOf' => [
-                        ['$ref' => '#/components/schemas/jsonApiResourceIdentifier'],
-                        [
-                            'properties' => [
-                                'type' => [
-                                    'type' => 'string',
-                                    'enum' => $this->getRelatedResources($api),
-                                ],
-                            ],
+                    'properties' => [
+                        'type' => [
+                            'type' => 'string',
+                            'enum' => $this->getRelatedResources($api),
                         ],
                     ],
                 ],
-                ['type' => 'null'],
             ],
         ];
+
+        return $this->nullable ? ['oneOf' => [$linkage, ['type' => 'null']]] : $linkage;
     }
 }
