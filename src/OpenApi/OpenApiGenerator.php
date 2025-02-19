@@ -45,25 +45,22 @@ class OpenApiGenerator
 
         foreach ($api->resources as $resource) {
             $schema = ['attributes' => [], 'relationships' => []];
+            $writableSchema = ['attributes' => [], 'relationships' => []];
 
             foreach ($resource->fields() as $field) {
                 $schema[location($field)]['properties'][$field->name] = $field->getSchema($api);
+                $schema[location($field)]['required'][] = $field->name;
 
-                if ($field->required) {
-                    $schema[location($field)]['required'][] = $field->name;
+                if ($field->writable) {
+                    $writableSchema[location($field)]['properties'][
+                        $field->name
+                    ] = $field->getSchema($api);
+
+                    if ($field->required) {
+                        $writableSchema[location($field)]['required'][] = $field->name;
+                    }
                 }
             }
-
-            $schemas["{$resource->type()}Create"] = [
-                'type' => 'object',
-                'required' => ['type'],
-                'properties' => [
-                    'type' => ['type' => 'string', 'const' => $resource->type()],
-                    'id' => ['type' => 'string'],
-                    'attributes' => ['type' => 'object'] + $schema['attributes'],
-                    'relationships' => ['type' => 'object'] + $schema['relationships'],
-                ],
-            ];
 
             $schemas[$resource->type()] = [
                 'type' => 'object',
@@ -71,8 +68,48 @@ class OpenApiGenerator
                 'properties' => [
                     'type' => ['type' => 'string', 'const' => $resource->type()],
                     'id' => ['type' => 'string', 'readOnly' => true],
-                    'attributes' => ['type' => 'object'] + $schema['attributes'],
-                    'relationships' => ['type' => 'object'] + $schema['relationships'],
+                    ...$schema['attributes']
+                        ? ['attributes' => ['type' => 'object'] + $schema['attributes']]
+                        : [],
+                    ...$schema['relationships']
+                        ? ['relationships' => ['type' => 'object'] + $schema['relationships']]
+                        : [],
+                ],
+            ];
+
+            $schemas["{$resource->type()}Create"] = [
+                'type' => 'object',
+                'required' => ['type'],
+                'properties' => [
+                    'type' => ['type' => 'string', 'const' => $resource->type()],
+                    'id' => ['type' => 'string'],
+                    ...$writableSchema['attributes']
+                        ? ['attributes' => ['type' => 'object'] + $writableSchema['attributes']]
+                        : [],
+                    ...$writableSchema['relationships']
+                        ? [
+                            'relationships' =>
+                                ['type' => 'object'] + $writableSchema['relationships'],
+                        ]
+                        : [],
+                ],
+            ];
+
+            $schemas["{$resource->type()}Update"] = [
+                'type' => 'object',
+                'required' => ['type', 'id'],
+                'properties' => [
+                    'type' => ['type' => 'string', 'const' => $resource->type()],
+                    'id' => ['type' => 'string'],
+                    ...$writableSchema['attributes']
+                        ? ['attributes' => ['type' => 'object'] + $writableSchema['attributes']]
+                        : [],
+                    ...$writableSchema['relationships']
+                        ? [
+                            'relationships' =>
+                                ['type' => 'object'] + $writableSchema['relationships'],
+                        ]
+                        : [],
                 ],
             ];
         }

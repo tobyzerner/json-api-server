@@ -78,6 +78,11 @@ class Update implements Endpoint, OpenApiPathsProvider
 
     public function getOpenApiPaths(Collection $collection): array
     {
+        $resourcesUpdate = array_map(
+            fn($resource) => ['$ref' => "#/components/schemas/{$resource}Update"],
+            $collection->resources(),
+        );
+
         $resources = array_map(
             fn($resource) => [
                 '$ref' => "#/components/schemas/$resource",
@@ -106,9 +111,9 @@ class Update implements Endpoint, OpenApiPathsProvider
                                     'required' => ['data'],
                                     'properties' => [
                                         'data' =>
-                                            count($resources) === 1
-                                                ? $resources[0]
-                                                : ['oneOf' => $resources],
+                                            count($resourcesUpdate) === 1
+                                                ? $resourcesUpdate[0]
+                                                : ['oneOf' => $resourcesUpdate],
                                     ],
                                 ],
                             ],
