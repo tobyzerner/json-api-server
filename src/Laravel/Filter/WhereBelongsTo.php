@@ -28,7 +28,7 @@ class WhereBelongsTo extends Filter
 
         if (!array_is_list($values = (array) $value)) {
             throw (new BadRequestException('filter value must be list'))->setSource([
-                'parameter' => "filter[$this->name]",
+                'parameter' => "[$this->name]",
             ]);
         }
 
