@@ -2,8 +2,6 @@
 
 namespace Tobyz\JsonApiServer\Laravel;
 
-use Illuminate\Database\Query\Builder;
-use Illuminate\Support\Facades\Auth;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Pagination\OffsetPagination;
@@ -58,7 +56,6 @@ abstract class EloquentCollection implements Collection, Listable, Paginatable, 
 
             $queries[$type] = $resource
                 ->query($context)
-                ->toBase()
                 ->select("$keyName as id")
                 ->selectRaw('? as type', [$type]);
         }
