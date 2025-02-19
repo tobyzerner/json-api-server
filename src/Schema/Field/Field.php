@@ -18,6 +18,7 @@ abstract class Field
     public bool $nullable = false;
     public ?string $description = null;
     public array $schema = [];
+    public bool $sparse = false;
 
     public function __construct(public readonly string $name)
     {
@@ -56,5 +57,15 @@ abstract class Field
             'nullable' => $this->nullable,
             'readOnly' => !$this->writable,
         ];
+    }
+
+    /**
+     * Only include this field if it is specifically requested.
+     */
+    public function sparse(): static
+    {
+        $this->sparse = true;
+
+        return $this;
     }
 }

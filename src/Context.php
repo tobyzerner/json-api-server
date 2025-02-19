@@ -109,11 +109,16 @@ class Context
         }
 
         $fields = $this->fields($resource);
+        $type = $resource->type();
+        $fieldsParam = $this->queryParam('fields');
 
-        if ($requested = $this->queryParam('fields')[$resource->type()] ?? null) {
+        if (is_array($fieldsParam) && array_key_exists($type, $fieldsParam)) {
+            $requested = $fieldsParam[$type];
             $requested = is_array($requested) ? $requested : explode(',', $requested);
 
             $fields = array_intersect_key($fields, array_flip($requested));
+        } else {
+            $fields = array_filter($fields, fn(Field $field) => !$field->sparse);
         }
 
         return $this->sparseFields[$resource] = $fields;
@@ -122,13 +127,15 @@ class Context
     /**
      * Determine whether a field has been requested in a sparse fieldset.
      */
-    public function fieldRequested(string $type, string $field, bool $default = true): bool
+    public function fieldRequested(string $type, string $field): bool
     {
-        if ($requested = $this->queryParam('fields')[$type] ?? null) {
-            return in_array($field, explode(',', $requested));
+        $fieldsParam = $this->queryParam('fields');
+
+        if (is_array($fieldsParam) && array_key_exists($type, $fieldsParam)) {
+            return in_array($field, explode(',', $fieldsParam[$type]));
         }
 
-        return $default;
+        return !($this->fields($this->resource($type))[$field]?->sparse ?? null);
     }
 
     /**
