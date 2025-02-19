@@ -76,9 +76,15 @@ class Create implements Endpoint, OpenApiPathsProvider
             $callback($model, $context);
         }
 
-        return json_api_response($document = $this->showResource($context, $model))
-            ->withStatus(201)
-            ->withHeader('Location', $document['data']['links']['self']);
+        $response = json_api_response(
+            $document = $this->showResource($context, $model),
+        )->withStatus(201);
+
+        if ($location = $document['data']['links']['self'] ?? null) {
+            $response = $response->withHeader('Location', $location);
+        }
+
+        return $response;
     }
 
     public function after(callable $callback): static
