@@ -27,6 +27,8 @@ class Create implements Endpoint, OpenApiPathsProvider
     use ShowsResources;
     use HasDescription;
 
+    private array $afterCallbacks = [];
+
     public static function make(): static
     {
         return new static();
@@ -70,9 +72,20 @@ class Create implements Endpoint, OpenApiPathsProvider
 
         $this->saveFields($context, $data);
 
+        foreach ($this->afterCallbacks as $callback) {
+            $callback($model, $context);
+        }
+
         return json_api_response($document = $this->showResource($context, $model))
             ->withStatus(201)
             ->withHeader('Location', $document['data']['links']['self']);
+    }
+
+    public function after(callable $callback): static
+    {
+        $this->afterCallbacks[] = $callback;
+
+        return $this;
     }
 
     private function fillDefaultValues(Context $context, array &$data): void
