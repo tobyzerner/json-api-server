@@ -2,6 +2,9 @@
 
 namespace Tobyz\JsonApiServer\Schema\Type;
 
+use BackedEnum;
+use UnitEnum;
+
 class Str implements Type
 {
     public int $minLength = 0;
@@ -17,6 +20,10 @@ class Str implements Type
 
     public function serialize(mixed $value): string
     {
+        if ($value instanceof UnitEnum) {
+            return $this->getEnumValue($value);
+        }
+
         return (string) $value;
     }
 
@@ -32,9 +39,12 @@ class Str implements Type
             return;
         }
 
-        if ($this->enum !== null && !in_array($value, $this->enum, true)) {
-            $enum = array_map(fn($value) => '"' . $value . '"', $this->enum);
-            $fail(sprintf('must be one of %s', implode(', ', $enum)));
+        if ($this->enum !== null) {
+            $enumValues = array_map($this->getEnumValue(...), $this->enum);
+            if (!in_array($value, $enumValues, true)) {
+                $enum = array_map(fn($value) => '"' . $value . '"', $enumValues);
+                $fail(sprintf('must be one of %s', implode(', ', $enum)));
+            }
         }
 
         if (strlen($value) < $this->minLength) {
@@ -74,7 +84,8 @@ class Str implements Type
         }
 
         if ($this->enum !== null) {
-            $schema['enum'] = $this->enum;
+            $schema['enum'] = array_map($this->getEnumValue(...), $this->enum);
+            $schema['x-enum-varnames'] = array_map($this->getEnumName(...), $this->enum);
         }
 
         return $schema;
@@ -113,5 +124,27 @@ class Str implements Type
         $this->enum = $enum;
 
         return $this;
+    }
+
+    private function getEnumValue(string|UnitEnum $value): string
+    {
+        if ($value instanceof BackedEnum) {
+            return $value->value;
+        }
+
+        if ($value instanceof UnitEnum) {
+            return $value->name;
+        }
+
+        return $value;
+    }
+
+    private function getEnumName(string|UnitEnum $value): string
+    {
+        if ($value instanceof UnitEnum) {
+            return $value->name;
+        }
+
+        return $value;
     }
 }
