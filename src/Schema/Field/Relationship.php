@@ -47,6 +47,16 @@ abstract class Relationship extends Field
     }
 
     /**
+     * Don't allow this relationship to be included.
+     */
+    public function notIncludable(): static
+    {
+        $this->includable = false;
+
+        return $this;
+    }
+
+    /**
      * Include linkage for this relationship.
      */
     public function withLinkage(bool|Closure $condition = true): static
