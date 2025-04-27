@@ -27,6 +27,8 @@ class OpenApiTest extends AbstractTestCase
 
         $generator = new OpenApiGenerator();
 
+        $definition = $generator->generate($api);
+
         $this->assertArraySubset(
             [
                 'openapi' => '3.1.0',
@@ -85,7 +87,7 @@ class OpenApiTest extends AbstractTestCase
                     'url' => 'https://jsonapi.org/format/1.1/',
                 ],
             ],
-            $generator->generate($api),
+            $definition,
         );
     }
 }
