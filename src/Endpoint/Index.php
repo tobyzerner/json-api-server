@@ -6,12 +6,12 @@ use Closure;
 use Psr\Http\Message\ResponseInterface as Response;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
 use Tobyz\JsonApiServer\Endpoint\Concerns\IncludesData;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
 use Tobyz\JsonApiServer\Exception\Sourceable;
-use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\OpenApi\OpenApiPathsProvider;
 use Tobyz\JsonApiServer\Pagination\OffsetPagination;
 use Tobyz\JsonApiServer\Resource\Collection;
@@ -32,6 +32,7 @@ class Index implements Endpoint, OpenApiPathsProvider
     use HasVisibility;
     use IncludesData;
     use HasDescription;
+    use BuildsOpenApiPaths;
 
     public Closure $paginationResolver;
     public ?string $defaultSort = null;
@@ -174,13 +175,6 @@ class Index implements Endpoint, OpenApiPathsProvider
 
     public function getOpenApiPaths(Collection $collection): array
     {
-        $resources = array_map(
-            fn($resource) => [
-                '$ref' => "#/components/schemas/$resource",
-            ],
-            $collection->resources(),
-        );
-
         return [
             "/{$collection->name()}" => [
                 'get' => [
@@ -188,23 +182,13 @@ class Index implements Endpoint, OpenApiPathsProvider
                     'tags' => [$collection->name()],
                     'responses' => [
                         '200' => [
-                            'content' => [
-                                JsonApi::MEDIA_TYPE => [
-                                    'schema' => [
-                                        'type' => 'object',
-                                        'required' => ['data'],
-                                        'properties' => [
-                                            'data' => [
-                                                'type' => 'array',
-                                                'items' =>
-                                                    count($resources) === 1
-                                                        ? $resources[0]
-                                                        : ['oneOf' => $resources],
-                                            ],
-                                        ],
-                                    ],
-                                ],
-                            ],
+                            'content' => $this->buildOpenApiContent(
+                                array_map(
+                                    fn($resource) => ['$ref' => "#/components/schemas/$resource"],
+                                    $collection->resources(),
+                                ),
+                                multiple: true,
+                            ),
                         ],
                     ],
                 ],

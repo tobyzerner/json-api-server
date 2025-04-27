@@ -222,10 +222,7 @@ class ArrTest extends AbstractTestCase
                 'items' => [
                     'type' => 'string',
                     'enum' => ['valid1', 'valid2'],
-                    'minLength' => 0,
-                    'maxLength' => null,
-                    'pattern' => null,
-                    'format' => null,
+                    'x-enum-varnames' => ['valid1', 'valid2'],
                 ],
             ],
             Arr::make()

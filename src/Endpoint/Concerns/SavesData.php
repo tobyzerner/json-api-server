@@ -87,10 +87,10 @@ trait SavesData
     /**
      * Assert that the fields contained within a data object are valid.
      */
-    private function assertFieldsValid(Context $context, array $data): void
+    private function assertFieldsValid(Context $context, array $data, bool $creating = false): void
     {
         $this->assertFieldsExist($context, $data);
-        $this->assertFieldsWritable($context, $data);
+        $this->assertFieldsWritable($context, $data, $creating);
     }
 
     /**
@@ -118,14 +118,23 @@ trait SavesData
      *
      * @throws ForbiddenException if a field is not writable.
      */
-    private function assertFieldsWritable(Context $context, array $data): void
-    {
+    private function assertFieldsWritable(
+        Context $context,
+        array $data,
+        bool $creating = false,
+    ): void {
         foreach ($context->fields($context->resource) as $field) {
             if (!has_value($data, $field)) {
                 continue;
             }
 
-            if (!$field->isWritable($context->withField($field))) {
+            $context = $context->withField($field);
+
+            $writable = $creating
+                ? $field->isWritableOnCreate($context)
+                : $field->isWritable($context);
+
+            if (!$writable) {
                 throw (new ForbiddenException("Field [$field->name] is not writable"))->setSource([
                     'pointer' => '/data/' . location($field) . '/' . $field->name,
                 ]);

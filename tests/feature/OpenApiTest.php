@@ -17,7 +17,7 @@ class OpenApiTest extends AbstractTestCase
         $api->resource(
             new MockResource(
                 'users',
-                endpoints: [Index::make()],
+                endpoints: [Index::make()->description('list users')],
                 fields: [],
                 meta: [],
                 filters: [],
@@ -27,6 +27,65 @@ class OpenApiTest extends AbstractTestCase
 
         $generator = new OpenApiGenerator();
 
-        print_r($generator->generate($api));
+        $this->assertArraySubset(
+            [
+                'openapi' => '3.1.0',
+                'paths' => [
+                    '/users' => [
+                        'get' => [
+                            'description' => 'list users',
+                            'tags' => ['users'],
+                            'responses' => [
+                                200 => [
+                                    'content' => [
+                                        'application/vnd.api+json' => [
+                                            'schema' => [
+                                                'type' => 'object',
+                                                'required' => ['data'],
+                                                'properties' => [
+                                                    'data' => [
+                                                        'type' => 'array',
+                                                        'items' => [
+                                                            '$ref' => '#/components/schemas/users',
+                                                        ],
+                                                    ],
+                                                ],
+                                            ],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                'components' => [
+                    'schemas' => [
+                        'jsonApiResourceIdentifier' => [
+                            'type' => 'object',
+                            'required' => ['type', 'id'],
+                            'properties' => [
+                                'type' => ['type' => 'string'],
+                                'id' => ['type' => 'string'],
+                            ],
+                        ],
+                        'users' => [
+                            'type' => 'object',
+                            'required' => ['type', 'id'],
+                            'properties' => [
+                                'type' => ['type' => 'string', 'const' => 'users'],
+                                'id' => ['type' => 'string', 'readOnly' => true],
+                                'attributes' => ['type' => 'object'],
+                                'relationships' => ['type' => 'object'],
+                            ],
+                        ],
+                    ],
+                ],
+                'externalDocs' => [
+                    'description' => 'JSON:API v1.1 Specification',
+                    'url' => 'https://jsonapi.org/format/1.1/',
+                ],
+            ],
+            $generator->generate($api),
+        );
     }
 }

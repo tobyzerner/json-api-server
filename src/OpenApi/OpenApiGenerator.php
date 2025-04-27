@@ -3,6 +3,7 @@
 namespace Tobyz\JsonApiServer\OpenApi;
 
 use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\Resource\Resource;
 
 use function Tobyz\JsonApiServer\location;
 
@@ -21,18 +22,6 @@ class OpenApiGenerator
                     'id' => ['type' => 'string'],
                 ],
             ],
-            'jsonApiResource' => [
-                'type' => 'object',
-                'discriminator' => ['propertyName' => 'type'],
-                'required' => ['type', 'id'],
-                'properties' => [
-                    'type' => ['type' => 'string'],
-                    'id' => ['type' => 'string'],
-                    'attributes' => ['type' => 'object'],
-                    'relationships' => ['type' => 'object'],
-                    'links' => ['type' => 'object', 'readOnly' => true],
-                ],
-            ],
         ];
 
         foreach ($api->collections as $collection) {
@@ -44,74 +33,43 @@ class OpenApiGenerator
         }
 
         foreach ($api->resources as $resource) {
-            $schema = ['attributes' => [], 'relationships' => []];
-            $writableSchema = ['attributes' => [], 'relationships' => []];
+            $schema = [];
+            $createSchema = [];
+            $updateSchema = [];
 
             foreach ($resource->fields() as $field) {
-                $schema[location($field)]['properties'][$field->name] = $field->getSchema($api);
-                $schema[location($field)]['required'][] = $field->name;
+                $location = location($field);
+                $fieldSchema = $field->getSchema($api);
+
+                $schema[$location]['properties'][$field->name] = $fieldSchema;
+                $schema[$location]['required'][] = $field->name;
 
                 if ($field->writable) {
-                    $writableSchema[location($field)]['properties'][
-                        $field->name
-                    ] = $field->getSchema($api);
-
+                    $updateSchema[$location]['properties'][$field->name] = $fieldSchema;
                     if ($field->required) {
-                        $writableSchema[location($field)]['required'][] = $field->name;
+                        $updateSchema[$location]['required'][] = $field->name;
+                    }
+                }
+
+                if ($field->writableOnCreate) {
+                    $createSchema[$location]['properties'][$field->name] = $fieldSchema;
+                    if ($field->required) {
+                        $createSchema[$location]['required'][] = $field->name;
                     }
                 }
             }
 
-            $schemas[$resource->type()] = [
-                'type' => 'object',
-                'required' => ['type', 'id'],
-                'properties' => [
-                    'type' => ['type' => 'string', 'const' => $resource->type()],
-                    'id' => ['type' => 'string', 'readOnly' => true],
-                    ...$schema['attributes']
-                        ? ['attributes' => ['type' => 'object'] + $schema['attributes']]
-                        : [],
-                    ...$schema['relationships']
-                        ? ['relationships' => ['type' => 'object'] + $schema['relationships']]
-                        : [],
-                ],
-            ];
+            $type = $resource->type();
 
-            $schemas["{$resource->type()}Create"] = [
-                'type' => 'object',
+            $schemas[$type] = $this->buildSchema($resource, $schema, [
+                'properties' => ['id' => ['type' => 'string', 'readOnly' => true]],
+            ]);
+
+            $schemas["{$type}Create"] = $this->buildSchema($resource, $createSchema, [
                 'required' => ['type'],
-                'properties' => [
-                    'type' => ['type' => 'string', 'const' => $resource->type()],
-                    'id' => ['type' => 'string'],
-                    ...$writableSchema['attributes']
-                        ? ['attributes' => ['type' => 'object'] + $writableSchema['attributes']]
-                        : [],
-                    ...$writableSchema['relationships']
-                        ? [
-                            'relationships' =>
-                                ['type' => 'object'] + $writableSchema['relationships'],
-                        ]
-                        : [],
-                ],
-            ];
+            ]);
 
-            $schemas["{$resource->type()}Update"] = [
-                'type' => 'object',
-                'required' => ['type', 'id'],
-                'properties' => [
-                    'type' => ['type' => 'string', 'const' => $resource->type()],
-                    'id' => ['type' => 'string'],
-                    ...$writableSchema['attributes']
-                        ? ['attributes' => ['type' => 'object'] + $writableSchema['attributes']]
-                        : [],
-                    ...$writableSchema['relationships']
-                        ? [
-                            'relationships' =>
-                                ['type' => 'object'] + $writableSchema['relationships'],
-                        ]
-                        : [],
-                ],
-            ];
+            $schemas["{$type}Update"] = $this->buildSchema($resource, $updateSchema);
         }
 
         return array_filter([
@@ -126,5 +84,22 @@ class OpenApiGenerator
                 'url' => "https://jsonapi.org/format/$jsonApiVersion/",
             ],
         ]);
+    }
+
+    private function buildSchema(Resource $resource, array $schema, array $overrides = []): array
+    {
+        return array_replace_recursive(
+            [
+                'type' => 'object',
+                'required' => ['type', 'id'],
+                'properties' => [
+                    'type' => ['type' => 'string', 'const' => $resource->type()],
+                    'id' => ['type' => 'string'],
+                    'attributes' => ['type' => 'object'] + ($schema['attributes'] ?? []),
+                    'relationships' => ['type' => 'object'] + ($schema['relationships'] ?? []),
+                ],
+            ],
+            $overrides,
+        );
     }
 }

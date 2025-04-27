@@ -5,11 +5,11 @@ namespace Tobyz\JsonApiServer\Endpoint;
 use Closure;
 use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
 use Tobyz\JsonApiServer\Endpoint\Concerns\FindsResources;
 use Tobyz\JsonApiServer\Endpoint\Concerns\ShowsResources;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
-use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\OpenApi\OpenApiPathsProvider;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
@@ -23,6 +23,7 @@ class ResourceAction implements Endpoint, OpenApiPathsProvider
     use HasDescription;
     use FindsResources;
     use ShowsResources;
+    use BuildsOpenApiPaths;
 
     public string $method = 'POST';
 
@@ -93,20 +94,12 @@ class ResourceAction implements Endpoint, OpenApiPathsProvider
                     ],
                     'responses' => [
                         '200' => [
-                            'content' => [
-                                JsonApi::MEDIA_TYPE => [
-                                    'schema' => [
-                                        'type' => 'object',
-                                        'required' => ['data'],
-                                        'properties' => [
-                                            'data' =>
-                                                count($resources) === 1
-                                                    ? $resources[0]
-                                                    : ['oneOf' => $resources],
-                                        ],
-                                    ],
-                                ],
-                            ],
+                            'content' => $this->buildOpenApiContent(
+                                array_map(
+                                    fn($resource) => ['$ref' => "#/components/schemas/$resource"],
+                                    $collection->resources(),
+                                ),
+                            ),
                         ],
                     ],
                 ],

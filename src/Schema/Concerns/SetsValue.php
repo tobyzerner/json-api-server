@@ -4,13 +4,13 @@ namespace Tobyz\JsonApiServer\Schema\Concerns;
 
 use Closure;
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Endpoint\Create;
 use Tobyz\JsonApiServer\Resource\Creatable;
 use Tobyz\JsonApiServer\Resource\Updatable;
 
 trait SetsValue
 {
     public ?Closure $writable = null;
+    public ?Closure $writableOnCreate = null;
     public bool $required = false;
     public ?Closure $default = null;
     public ?Closure $deserializer = null;
@@ -31,9 +31,9 @@ trait SetsValue
     /**
      * Allow this field to be written to when creating a new model.
      */
-    public function writableOnCreate(): static
+    public function writableOnCreate(?Closure $condition = null): static
     {
-        $this->writable = fn($model, Context $context) => $context->endpoint instanceof Create;
+        $this->writableOnCreate = $condition ?: fn() => true;
 
         return $this;
     }
@@ -110,6 +110,15 @@ trait SetsValue
     public function isWritable(Context $context): bool
     {
         return $this->writable && ($this->writable)($context->model, $context);
+    }
+
+    /**
+     * Check if this field is writable when creating a resource.
+     */
+    public function isWritableOnCreate(Context $context): bool
+    {
+        return $this->isWritable($context) ||
+            ($this->writableOnCreate && ($this->writableOnCreate)($context->model, $context));
     }
 
     /**

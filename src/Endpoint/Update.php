@@ -5,12 +5,12 @@ namespace Tobyz\JsonApiServer\Endpoint;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
 use Tobyz\JsonApiServer\Endpoint\Concerns\FindsResources;
 use Tobyz\JsonApiServer\Endpoint\Concerns\SavesData;
 use Tobyz\JsonApiServer\Endpoint\Concerns\ShowsResources;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
-use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\OpenApi\OpenApiPathsProvider;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Updatable;
@@ -26,6 +26,7 @@ class Update implements Endpoint, OpenApiPathsProvider
     use SavesData;
     use ShowsResources;
     use HasDescription;
+    use BuildsOpenApiPaths;
 
     public static function make(): static
     {
@@ -78,18 +79,6 @@ class Update implements Endpoint, OpenApiPathsProvider
 
     public function getOpenApiPaths(Collection $collection): array
     {
-        $resourcesUpdate = array_map(
-            fn($resource) => ['$ref' => "#/components/schemas/{$resource}Update"],
-            $collection->resources(),
-        );
-
-        $resources = array_map(
-            fn($resource) => [
-                '$ref' => "#/components/schemas/$resource",
-            ],
-            $collection->resources(),
-        );
-
         return [
             "/{$collection->name()}/{id}" => [
                 'patch' => [
@@ -104,38 +93,24 @@ class Update implements Endpoint, OpenApiPathsProvider
                         ],
                     ],
                     'requestBody' => [
-                        'content' => [
-                            JsonApi::MEDIA_TYPE => [
-                                'schema' => [
-                                    'type' => 'object',
-                                    'required' => ['data'],
-                                    'properties' => [
-                                        'data' =>
-                                            count($resourcesUpdate) === 1
-                                                ? $resourcesUpdate[0]
-                                                : ['oneOf' => $resourcesUpdate],
-                                    ],
-                                ],
-                            ],
-                        ],
                         'required' => true,
+                        'content' => $this->buildOpenApiContent(
+                            array_map(
+                                fn($resource) => [
+                                    '$ref' => "#/components/schemas/{$resource}Update",
+                                ],
+                                $collection->resources(),
+                            ),
+                        ),
                     ],
                     'responses' => [
                         '200' => [
-                            'content' => [
-                                JsonApi::MEDIA_TYPE => [
-                                    'schema' => [
-                                        'type' => 'object',
-                                        'required' => ['data'],
-                                        'properties' => [
-                                            'data' =>
-                                                count($resources) === 1
-                                                    ? $resources[0]
-                                                    : ['oneOf' => $resources],
-                                        ],
-                                    ],
-                                ],
-                            ],
+                            'content' => $this->buildOpenApiContent(
+                                array_map(
+                                    fn($resource) => ['$ref' => "#/components/schemas/$resource"],
+                                    $collection->resources(),
+                                ),
+                            ),
                         ],
                     ],
                 ],

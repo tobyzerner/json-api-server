@@ -3,6 +3,7 @@
 namespace Tobyz\Tests\JsonApiServer\specification;
 
 use Tobyz\JsonApiServer\Endpoint\Create;
+use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\ConflictException;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
@@ -27,10 +28,12 @@ class CreatingResourcesTest extends AbstractTestCase
         $this->api->resource(
             new MockResource(
                 'users',
-                endpoints: [Create::make()],
+                endpoints: [Create::make(), Show::make()],
                 fields: [Attribute::make('name')->writable(), ToOne::make('pet')->writable()],
             ),
         );
+
+        $this->api->resource(new MockResource('pets'));
     }
 
     public function test_bad_request_error_if_body_does_not_contain_data_type()

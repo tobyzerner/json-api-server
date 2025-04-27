@@ -5,11 +5,11 @@ namespace Tobyz\JsonApiServer\Endpoint;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
 use Tobyz\JsonApiServer\Endpoint\Concerns\SavesData;
 use Tobyz\JsonApiServer\Endpoint\Concerns\ShowsResources;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
-use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\OpenApi\OpenApiPathsProvider;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Creatable;
@@ -26,6 +26,7 @@ class Create implements Endpoint, OpenApiPathsProvider
     use SavesData;
     use ShowsResources;
     use HasDescription;
+    use BuildsOpenApiPaths;
 
     private array $afterCallbacks = [];
 
@@ -62,7 +63,7 @@ class Create implements Endpoint, OpenApiPathsProvider
             ->withResource($resource = $context->resource($data['type']))
             ->withModel($model = $collection->newModel($context));
 
-        $this->assertFieldsValid($context, $data);
+        $this->assertFieldsValid($context, $data, true);
         $this->fillDefaultValues($context, $data);
         $this->deserializeValues($context, $data);
         $this->assertDataValid($context, $data, true);
@@ -105,54 +106,30 @@ class Create implements Endpoint, OpenApiPathsProvider
 
     public function getOpenApiPaths(Collection $collection): array
     {
-        $resourcesCreate = array_map(
-            fn($resource) => ['$ref' => "#/components/schemas/{$resource}Create"],
-            $collection->resources(),
-        );
-
-        $resources = array_map(
-            fn($resource) => ['$ref' => "#/components/schemas/$resource"],
-            $collection->resources(),
-        );
-
         return [
             "/{$collection->name()}" => [
                 'post' => [
                     'description' => $this->getDescription(),
                     'tags' => [$collection->name()],
                     'requestBody' => [
-                        'content' => [
-                            JsonApi::MEDIA_TYPE => [
-                                'schema' => [
-                                    'type' => 'object',
-                                    'required' => ['data'],
-                                    'properties' => [
-                                        'data' =>
-                                            count($resourcesCreate) === 1
-                                                ? $resourcesCreate[0]
-                                                : ['oneOf' => $resourcesCreate],
-                                    ],
-                                ],
-                            ],
-                        ],
                         'required' => true,
+                        'content' => $this->buildOpenApiContent(
+                            array_map(
+                                fn($resource) => [
+                                    '$ref' => "#/components/schemas/{$resource}Create",
+                                ],
+                                $collection->resources(),
+                            ),
+                        ),
                     ],
                     'responses' => [
                         '200' => [
-                            'content' => [
-                                JsonApi::MEDIA_TYPE => [
-                                    'schema' => [
-                                        'type' => 'object',
-                                        'required' => ['data'],
-                                        'properties' => [
-                                            'data' =>
-                                                count($resources) === 1
-                                                    ? $resources[0]
-                                                    : ['oneOf' => $resources],
-                                        ],
-                                    ],
-                                ],
-                            ],
+                            'content' => $this->buildOpenApiContent(
+                                array_map(
+                                    fn($resource) => ['$ref' => "#/components/schemas/$resource"],
+                                    $collection->resources(),
+                                ),
+                            ),
                         ],
                     ],
                 ],

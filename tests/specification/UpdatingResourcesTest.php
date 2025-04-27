@@ -31,6 +31,8 @@ class UpdatingResourcesTest extends AbstractTestCase
                 fields: [Attribute::make('name')->writable(), ToOne::make('pet')->writable()],
             ),
         );
+
+        $this->api->resource(new MockResource('pets'));
     }
 
     public function test_bad_request_error_if_body_does_not_contain_data_type_and_id()
