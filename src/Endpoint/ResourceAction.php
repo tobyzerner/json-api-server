@@ -72,13 +72,6 @@ class ResourceAction implements Endpoint, OpenApiPathsProvider
 
     public function getOpenApiPaths(Collection $collection): array
     {
-        $resources = array_map(
-            fn($resource) => [
-                '$ref' => "#/components/schemas/$resource",
-            ],
-            $collection->resources(),
-        );
-
         return [
             "/{$collection->name()}/{id}/{$this->name}" => [
                 strtolower($this->method) => [
