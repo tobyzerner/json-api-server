@@ -21,8 +21,8 @@ JSON:API error objects to be rendered in the document.
 
 The interface defines two methods:
 
--   `getJsonApiStatus` which must return a string.
--   `getJsonApiErrors` which must return an array of JSON:API error objects.
+- `getJsonApiStatus` which must return a string.
+- `getJsonApiErrors` which must return an array of JSON:API error objects.
 
 ```php
 use JsonApiPhp\JsonApi\Error;
