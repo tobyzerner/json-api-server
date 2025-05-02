@@ -13,17 +13,17 @@ Based on your schema definition, the package will serve a complete API that
 conforms to the [JSON:API specification](https://jsonapi.org/format/), including
 support for:
 
--   **Showing** individual resources (`GET /articles/1`)
--   **Listing** resource collections (`GET /articles`)
--   **Sorting**, **filtering**, **pagination**, and **sparse fieldsets**
--   **Compound documents** with inclusion of related resources
--   **Creating** resources (`POST /articles`)
--   **Updating** resources (`PATCH /articles/1`)
--   **Deleting** resources (`DELETE /articles/1`)
--   **Content negotiation**
--   **Error handling**
--   **Extensions** including Atomic Operations
--   **Generating OpenAPI definitions**
+- **Showing** individual resources (`GET /articles/1`)
+- **Listing** resource collections (`GET /articles`)
+- **Sorting**, **filtering**, **pagination**, and **sparse fieldsets**
+- **Compound documents** with inclusion of related resources
+- **Creating** resources (`POST /articles`)
+- **Updating** resources (`PATCH /articles/1`)
+- **Deleting** resources (`DELETE /articles/1`)
+- **Content negotiation**
+- **Error handling**
+- **Extensions** including Atomic Operations
+- **Generating OpenAPI definitions**
 
 ## Documentation
 
