@@ -44,7 +44,7 @@ class SparseFieldsetsTest extends AbstractTestCase
                 fields: [
                     Attribute::make('title'),
                     Attribute::make('body'),
-                    Attribute::make('exclude'),
+                    Attribute::make('exclude')->sparse(),
                     ToOne::make('author')
                         ->type('users')
                         ->includable(),
@@ -89,5 +89,14 @@ class SparseFieldsetsTest extends AbstractTestCase
 
         $this->assertArrayNotHasKey('exclude', $document['data']['attributes']);
         $this->assertArrayNotHasKey('color', $document['included'][0]['attributes']);
+    }
+
+    public function test_sparse_by_default()
+    {
+        $response = $this->api->handle($this->buildRequest('GET', '/articles/1'));
+
+        $document = json_decode($response->getBody(), true);
+
+        $this->assertArrayNotHasKey('exclude', $document['data']['attributes']);
     }
 }

@@ -12,7 +12,12 @@ class StrTest extends AbstractTestCase
 {
     public static function serializationProvider(): array
     {
-        return [[Str::make(), 'string', 'string'], [Str::make(), 1, '1'], [Str::make(), null, '']];
+        return [
+            [Str::make(), 'string', 'string'],
+            [Str::make(), 1, '1'],
+            [Str::make(), null, ''],
+            [Str::make(), StrTestEnum::A, 'a'],
+        ];
     }
 
     #[DataProvider('serializationProvider')]
@@ -33,6 +38,10 @@ class StrTest extends AbstractTestCase
             [Str::make()->maxLength(1), 'aa', false],
             [Str::make()->pattern('\d+'), '1', true],
             [Str::make()->pattern('\d+'), 'a', false],
+            [Str::make()->enum(['a', 'b']), 'a', true],
+            [Str::make()->enum(['a', 'b']), 'c', false],
+            [Str::make()->enum(StrTestEnum::cases()), 'a', true],
+            [Str::make()->enum(StrTestEnum::cases()), 'c', false],
         ];
     }
 
@@ -49,4 +58,10 @@ class StrTest extends AbstractTestCase
 
         $type->validate($value, $fail);
     }
+}
+
+enum StrTestEnum: string
+{
+    case A = 'a';
+    case B = 'b';
 }
