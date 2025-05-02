@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [1.0.0-beta.4] - 2025-05-02
+
 ### Added
 
 - Add support for generating OpenAPI Definitions
@@ -290,6 +292,7 @@ Still to come:
 
 - Fix pagination next link appearing when it shouldn't
 
+[1.0.0-beta.4]: https://github.com/tobyzerner/json-api-server/compare/v1.0.0-beta.3...v1.0.0-beta.4
 [1.0.0-beta.3]:
     https://github.com/tobyzerner/json-api-server/compare/v1.0.0-beta.2...v1.0.0-beta.3
 [1.0.0-beta.2]:
@@ -322,3 +325,5 @@ Still to come:
     https://github.com/tobyzerner/json-api-server/compare/v1.0.0-beta.2...HEAD
 [unreleased]:
     https://github.com/tobyzerner/json-api-server/compare/v1.0.0-beta.3...HEAD
+
+[unreleased]: https://github.com/tobyzerner/json-api-server/compare/v1.0.0-beta.4...HEAD
