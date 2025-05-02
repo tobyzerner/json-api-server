@@ -21,6 +21,7 @@ and this project adheres to
 - Add the ability to add `after` callbacks to the `Create` endpoint
 - Add the ability to pass a condition to `writableOnCreate`
 - Add `Relationship::notIncludable()`
+- Allow `psr/http-message` v2
 - Laravel: Add `ToOne` and `ToMany` subclasses which support constraining
   relationship queries
   ([#103](https://github.com/tobyzerner/json-api-server/pull/103) by @SychO9)
