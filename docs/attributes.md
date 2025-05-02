@@ -124,9 +124,13 @@ Attribute::make('name')->type(
 #### `enum`
 
 You can restrict the string to a set of possible values using the `enum` method.
+You can provide an array of strings or an array of
+[Backed Enum](https://www.php.net/manual/en/language.enumerations.backed.php)
+cases:
 
 ```php
 Attribute::make('status')->type(Str::make()->enum(['to do', 'doing', 'done']));
+Attribute::make('status')->type(Str::make()->enum(MyEnum::cases()));
 ```
 
 #### `pattern`

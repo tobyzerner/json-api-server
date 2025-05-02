@@ -63,7 +63,7 @@ class Context
     public function sparseFields(Resource $resource): array;
 
     // Determine whether a field has been requested in a sparse fieldset
-    public function fieldRequested(string $type, string $field, bool $default = true): bool;
+    public function fieldRequested(string $type, string $field): bool;
 
     // Determine whether a sort field has been requested
     public function sortRequested(string $field): bool;

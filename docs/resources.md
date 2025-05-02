@@ -164,3 +164,40 @@ For Laravel applications with Eloquent-backed resources, you can extend the
 these interfaces for you. Learn more on the
 [Laravel Integration](laravel.md#eloquent-resources) page.  
 :::
+
+### Collection & Resource Actions
+
+In addition to the standard RESTful endpoints, you can create custom "action"
+endpoints for collections (`CollectionAction`) and resources (`ResourceAction`).
+
+When instantiating these classes, pass the name of the action to be used in the
+route path, and a handler which will receive the current [context](context.md)
+and optionally return a response.
+
+Collection actions will return a `204 No Content` response if nothing is
+returned by the handler. Resource actions will return a `200 OK` response
+including the resource data.
+
+```php
+use Tobyz\JsonApiServer\Context;
+use Psr\Http\Message\ResponseInterface;
+
+Endpoint\CollectionAction::make('test', function (
+    Context $context,
+): ?ResponseInterface {
+    // ...
+});
+
+Endpoint\ResourceAction::make('test', function (
+    Context $context,
+): ?ResponseInterface {
+    // ...
+});
+```
+
+The `POST` method is used by default, but you can customize this using the
+`method` method:
+
+```php
+Endpoint\CollectionAction::make(...)->method('PUT');
+```

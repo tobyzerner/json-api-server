@@ -140,6 +140,17 @@ Attribute::make('firstName')->serialize(
 );
 ```
 
+### Sparse Fieldsets
+
+[Sparse fieldsets](https://jsonapi.org/format/#fetching-sparse-fieldsets) are
+supported on endpoints as per the specification. You can exclude a field from
+the fieldset by default, so that it must be explicitly requested, by using the
+`sparse` method:
+
+```php
+Attribute::make('firstName')->sparse();
+```
+
 ## Writing
 
 By default, fields are read-only. You can allow a field to be written to in the
