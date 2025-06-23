@@ -3,6 +3,9 @@
 namespace Tobyz\JsonApiServer\Endpoint\Concerns;
 
 use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\Resource\Resource;
+use Tobyz\JsonApiServer\Schema\Field\Field;
+use Tobyz\JsonApiServer\Schema\Field\Relationship;
 
 trait BuildsOpenApiPaths
 {
@@ -19,6 +22,34 @@ trait BuildsOpenApiPaths
                         'data' => $multiple ? ['type' => 'array', 'items' => $item] : $item,
                         'included' => $included ? ['type' => 'array'] : [],
                     ],
+                ],
+            ],
+        ];
+    }
+
+    private function buildOpenApiParameters(Resource $resource): array
+    {
+        $relationshipNames = array_map(
+            fn(Relationship $relationship) => $relationship->name,
+            array_filter(
+                $resource->fields(),
+                fn(Field $field) => $field instanceof Relationship && $field->includable,
+            ),
+        );
+
+        if (empty($relationshipNames)) {
+            return [];
+        }
+
+        $includes = implode(', ', $relationshipNames);
+
+        return [
+            [
+                'name' => 'include',
+                'in' => 'path',
+                'description' => "Available include parameters: {$includes}.",
+                'schema' => [
+                    'type' => 'string',
                 ],
             ],
         ];

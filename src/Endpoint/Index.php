@@ -180,6 +180,7 @@ class Index implements Endpoint, OpenApiPathsProvider
                 'get' => [
                     'description' => $this->getDescription(),
                     'tags' => [$collection->name()],
+                    'parameters' => $this->buildOpenApiParameters($collection),
                     'responses' => [
                         '200' => [
                             'content' => $this->buildOpenApiContent(
