@@ -45,7 +45,7 @@ trait BuildsOpenApiPaths
         return [
             [
                 'name' => 'include',
-                'in' => 'path',
+                'in' => 'query',
                 'description' => "Available include parameters: {$includes}.",
                 'schema' => [
                     'type' => 'string',
