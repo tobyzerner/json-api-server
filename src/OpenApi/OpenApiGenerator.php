@@ -7,7 +7,7 @@ use Tobyz\JsonApiServer\Resource\Resource;
 
 use function Tobyz\JsonApiServer\location;
 
-class OpenApiGenerator
+class OpenApiGenerator implements GeneratorInterface
 {
     public function generate(JsonApi $api): array
     {
