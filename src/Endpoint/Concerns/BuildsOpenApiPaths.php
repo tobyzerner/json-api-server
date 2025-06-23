@@ -6,7 +6,7 @@ use Tobyz\JsonApiServer\JsonApi;
 
 trait BuildsOpenApiPaths
 {
-    private function buildOpenApiContent(array $resources, bool $multiple = false): array
+    private function buildOpenApiContent(array $resources, bool $multiple = false, bool $included = true): array
     {
         $item = count($resources) === 1 ? $resources[0] : ['oneOf' => $resources];
 
@@ -17,6 +17,7 @@ trait BuildsOpenApiPaths
                     'required' => ['data'],
                     'properties' => [
                         'data' => $multiple ? ['type' => 'array', 'items' => $item] : $item,
+                        'included' => $included ? ['type' => 'array'] : [],
                     ],
                 ],
             ],
