@@ -111,6 +111,7 @@ class Create implements Endpoint, OpenApiPathsProvider
                 'post' => [
                     'description' => $this->getDescription(),
                     'tags' => [$collection->name()],
+                    'parameters' => $this->buildOpenApiParameters($collection),
                     'requestBody' => [
                         'required' => true,
                         'content' => $this->buildOpenApiContent(
