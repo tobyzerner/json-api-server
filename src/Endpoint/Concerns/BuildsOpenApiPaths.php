@@ -29,6 +29,14 @@ trait BuildsOpenApiPaths
 
     private function buildOpenApiParameters(Resource $resource): array
     {
+        return [
+            ...$this->buildIncludeParameter($resource),
+            ...$this->buildPaginationParameters($resource),
+        ];
+    }
+
+    private function buildIncludeParameter(Resource $resource): array
+    {
         $relationshipNames = array_map(
             fn(Relationship $relationship) => $relationship->name,
             array_filter(
@@ -50,6 +58,28 @@ trait BuildsOpenApiPaths
                 'description' => "Available include parameters: {$includes}.",
                 'schema' => [
                     'type' => 'string',
+                ],
+            ],
+        ];
+    }
+
+    private function buildPaginationParameters(Resource $resource): array
+    {
+        return [
+            [
+                'name' => 'page[limit]',
+                'in' => 'query',
+                'description' => "The limit pagination field.",
+                'schema' => [
+                    'type' => 'number',
+                ],
+            ],
+            [
+                'name' => 'page[offset]',
+                'in' => 'query',
+                'description' => "The offset pagination field.",
+                'schema' => [
+                    'type' => 'number',
                 ],
             ],
         ];
