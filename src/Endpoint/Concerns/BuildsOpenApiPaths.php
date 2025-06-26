@@ -29,10 +29,13 @@ trait BuildsOpenApiPaths
 
     private function buildOpenApiParameters(Resource $resource): array
     {
-        return [
-            ...$this->buildIncludeParameter($resource),
-            ...$this->buildPaginationParameters($resource),
-        ];
+        $parameters = [$this->buildIncludeParameter($resource)];
+
+        if (property_exists($this, 'paginationResolver')) {
+            $parameters = array_merge_recursive($parameters, $this->buildPaginatableParameters());
+        }
+
+        return $parameters;
     }
 
     private function buildIncludeParameter(Resource $resource): array
@@ -52,18 +55,16 @@ trait BuildsOpenApiPaths
         $includes = implode(', ', $relationshipNames);
 
         return [
-            [
-                'name' => 'include',
-                'in' => 'query',
-                'description' => "Available include parameters: {$includes}.",
-                'schema' => [
-                    'type' => 'string',
-                ],
+            'name' => 'include',
+            'in' => 'query',
+            'description' => "Available include parameters: {$includes}.",
+            'schema' => [
+                'type' => 'string',
             ],
         ];
     }
 
-    private function buildPaginationParameters(Resource $resource): array
+    private function buildPaginatableParameters(): array
     {
         return [
             [
