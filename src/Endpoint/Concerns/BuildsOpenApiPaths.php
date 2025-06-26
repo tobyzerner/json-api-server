@@ -2,6 +2,8 @@
 
 namespace Tobyz\JsonApiServer\Endpoint\Concerns;
 
+use ReflectionException;
+use ReflectionFunction;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Resource;
@@ -28,6 +30,9 @@ trait BuildsOpenApiPaths
         ];
     }
 
+    /**
+     * @throws ReflectionException
+     */
     private function buildOpenApiParameters(Collection $collection): array
     {
         // @todo: fix this
@@ -36,7 +41,12 @@ trait BuildsOpenApiPaths
         $parameters = [$this->buildIncludeParameter($collection)];
 
         if (property_exists($this, 'paginationResolver')) {
-            $parameters = array_merge_recursive($parameters, $this->buildPaginatableParameters());
+            $resolver = $this->paginationResolver;
+            $reflection = new ReflectionFunction($resolver);
+
+            if ($reflection->getNumberOfRequiredParameters() > 0) {
+                $parameters = array_merge_recursive($parameters, $this->buildPaginatableParameters());
+            }
         }
 
         return array_filter($parameters);
