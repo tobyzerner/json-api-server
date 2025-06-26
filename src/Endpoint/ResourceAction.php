@@ -13,6 +13,7 @@ use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
 use Tobyz\JsonApiServer\OpenApi\OpenApiPathsProvider;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
+use Tobyz\JsonApiServer\Schema\Concerns\HasSummary;
 use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 
 use function Tobyz\JsonApiServer\json_api_response;
@@ -20,6 +21,7 @@ use function Tobyz\JsonApiServer\json_api_response;
 class ResourceAction implements Endpoint, OpenApiPathsProvider
 {
     use HasVisibility;
+    use HasSummary;
     use HasDescription;
     use FindsResources;
     use ShowsResources;
@@ -75,6 +77,7 @@ class ResourceAction implements Endpoint, OpenApiPathsProvider
         return [
             "/{$collection->name()}/{id}/{$this->name}" => [
                 strtolower($this->method) => [
+                    'summary' => $this->getSummary(),
                     'description' => $this->getDescription(),
                     'tags' => [$collection->name()],
                     'parameters' => [

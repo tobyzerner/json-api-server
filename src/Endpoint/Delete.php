@@ -14,6 +14,7 @@ use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Deletable;
 use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
 use Tobyz\JsonApiServer\Schema\Concerns\HasMeta;
+use Tobyz\JsonApiServer\Schema\Concerns\HasSummary;
 use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 
 use function Tobyz\JsonApiServer\json_api_response;
@@ -23,6 +24,7 @@ class Delete implements Endpoint, OpenApiPathsProvider
     use HasMeta;
     use HasVisibility;
     use FindsResources;
+    use HasSummary;
     use HasDescription;
 
     public static function make(): static
@@ -72,6 +74,7 @@ class Delete implements Endpoint, OpenApiPathsProvider
         return [
             "/{$collection->name()}/{id}" => [
                 'delete' => [
+                    'summary' => $this->getSummary(),
                     'description' => $this->getDescription(),
                     'tags' => [$collection->name()],
                     'parameters' => [

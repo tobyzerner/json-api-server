@@ -19,6 +19,7 @@ use Tobyz\JsonApiServer\Resource\Countable;
 use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
 use Tobyz\JsonApiServer\Schema\Concerns\HasMeta;
+use Tobyz\JsonApiServer\Schema\Concerns\HasSummary;
 use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 use Tobyz\JsonApiServer\Serializer;
 
@@ -31,6 +32,7 @@ class Index implements Endpoint, OpenApiPathsProvider
     use HasMeta;
     use HasVisibility;
     use IncludesData;
+    use HasSummary;
     use HasDescription;
     use BuildsOpenApiPaths;
 
@@ -178,6 +180,7 @@ class Index implements Endpoint, OpenApiPathsProvider
         return [
             "/{$collection->name()}" => [
                 'get' => [
+                    'summary' => $this->getSummary(),
                     'description' => $this->getDescription(),
                     'tags' => [$collection->name()],
                     'parameters' => $this->buildOpenApiParameters($collection),

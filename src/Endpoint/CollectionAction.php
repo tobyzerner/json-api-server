@@ -11,11 +11,13 @@ use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
 use Tobyz\JsonApiServer\OpenApi\OpenApiPathsProvider;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
+use Tobyz\JsonApiServer\Schema\Concerns\HasSummary;
 use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 
 class CollectionAction implements Endpoint, OpenApiPathsProvider
 {
     use HasVisibility;
+    use HasSummary;
     use HasDescription;
 
     public string $method = 'POST';
@@ -62,6 +64,7 @@ class CollectionAction implements Endpoint, OpenApiPathsProvider
         return [
             "/{$collection->name()}/$this->name" => [
                 'post' => [
+                    'summary' => $this->getSummary(),
                     'description' => $this->getDescription(),
                     'tags' => [$collection->name()],
                     'responses' => [
