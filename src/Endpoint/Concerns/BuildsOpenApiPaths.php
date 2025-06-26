@@ -49,7 +49,7 @@ trait BuildsOpenApiPaths
             }
         }
 
-        return array_filter($parameters);
+        return array_values(array_filter($parameters));
     }
 
     private function buildIncludeParameter(Resource $resource): array
