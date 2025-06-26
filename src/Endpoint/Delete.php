@@ -88,7 +88,6 @@ class Delete implements Endpoint, OpenApiPathsProvider
                     'responses' => [
                         '204' => [
                             'description' => 'No Content',
-                            'content' => [],
                         ],
                     ],
                 ],

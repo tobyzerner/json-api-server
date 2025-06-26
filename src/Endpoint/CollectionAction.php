@@ -70,7 +70,6 @@ class CollectionAction implements Endpoint, OpenApiPathsProvider
                     'responses' => [
                         '204' => [
                             'description' => 'No Content',
-                            'content' => [],
                         ],
                     ],
                 ],
