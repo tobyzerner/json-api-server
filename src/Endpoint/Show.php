@@ -54,15 +54,17 @@ class Show implements Endpoint, OpenApiPathsProvider
 
     public function getOpenApiPaths(Collection $collection): array
     {
-        $parameters = [
+        $parameters = array_merge(
             [
-                'name' => 'id',
-                'in' => 'path',
-                'required' => true,
-                'schema' => ['type' => 'string'],
+                [
+                    'name' => 'id',
+                    'in' => 'path',
+                    'required' => true,
+                    'schema' => ['type' => 'string'],
+                ],
             ],
-            ...$this->buildOpenApiParameters($collection),
-        ];
+            $this->buildOpenApiParameters($collection)
+        );
 
         return [
             "/{$collection->name()}/{id}" => [
