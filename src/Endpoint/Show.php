@@ -73,6 +73,7 @@ class Show implements Endpoint, OpenApiPathsProvider
                     'parameters' => $parameters,
                     'responses' => [
                         '200' => [
+                            'description' => 'Successful show response.',
                             'content' => $this->buildOpenApiContent(
                                 array_map(
                                     fn($resource) => ['$ref' => "#/components/schemas/$resource"],

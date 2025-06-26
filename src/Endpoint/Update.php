@@ -108,6 +108,7 @@ class Update implements Endpoint, OpenApiPathsProvider
                     ],
                     'responses' => [
                         '200' => [
+                            'description' => 'Successful update response.',
                             'content' => $this->buildOpenApiContent(
                                 array_map(
                                     fn($resource) => ['$ref' => "#/components/schemas/$resource"],

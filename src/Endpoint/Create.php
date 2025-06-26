@@ -128,6 +128,7 @@ class Create implements Endpoint, OpenApiPathsProvider
                     ],
                     'responses' => [
                         '200' => [
+                            'description' => 'Resource created successfully.',
                             'content' => $this->buildOpenApiContent(
                                 array_map(
                                     fn($resource) => ['$ref' => "#/components/schemas/$resource"],

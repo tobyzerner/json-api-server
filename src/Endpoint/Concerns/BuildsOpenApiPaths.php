@@ -3,6 +3,7 @@
 namespace Tobyz\JsonApiServer\Endpoint\Concerns;
 
 use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Resource;
 use Tobyz\JsonApiServer\Schema\Field\Field;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
@@ -27,9 +28,12 @@ trait BuildsOpenApiPaths
         ];
     }
 
-    private function buildOpenApiParameters(Resource $resource): array
+    private function buildOpenApiParameters(Collection $collection): array
     {
-        $parameters = [$this->buildIncludeParameter($resource)];
+        // @todo: fix this 
+        assert($collection instanceof Resource);
+
+        $parameters = [$this->buildIncludeParameter($collection)];
 
         if (property_exists($this, 'paginationResolver')) {
             $parameters = array_merge_recursive($parameters, $this->buildPaginatableParameters());

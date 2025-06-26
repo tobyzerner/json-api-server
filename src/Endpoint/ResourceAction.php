@@ -90,6 +90,7 @@ class ResourceAction implements Endpoint, OpenApiPathsProvider
                     ],
                     'responses' => [
                         '200' => [
+                            'description' => 'Successful custom action response.',
                             'content' => $this->buildOpenApiContent(
                                 array_map(
                                     fn($resource) => ['$ref' => "#/components/schemas/$resource"],

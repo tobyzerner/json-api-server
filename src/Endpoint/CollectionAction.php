@@ -68,7 +68,10 @@ class CollectionAction implements Endpoint, OpenApiPathsProvider
                     'description' => $this->getDescription(),
                     'tags' => [$collection->name()],
                     'responses' => [
-                        '204' => [],
+                        '204' => [
+                            'description' => 'No Content',
+                            'content' => [],
+                        ],
                     ],
                 ],
             ],

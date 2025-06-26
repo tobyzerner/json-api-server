@@ -186,6 +186,7 @@ class Index implements Endpoint, OpenApiPathsProvider
                     'parameters' => $this->buildOpenApiParameters($collection),
                     'responses' => [
                         '200' => [
+                            'description' => 'Successful list all response.',
                             'content' => $this->buildOpenApiContent(
                                 array_map(
                                     fn($resource) => ['$ref' => "#/components/schemas/$resource"],
