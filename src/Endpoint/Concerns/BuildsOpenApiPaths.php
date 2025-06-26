@@ -30,7 +30,7 @@ trait BuildsOpenApiPaths
 
     private function buildOpenApiParameters(Collection $collection): array
     {
-        // @todo: fix this 
+        // @todo: fix this
         assert($collection instanceof Resource);
 
         $parameters = [$this->buildIncludeParameter($collection)];
@@ -39,7 +39,7 @@ trait BuildsOpenApiPaths
             $parameters = array_merge_recursive($parameters, $this->buildPaginatableParameters());
         }
 
-        return $parameters;
+        return array_filter($parameters);
     }
 
     private function buildIncludeParameter(Resource $resource): array
