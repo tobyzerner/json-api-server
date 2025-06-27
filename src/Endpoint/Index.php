@@ -4,6 +4,7 @@ namespace Tobyz\JsonApiServer\Endpoint;
 
 use Closure;
 use Psr\Http\Message\ResponseInterface as Response;
+use ReflectionException;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
@@ -175,6 +176,9 @@ class Index implements Endpoint, OpenApiPathsProvider
         }
     }
 
+    /**
+     * @throws ReflectionException
+     */
     public function getOpenApiPaths(Collection $collection): array
     {
         return [
@@ -193,6 +197,7 @@ class Index implements Endpoint, OpenApiPathsProvider
                                     $collection->resources(),
                                 ),
                                 multiple: true,
+                                links: true,
                             ),
                         ],
                         '400' => $this->buildBadRequestErrorResponse(),
