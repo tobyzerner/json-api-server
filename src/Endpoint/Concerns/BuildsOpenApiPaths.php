@@ -12,8 +12,12 @@ use Tobyz\JsonApiServer\Schema\Field\Relationship;
 
 trait BuildsOpenApiPaths
 {
-    private function buildOpenApiContent(array $resources, bool $multiple = false, bool $included = true): array
-    {
+    private function buildOpenApiContent(
+        array $resources,
+        bool $multiple = false,
+        bool $included = true,
+        bool $links = false,
+    ): array {
         $item = count($resources) === 1 ? $resources[0] : ['oneOf' => $resources];
 
         return [
@@ -21,13 +25,72 @@ trait BuildsOpenApiPaths
                 'schema' => [
                     'type' => 'object',
                     'required' => ['data'],
-                    'properties' => [
+                    'properties' => array_filter([
+                        'links' => $links ? $this->buildLinksObject($item) : [],
                         'data' => $multiple ? ['type' => 'array', 'items' => $item] : $item,
                         'included' => $included ? ['type' => 'array'] : [],
-                    ],
+                    ]),
                 ],
             ],
         ];
+    }
+
+    private function buildLinksObject(array $item): array
+    {
+        // @todo: maybe pull in the API or Context to return a server name?
+        $baseUri = sprintf('https://{server}/%s', $this->findResourceFromItem($item));
+        $defaultQuery = ['page[limit]' => 10];
+
+        $links = [
+            'self' => ['page[offset]' => 2],
+            'first' => ['page[offset]' => 1],
+            'prev' => ['page[offset]' => 1],
+            'next' => ['page[offset]' => 3],
+            'last' => ['page[offset]' => 10],
+        ];
+
+        foreach ($links as $key => $params) {
+            $params = $params + $defaultQuery;
+
+            $query = implode(
+                '&',
+                array_map(
+                    fn($k, $v) => $k . '=' . urlencode($v),
+                    array_keys($params),
+                    $params,
+                )
+            );
+
+            $links[$key] = sprintf('%s/%s', $baseUri, $query);
+        }
+
+        return [
+            'type' => 'object',
+            'properties' => [
+                'self' => [
+                    'type' => 'string',
+                    'example' => array_map(function (string $uri) {
+                        return [
+                            'type' => 'string',
+                            'example' => $uri,
+                        ];
+                    }, $links),
+                ],
+            ],
+        ];
+    }
+
+    private function findResourceFromItem(array $item)
+    {
+        $value = $item['$ref'] ?? null;
+
+        if (empty($value)) {
+            dd($value);
+        }
+
+        $parts = explode('/', $value);
+
+        return end($parts);
     }
 
     /**
