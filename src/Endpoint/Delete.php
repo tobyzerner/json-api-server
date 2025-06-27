@@ -6,6 +6,7 @@ use Nyholm\Psr7\Response;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
 use Tobyz\JsonApiServer\Endpoint\Concerns\FindsResources;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
@@ -26,6 +27,7 @@ class Delete implements Endpoint, OpenApiPathsProvider
     use FindsResources;
     use HasSummary;
     use HasDescription;
+    use BuildsOpenApiPaths;
 
     public static function make(): static
     {
@@ -89,6 +91,11 @@ class Delete implements Endpoint, OpenApiPathsProvider
                         '204' => [
                             'description' => 'No Content',
                         ],
+                        '400' => $this->buildBadRequestErrorResponse(),
+                        '401' => $this->buildUnauthorizedErrorResponse(),
+                        '403' => $this->buildForbiddenErrorResponse(),
+                        '404' => $this->buildNotFoundErrorResponse(),
+                        '500' => $this->buildInternalServerErrorResponse(),
                     ],
                 ],
             ],

@@ -6,6 +6,7 @@ use Closure;
 use Nyholm\Psr7\Response;
 use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
 use Tobyz\JsonApiServer\OpenApi\OpenApiPathsProvider;
@@ -19,6 +20,7 @@ class CollectionAction implements Endpoint, OpenApiPathsProvider
     use HasVisibility;
     use HasSummary;
     use HasDescription;
+    use BuildsOpenApiPaths;
 
     public string $method = 'POST';
 
@@ -71,6 +73,10 @@ class CollectionAction implements Endpoint, OpenApiPathsProvider
                         '204' => [
                             'description' => 'No Content',
                         ],
+                        '400' => $this->buildBadRequestErrorResponse(),
+                        '401' => $this->buildUnauthorizedErrorResponse(),
+                        '403' => $this->buildForbiddenErrorResponse(),
+                        '500' => $this->buildInternalServerErrorResponse(),
                     ],
                 ],
             ],
