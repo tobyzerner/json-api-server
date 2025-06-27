@@ -67,17 +67,12 @@ trait BuildsOpenApiPaths
 
         return [
             'type' => 'object',
-            'properties' => [
-                'self' => [
+            'properties' => array_map(function (string $uri) {
+                return [
                     'type' => 'string',
-                    'example' => array_map(function (string $uri) {
-                        return [
-                            'type' => 'string',
-                            'example' => $uri,
-                        ];
-                    }, $links),
-                ],
-            ],
+                    'example' => $uri,
+                ];
+            }, $links),
         ];
     }
 
