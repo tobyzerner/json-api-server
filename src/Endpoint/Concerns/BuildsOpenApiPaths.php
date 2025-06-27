@@ -4,6 +4,7 @@ namespace Tobyz\JsonApiServer\Endpoint\Concerns;
 
 use ReflectionException;
 use ReflectionFunction;
+use RuntimeException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Resource;
@@ -80,12 +81,12 @@ trait BuildsOpenApiPaths
         ];
     }
 
-    private function findResourceFromItem(array $item)
+    private function findResourceFromItem(array $item): string
     {
         $value = $item['$ref'] ?? null;
 
         if (empty($value)) {
-            dd($value);
+            throw new RuntimeException('Unhandled.');
         }
 
         $parts = explode('/', $value);
