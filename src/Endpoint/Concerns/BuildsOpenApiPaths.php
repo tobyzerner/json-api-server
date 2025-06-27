@@ -99,4 +99,107 @@ trait BuildsOpenApiPaths
             ],
         ];
     }
+
+    public function buildBadRequestErrorResponse(): array
+    {
+        return $this->buildErrorResponse(
+            'A bad request.',
+            400,
+            'Bad Request',
+            'Please try again with a valid request.',
+        );
+    }
+
+    public function buildUnauthorizedErrorResponse(): array
+    {
+        return $this->buildErrorResponse(
+            'An unauthorised error.',
+            401,
+            'Unauthorized',
+            'Please login and try again.',
+        );
+    }
+
+    public function buildForbiddenErrorResponse(): array
+    {
+        return $this->buildErrorResponse(
+            'A forbidden error.',
+            403,
+            'Forbidden',
+        );
+    }
+
+    public function buildNotFoundErrorResponse(): array
+    {
+        return $this->buildErrorResponse(
+            'A bad request.',
+            404,
+            'Not Found',
+            'The requested resource could not be found.',
+        );
+    }
+
+    public function buildInternalServerErrorResponse(): array
+    {
+        return $this->buildErrorResponse(
+            'A bad request.',
+            500,
+            'Internal Server Error',
+            'Please try again later.',
+        );
+    }
+
+    public function buildErrorResponse(string $description, int $status, string $title, ?string $detail = null): array
+    {
+        return [
+            'description' => $description,
+            'content' => [
+                JsonApi::MEDIA_TYPE => [
+                    'schema' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'errors' => [
+                                'type' => 'array',
+                                'items' => [
+                                    'type' => 'object',
+                                    'required' => [
+                                        'status',
+                                        'title',
+                                    ],
+                                    'properties' => array_filter([
+                                        'status' => [
+                                            'type' => 'string',
+                                            'example' => (string)$status,
+                                        ],
+                                        'title' => [
+                                            'type' => 'string',
+                                            'example' => $title,
+                                        ],
+                                        'detail' => [
+                                            'type' => 'string',
+                                            'example' => $detail,
+                                        ],
+                                        'source' => [
+                                            'type' => 'object',
+                                            'properties' => [
+                                                'pointer' => [
+                                                    'type' => 'string',
+                                                ],
+                                                'parameter' => [
+                                                    'type' => 'string',
+                                                ],
+                                                'header' => [
+                                                    'type' => 'string',
+                                                ],
+                                            ],
+                                        ],
+                                    ]),
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+    }
 }
