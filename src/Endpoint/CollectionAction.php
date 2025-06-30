@@ -56,9 +56,7 @@ class CollectionAction implements Endpoint, OpenApiPathsProvider
             throw new ForbiddenException();
         }
 
-        ($this->handler)($context);
-
-        return new Response(204);
+        return ($this->handler)($context) ?? new Response(204);
     }
 
     public function getOpenApiPaths(Collection $collection): array
