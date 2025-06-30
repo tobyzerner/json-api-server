@@ -14,6 +14,7 @@ use Tobyz\JsonApiServer\Schema\Field\Relationship;
 trait BuildsOpenApiPaths
 {
     private function buildOpenApiContent(
+        string $name,
         array $resources,
         bool $multiple = false,
         bool $included = true,
@@ -27,7 +28,7 @@ trait BuildsOpenApiPaths
                     'type' => 'object',
                     'required' => ['data'],
                     'properties' => array_filter([
-                        'links' => $links ? $this->buildLinksObject($item) : [],
+                        'links' => $links ? $this->buildLinksObject($name) : [],
                         'data' => $multiple ? ['type' => 'array', 'items' => $item] : $item,
                         'included' => $included ? ['type' => 'array'] : [],
                     ]),
@@ -36,10 +37,10 @@ trait BuildsOpenApiPaths
         ];
     }
 
-    private function buildLinksObject(array $item): array
+    private function buildLinksObject(string $name): array
     {
         // @todo: maybe pull in the API or Context to return a server name?
-        $baseUri = sprintf('https://{server}/%s', $this->findResourceFromItem($item));
+        $baseUri = sprintf('https://{server}/%s', $name);
         $defaultQuery = ['page[limit]' => 10];
 
         $links = [

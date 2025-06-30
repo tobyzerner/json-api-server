@@ -118,6 +118,7 @@ class Create implements Endpoint, OpenApiPathsProvider
                     'requestBody' => [
                         'required' => true,
                         'content' => $this->buildOpenApiContent(
+                            $collection->name(),
                             array_map(
                                 fn($resource) => [
                                     '$ref' => "#/components/schemas/{$resource}Create",
@@ -130,6 +131,7 @@ class Create implements Endpoint, OpenApiPathsProvider
                         '200' => [
                             'description' => 'Resource created successfully.',
                             'content' => $this->buildOpenApiContent(
+                                $collection->name(),
                                 array_map(
                                     fn($resource) => ['$ref' => "#/components/schemas/$resource"],
                                     $collection->resources(),
