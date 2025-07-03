@@ -46,14 +46,14 @@ class OpenApiGenerator implements GeneratorInterface
 
                 if ($field->writable) {
                     $updateSchema[$location]['properties'][$field->name] = $fieldSchema;
-                    if ($field->required) {
+                    if ($field->isRequired()) {
                         $updateSchema[$location]['required'][] = $field->name;
                     }
                 }
 
                 if ($field->writableOnCreate) {
                     $createSchema[$location]['properties'][$field->name] = $fieldSchema;
-                    if ($field->required) {
+                    if ($field->isRequired()) {
                         $createSchema[$location]['required'][] = $field->name;
                     }
                 }
