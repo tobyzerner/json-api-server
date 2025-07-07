@@ -4,12 +4,13 @@ namespace Tobyz\JsonApiServer\Endpoint\Concerns;
 
 use ReflectionException;
 use ReflectionFunction;
-use RuntimeException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Resource\Collection;
+use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Resource\Resource;
 use Tobyz\JsonApiServer\Schema\Field\Field;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
+use Tobyz\JsonApiServer\Schema\Filter;
 
 trait BuildsOpenApiPaths
 {
@@ -77,19 +78,6 @@ trait BuildsOpenApiPaths
         ];
     }
 
-    private function findResourceFromItem(array $item): string
-    {
-        $value = $item['$ref'] ?? null;
-
-        if (empty($value)) {
-            throw new RuntimeException('Unhandled.');
-        }
-
-        $parts = explode('/', $value);
-
-        return end($parts);
-    }
-
     /**
      * @throws ReflectionException
      */
@@ -98,16 +86,11 @@ trait BuildsOpenApiPaths
         // @todo: fix this
         assert($collection instanceof Resource);
 
-        $parameters = [$this->buildIncludeParameter($collection)];
-
-        if (property_exists($this, 'paginationResolver')) {
-            $resolver = $this->paginationResolver;
-            $reflection = new ReflectionFunction($resolver);
-
-            if ($reflection->getNumberOfRequiredParameters() > 0) {
-                $parameters = array_merge_recursive($parameters, $this->buildPaginatableParameters());
-            }
-        }
+        $parameters = [
+            $this->buildIncludeParameter($collection),
+            ...$this->buildFilterParameters($collection),
+            ...$this->buildPaginatableParameters(),
+        ];
 
         return array_values(array_filter($parameters));
     }
@@ -138,26 +121,57 @@ trait BuildsOpenApiPaths
         ];
     }
 
+
+    private function buildFilterParameters(Resource $resource): array
+    {
+        if (!$this instanceof Listable) {
+            return [];
+        }
+
+        return array_map(function (Filter $filter) {
+            return [
+                'name' => "filter[{$filter->name}]",
+                'in' => 'query',
+                'description' => $filter->getDescription(),
+                'schema' => [
+                    'type' => 'string',
+                ],
+            ];
+        }, $resource->filters());
+    }
+
+    /**
+     * @throws ReflectionException
+     */
     private function buildPaginatableParameters(): array
     {
-        return [
-            [
-                'name' => 'page[limit]',
-                'in' => 'query',
-                'description' => "The limit pagination field.",
-                'schema' => [
-                    'type' => 'number',
-                ],
-            ],
-            [
-                'name' => 'page[offset]',
-                'in' => 'query',
-                'description' => "The offset pagination field.",
-                'schema' => [
-                    'type' => 'number',
-                ],
-            ],
-        ];
+        if (property_exists($this, 'paginationResolver')) {
+            $resolver = $this->paginationResolver;
+            $reflection = new ReflectionFunction($resolver);
+
+            if ($reflection->getNumberOfRequiredParameters() > 0) {
+                return [
+                    [
+                        'name' => 'page[limit]',
+                        'in' => 'query',
+                        'description' => "The limit pagination field.",
+                        'schema' => [
+                            'type' => 'number',
+                        ],
+                    ],
+                    [
+                        'name' => 'page[offset]',
+                        'in' => 'query',
+                        'description' => "The offset pagination field.",
+                        'schema' => [
+                            'type' => 'number',
+                        ],
+                    ],
+                ];
+            }
+        }
+
+        return [];
     }
 
     public function buildBadRequestErrorResponse(): array
