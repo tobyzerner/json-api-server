@@ -65,11 +65,12 @@ class OpenApiGenerator implements GeneratorInterface
                 'properties' => ['id' => ['type' => 'string', 'readOnly' => true]],
             ]);
 
-            $schemas["{$type}Create"] = $this->buildSchema($resource, $createSchema, [
-                'required' => ['type'],
-            ]);
+            $schemas["{$type}Create"] = $this->buildSchema($resource, $createSchema);
 
-            $schemas["{$type}Update"] = $this->buildSchema($resource, $updateSchema);
+            $schemas["{$type}Update"] = $this->buildSchema($resource, $updateSchema, [
+                'required' => ['type', 'id'],
+                'properties' => ['id' => ['type' => 'string']],
+            ]);
         }
 
         return array_filter([
@@ -91,10 +92,9 @@ class OpenApiGenerator implements GeneratorInterface
         return array_replace_recursive(
             [
                 'type' => 'object',
-                'required' => ['type', 'id'],
+                'required' => ['type'],
                 'properties' => [
                     'type' => ['type' => 'string', 'const' => $resource->type()],
-                    'id' => ['type' => 'string'],
                     'attributes' => ['type' => 'object'] + ($schema['attributes'] ?? []),
                     'relationships' => ['type' => 'object'] + ($schema['relationships'] ?? []),
                 ],
