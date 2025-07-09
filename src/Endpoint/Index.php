@@ -199,6 +199,8 @@ class Index implements Endpoint, OpenApiPathsProvider
                                 ),
                                 multiple: true,
                                 links: true,
+                                countable: true,
+                                paginatable: true,
                             ),
                         ],
                         '400' => $this->buildBadRequestErrorResponse(),

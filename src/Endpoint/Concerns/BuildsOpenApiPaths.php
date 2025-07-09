@@ -7,7 +7,6 @@ use ReflectionFunction;
 use Tobyz\JsonApiServer\Endpoint\Index;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Resource\Collection;
-use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Resource\Resource;
 use Tobyz\JsonApiServer\Schema\Field\Field;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
@@ -21,6 +20,8 @@ trait BuildsOpenApiPaths
         bool $multiple = false,
         bool $included = true,
         bool $links = false,
+        bool $countable = false,
+        bool $paginatable = false,
     ): array {
         $item = count($resources) === 1 ? $resources[0] : ['oneOf' => $resources];
 
@@ -33,6 +34,7 @@ trait BuildsOpenApiPaths
                         'links' => $links ? $this->buildLinksObject($name) : [],
                         'data' => $multiple ? ['type' => 'array', 'items' => $item] : $item,
                         'included' => $included ? ['type' => 'array'] : [],
+                        'meta' => $this->buildMetaObject($countable, $paginatable),
                     ]),
                 ],
             ],
@@ -76,6 +78,27 @@ trait BuildsOpenApiPaths
                     'example' => $uri,
                 ];
             }, $links),
+        ];
+    }
+
+    private function buildMetaObject(bool $countable, bool $paginatable): array
+    {
+        if (!($countable || $paginatable)) {
+            return [];
+        }
+
+        return [
+            'type' => 'object',
+            'properties' => [
+                'page' => [
+                    'type' => 'object',
+                    'properties' => array_filter([
+                        'total' => $countable ? ['type' => 'integer'] : [],
+                        'limit' => $paginatable ? ['type' => 'integer'] : [],
+                        'offset' => $paginatable ? ['type' => 'integer'] : [],
+                    ]),
+                ],
+            ],
         ];
     }
 
