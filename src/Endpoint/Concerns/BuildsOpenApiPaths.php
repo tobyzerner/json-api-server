@@ -4,6 +4,7 @@ namespace Tobyz\JsonApiServer\Endpoint\Concerns;
 
 use ReflectionException;
 use ReflectionFunction;
+use Tobyz\JsonApiServer\Endpoint\Index;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Listable;
@@ -124,7 +125,7 @@ trait BuildsOpenApiPaths
 
     private function buildFilterParameters(Resource $resource): array
     {
-        if (!$this instanceof Listable) {
+        if (!$this instanceof Index) {
             return [];
         }
 
