@@ -62,6 +62,7 @@ class OpenApiGenerator implements GeneratorInterface
             $type = $resource->type();
 
             $schemas[$type] = $this->buildSchema($resource, $schema, [
+                'required' => ['id'],
                 'properties' => ['id' => ['type' => 'string', 'readOnly' => true]],
             ]);
 
@@ -89,10 +90,17 @@ class OpenApiGenerator implements GeneratorInterface
 
     private function buildSchema(Resource $resource, array $schema, array $overrides = []): array
     {
+        $hasAttributes = !empty($schema['attributes']);
+        $hasRelationships = !empty($schema['relationships']);
+
         return array_replace_recursive(
             [
                 'type' => 'object',
-                'required' => ['type'],
+                'required' => array_filter([
+                    'type',
+                    $hasAttributes ? 'attributes' : null,
+                    $hasRelationships ? 'relationships' : null,
+                ]),
                 'properties' => [
                     'type' => ['type' => 'string', 'const' => $resource->type()],
                     'attributes' => ['type' => 'object'] + ($schema['attributes'] ?? []),
