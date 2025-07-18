@@ -96,11 +96,13 @@ class OpenApiGenerator implements GeneratorInterface
         return array_replace_recursive(
             [
                 'type' => 'object',
-                'required' => array_filter([
-                    'type',
-                    $hasAttributes ? 'attributes' : null,
-                    $hasRelationships ? 'relationships' : null,
-                ]),
+                'required' => array_values(
+                    array_filter([
+                        'type',
+                        $hasAttributes ? 'attributes' : null,
+                        $hasRelationships ? 'relationships' : null,
+                    ])
+                ),
                 'properties' => [
                     'type' => ['type' => 'string', 'const' => $resource->type()],
                     'attributes' => ['type' => 'object'] + ($schema['attributes'] ?? []),
