@@ -76,8 +76,8 @@ class OpenApiTest extends AbstractTestCase
                             'properties' => [
                                 'type' => ['type' => 'string', 'const' => 'users'],
                                 'id' => ['type' => 'string', 'readOnly' => true],
-                                'attributes' => ['type' => 'object'],
-                                'relationships' => ['type' => 'object'],
+                                'attributes' => [],
+                                'relationships' => [],
                             ],
                         ],
                     ],
