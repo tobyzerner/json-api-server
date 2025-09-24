@@ -115,7 +115,7 @@ class FilteringTest extends AbstractTestCase
                             return;
                         }
 
-                        $target = is_array($payload) ? ($payload[0] ?? null) : $payload;
+                        $target = is_array($payload) ? $payload[0] ?? null : $payload;
 
                         $query->models = array_filter(
                             $query->models,
@@ -124,10 +124,15 @@ class FilteringTest extends AbstractTestCase
                     }),
 
                     CustomFilter::make('views', function ($query, $value) {
-                        [$operator, $payload] = $this->resolveOperator(
-                            $value,
-                            ['eq', 'gt', 'gte', 'lt', 'lte', 'between', 'in'],
-                        );
+                        [$operator, $payload] = $this->resolveOperator($value, [
+                            'eq',
+                            'gt',
+                            'gte',
+                            'lt',
+                            'lte',
+                            'between',
+                            'in',
+                        ]);
 
                         $values = array_values(array_map('intval', (array) $payload));
                         $first = $values[0] ?? 0;
