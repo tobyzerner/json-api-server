@@ -95,8 +95,12 @@ class OpenApiGenerator
                 'properties' => [
                     'type' => ['type' => 'string', 'const' => $resource->type()],
                     'id' => ['type' => 'string'],
-                    'attributes' => ['type' => 'object'] + ($schema['attributes'] ?? []),
-                    'relationships' => ['type' => 'object'] + ($schema['relationships'] ?? []),
+                    'attributes' => !empty($schema['attributes'])
+                        ? ['type' => 'object'] + $schema['attributes']
+                        : [],
+                    'relationships' => !empty($schema['relationships'])
+                        ? ['type' => 'object'] + $schema['relationships']
+                        : [],
                 ],
             ],
             $overrides,
