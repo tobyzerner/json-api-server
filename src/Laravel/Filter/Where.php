@@ -7,8 +7,6 @@ use Tobyz\JsonApiServer\Exception\BadRequestException;
 
 class Where extends EloquentFilter
 {
-    use SupportsOperators;
-
     protected bool $asBoolean = false;
     protected bool $commaSeparated = false;
 

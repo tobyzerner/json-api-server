@@ -12,8 +12,6 @@ use function Tobyz\JsonApiServer\apply_filters;
 
 class WhereHas extends Filter
 {
-    use SupportsOperators;
-
     public Relationship|string|null $field = null;
 
     public static function make(string $name): static
