@@ -5,7 +5,7 @@ namespace Tobyz\JsonApiServer;
 use Closure;
 use Nyholm\Psr7\Response;
 use Nyholm\Psr7\Stream;
-use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Filterer;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Schema\Field\Field;
@@ -77,19 +77,5 @@ function apply_filters(
     Collection&Listable $collection,
     Context $context,
 ): void {
-    $context = $context->withCollection($collection);
-    $availableFilters = $collection->filters();
-
-    foreach ($filters as $name => $value) {
-        foreach ($availableFilters as $filter) {
-            if ($filter->name === $name && $filter->isVisible($context)) {
-                $filter->apply($query, $value, $context);
-                continue 2;
-            }
-        }
-
-        throw (new BadRequestException("Invalid filter: $name"))->setSource([
-            'parameter' => "[$name]",
-        ]);
-    }
+    (new Filterer($collection, $context))->apply($query, $filters);
 }

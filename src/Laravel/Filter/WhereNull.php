@@ -13,7 +13,7 @@ class WhereNull extends EloquentFilter
 
     public function apply(object $query, array|string $value, Context $context): void
     {
-        if ($this->parseValue($value)) {
+        if (filter_var($value, FILTER_VALIDATE_BOOLEAN)) {
             $query->whereNull($this->getColumn());
         } else {
             $query->whereNotNull($this->getColumn());

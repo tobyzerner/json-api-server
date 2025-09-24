@@ -12,7 +12,7 @@ use function Tobyz\JsonApiServer\apply_filters;
 
 class WhereHas extends Filter
 {
-    protected const QUERY_BUILDER_METHOD = 'whereHas';
+    use SupportsOperators;
 
     public Relationship|string|null $field = null;
 
@@ -38,7 +38,8 @@ class WhereHas extends Filter
             );
         }
 
-        $value = (array) $value;
+        [$operator, $value] = $this->resolveOperator($value);
+
         $field =
             $this->field instanceof Relationship
                 ? $this->field
@@ -55,23 +56,41 @@ class WhereHas extends Filter
 
         $relatedCollection = $context->api->getCollection($field->collections[0]);
 
-        $query->{static::QUERY_BUILDER_METHOD}($field->property ?: $field->name, function (
-            $query,
-        ) use ($value, $relatedCollection, $context) {
+        $method = $operator === 'ne' ? 'whereDoesntHave' : 'whereHas';
+
+        $query->{$method}($field->property ?: $field->name, function ($query) use (
+            $value,
+            $relatedCollection,
+            $context,
+        ) {
             if ($relatedCollection instanceof EloquentResource) {
                 $relatedCollection->scope($query, $context);
             }
 
-            if (array_is_list($value)) {
-                $query->whereKey(array_merge(...array_map(fn($v) => explode(',', $v), $value)));
-            } else {
-                apply_filters(
-                    $query,
-                    $value,
-                    $relatedCollection,
-                    $context->withCollection($relatedCollection),
-                );
+            if ($ids = $this->extractIds($value)) {
+                $query->whereKey($ids);
+                return;
             }
+
+            apply_filters(
+                $query,
+                is_array($value) ? $value : (array) $value,
+                $relatedCollection,
+                $context->withCollection($relatedCollection),
+            );
         });
+    }
+
+    private function extractIds(array|string $value): ?array
+    {
+        if (is_string($value)) {
+            return explode(',', $value);
+        }
+
+        if (array_is_list($value)) {
+            return $value;
+        }
+
+        return null;
     }
 }
