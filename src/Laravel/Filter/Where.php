@@ -38,31 +38,46 @@ class Where extends EloquentFilter
             return;
         }
 
-        [$operator, $resolved] = $this->resolveOperator($value);
+        if (is_string($value) || array_is_list($value)) {
+            $this->applyEquals($query, $value);
+            return;
+        }
 
-        switch ($operator) {
-            case 'eq':
-            case 'in':
-                $this->applyEquals($query, $resolved);
-                break;
+        foreach ($value as $operator => $v) {
+            switch ($operator) {
+                case 'eq':
+                case 'in':
+                    $this->applyEquals($query, $v);
+                    break;
 
-            case 'ne':
-                $this->applyNotEquals($query, $resolved);
-                break;
+                case 'ne':
+                case 'notin':
+                    $this->applyNotEquals($query, $v);
+                    break;
 
-            case 'lt':
-            case 'lte':
-            case 'gt':
-            case 'gte':
-                $this->applyComparison($query, $operator, $resolved);
-                break;
+                case 'lt':
+                case 'lte':
+                case 'gt':
+                case 'gte':
+                    $this->applyComparison($query, $operator, $v);
+                    break;
 
-            case 'like':
-                $this->applyLike($query, $resolved);
-                break;
+                case 'like':
+                    $this->applyLike($query, $v);
+                    break;
 
-            default:
-                throw new BadRequestException("Unsupported operator: $operator");
+                case 'notlike':
+                    $this->applyNotLike($query, $v);
+                    break;
+
+                case 'null':
+                case 'notnull':
+                    $this->applyNull($query, $operator === 'null' ? (bool) $v : !$v);
+                    break;
+
+                default:
+                    throw new BadRequestException("Unsupported operator: $operator");
+            }
         }
     }
 
@@ -105,6 +120,18 @@ class Where extends EloquentFilter
         $value = $this->firstValue($value);
 
         $query->where($this->getColumn(), 'like', $value);
+    }
+
+    private function applyNotLike(object $query, array|string $value): void
+    {
+        $value = $this->firstValue($value);
+
+        $query->where($this->getColumn(), 'not like', $value);
+    }
+
+    private function applyNull(object $query, bool $value): void
+    {
+        $query->{$value ? 'whereNull' : 'whereNotNull'}($this->getColumn());
     }
 
     private function firstValue(array|string $value): mixed

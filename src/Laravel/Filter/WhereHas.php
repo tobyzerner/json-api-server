@@ -81,6 +81,19 @@ class WhereHas extends Filter
         });
     }
 
+    private function resolveOperator(array|string $value): array
+    {
+        if (is_array($value) && !array_is_list($value)) {
+            $keys = array_keys($value);
+
+            if (count($keys) === 1 && in_array($keys[0], ['eq', 'in', 'ne'])) {
+                return [$keys[0], $value[$keys[0]]];
+            }
+        }
+
+        return ['eq', $value];
+    }
+
     private function extractIds(array|string $value): ?array
     {
         if (is_string($value)) {
