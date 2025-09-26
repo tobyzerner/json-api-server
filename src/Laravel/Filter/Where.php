@@ -86,7 +86,7 @@ class Where extends ColumnFilter
                 case 'notnull':
                     $this->applyNull(
                         $query,
-                        $operator === 'null' xor !filter_var($value, FILTER_VALIDATE_BOOLEAN),
+                        $operator === 'null' xor !filter_var($v, FILTER_VALIDATE_BOOLEAN),
                     );
                     break;
 
