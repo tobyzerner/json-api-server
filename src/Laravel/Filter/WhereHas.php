@@ -59,7 +59,14 @@ class WhereHas extends Filter
         $value = $this->resolveOperators($value);
 
         foreach ($value as $operator => $v) {
-            $method = in_array($operator, ['ne', 'notin', 'null']) ? 'whereDoesntHave' : 'whereHas';
+            $method = match ($operator) {
+                'ne', 'notin' => 'whereDoesntHave',
+                'null', 'notnull' => ($operator === 'null' xor
+                !filter_var($v, FILTER_VALIDATE_BOOLEAN))
+                    ? 'whereDoesntHave'
+                    : 'whereHas',
+                default => 'whereHas',
+            };
 
             $query->{$method}($field->property ?: $field->name, function ($query) use (
                 $operator,
