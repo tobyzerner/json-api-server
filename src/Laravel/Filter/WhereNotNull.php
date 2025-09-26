@@ -4,7 +4,7 @@ namespace Tobyz\JsonApiServer\Laravel\Filter;
 
 use Tobyz\JsonApiServer\Context;
 
-class WhereNotNull extends EloquentFilter
+class WhereNotNull extends ColumnFilter
 {
     public static function make(string $name): static
     {
@@ -13,10 +13,9 @@ class WhereNotNull extends EloquentFilter
 
     public function apply(object $query, array|string $value, Context $context): void
     {
-        if (filter_var($value, FILTER_VALIDATE_BOOLEAN)) {
-            $query->whereNotNull($this->getColumn());
-        } else {
-            $query->whereNull($this->getColumn());
-        }
+        Where::make($this->name)
+            ->column($this->getColumn())
+            ->operators(['notnull'])
+            ->apply($query, $value, $context);
     }
 }

@@ -12,7 +12,11 @@ use function Tobyz\JsonApiServer\apply_filters;
 
 class WhereHas extends Filter
 {
+    use SupportsOperators;
+
     public Relationship|string|null $field = null;
+
+    public const SUPPORTED_OPERATORS = ['eq', 'in', 'ne', 'notin', 'null', 'notnull'];
 
     public static function make(string $name): static
     {
@@ -36,8 +40,6 @@ class WhereHas extends Filter
             );
         }
 
-        [$operator, $value] = $this->resolveOperator($value);
-
         $field =
             $this->field instanceof Relationship
                 ? $this->field
@@ -54,42 +56,38 @@ class WhereHas extends Filter
 
         $relatedCollection = $context->api->getCollection($field->collections[0]);
 
-        $method = $operator === 'ne' ? 'whereDoesntHave' : 'whereHas';
+        $value = $this->resolveOperators($value);
 
-        $query->{$method}($field->property ?: $field->name, function ($query) use (
-            $value,
-            $relatedCollection,
-            $context,
-        ) {
-            if ($relatedCollection instanceof EloquentResource) {
-                $relatedCollection->scope($query, $context);
-            }
+        foreach ($value as $operator => $v) {
+            $method = in_array($operator, ['ne', 'notin', 'null']) ? 'whereDoesntHave' : 'whereHas';
 
-            if ($ids = $this->extractIds($value)) {
-                $query->whereKey($ids);
-                return;
-            }
-
-            apply_filters(
-                $query,
-                is_array($value) ? $value : (array) $value,
+            $query->{$method}($field->property ?: $field->name, function ($query) use (
+                $operator,
+                $v,
                 $relatedCollection,
-                $context->withCollection($relatedCollection),
-            );
-        });
-    }
+                $context,
+            ) {
+                if ($relatedCollection instanceof EloquentResource) {
+                    $relatedCollection->scope($query, $context);
+                }
 
-    private function resolveOperator(array|string $value): array
-    {
-        if (is_array($value) && !array_is_list($value)) {
-            $keys = array_keys($value);
+                if (in_array($operator, ['null', 'notnull'])) {
+                    return;
+                }
 
-            if (count($keys) === 1 && in_array($keys[0], ['eq', 'in', 'ne'])) {
-                return [$keys[0], $value[$keys[0]]];
-            }
+                if ($ids = $this->extractIds($v)) {
+                    $query->whereKey($ids);
+                    return;
+                }
+
+                apply_filters(
+                    $query,
+                    (array) $v,
+                    $relatedCollection,
+                    $context->withCollection($relatedCollection),
+                );
+            });
         }
-
-        return ['eq', $value];
     }
 
     private function extractIds(array|string $value): ?array

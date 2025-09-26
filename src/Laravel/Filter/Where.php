@@ -5,8 +5,25 @@ namespace Tobyz\JsonApiServer\Laravel\Filter;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 
-class Where extends EloquentFilter
+class Where extends ColumnFilter
 {
+    use SupportsOperators;
+
+    public const SUPPORTED_OPERATORS = [
+        'eq',
+        'ne',
+        'in',
+        'notin',
+        'lt',
+        'lte',
+        'gt',
+        'gte',
+        'like',
+        'notlike',
+        'null',
+        'notnull',
+    ];
+
     protected bool $asBoolean = false;
     protected bool $commaSeparated = false;
 
@@ -36,10 +53,7 @@ class Where extends EloquentFilter
             return;
         }
 
-        if (is_string($value) || array_is_list($value)) {
-            $this->applyEquals($query, $value);
-            return;
-        }
+        $value = $this->resolveOperators($value);
 
         foreach ($value as $operator => $v) {
             switch ($operator) {
@@ -70,7 +84,10 @@ class Where extends EloquentFilter
 
                 case 'null':
                 case 'notnull':
-                    $this->applyNull($query, $operator === 'null' ? (bool) $v : !$v);
+                    $this->applyNull(
+                        $query,
+                        $operator === 'null' xor !filter_var($value, FILTER_VALIDATE_BOOLEAN),
+                    );
                     break;
 
                 default:
