@@ -8,15 +8,9 @@ trait SupportsOperators
 {
     protected array $operators = self::SUPPORTED_OPERATORS;
 
-    public function operators(array $only = null): static
+    public function operators(array $only): static
     {
-        $supported = static::SUPPORTED_OPERATORS;
-
-        if ($only === null) {
-            return $supported;
-        }
-
-        $invalid = array_diff($only, $supported);
+        $invalid = array_diff($only, static::SUPPORTED_OPERATORS);
 
         if (!empty($invalid)) {
             throw new InvalidArgumentException(
