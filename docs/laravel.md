@@ -166,22 +166,27 @@ BooleanDateTime::make('isDeleted')
 The Laravel integration provides a number of filters for use in your Eloquent
 resources.
 
-### Where
+### Where Filters
 
 ```php
 Where::make('name');
 Where::make('id')->commaSeparated();
 Where::make('isConfirmed')->asBoolean();
-Where::make('score')->asNumeric();
-WhereBelongsTo::make('user');
-Has::make('hasComments');
-WhereHas::make('comments');
-WhereDoesntHave::make('comments');
-WhereNull::make('draft')->property('published_at');
-WhereNotNull::make('published')->property('published_at');
-Scope::make('withTrashed');
+WhereBelongsTo::make('author')->relationship('user');
+WhereExists::make('comments');
+WhereCount::make('commentCount')->relationship('comments');
+WhereHas::make('tags');
+WhereNull::make('draft')->column('published_at');
+WhereNotNull::make('published')->column('published_at');
+Scope::make('withTrashed')->asBoolean();
 Scope::make('trashed')->scope('onlyTrashed');
 ```
+
+### Boolean Filters
+
+`EloquentResource` implements
+`Tobyz\\JsonApiServer\\Resource\\SupportsBooleanFilters`, so you can combine
+filters with `[and]`, `[or]`, and `[not]` groups without extra configuration.
 
 ## Sort Fields
 
