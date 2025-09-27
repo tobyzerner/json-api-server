@@ -176,7 +176,7 @@ trait SavesData
         foreach ($context->fields($context->resource) as $field) {
             $empty = !has_value($data, $field);
 
-            if ($empty && (!$field->required || !$validateAll)) {
+            if ($empty && (!$field->isRequired($context) || !$validateAll)) {
                 continue;
             }
 
@@ -187,7 +187,7 @@ trait SavesData
                 ];
             };
 
-            if ($empty && $field->required) {
+            if ($empty && $field->isRequired($context)) {
                 $fail('field is required');
             } else {
                 $field->validateValue(get_value($data, $field), $fail, $context->withField($field));

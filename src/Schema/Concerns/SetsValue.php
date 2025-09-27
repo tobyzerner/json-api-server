@@ -11,7 +11,7 @@ trait SetsValue
 {
     public ?Closure $writable = null;
     public ?Closure $writableOnCreate = null;
-    public bool $required = false;
+    public ?Closure $required = null;
     public ?Closure $default = null;
     public ?Closure $deserializer = null;
     public ?Closure $setter = null;
@@ -41,9 +41,9 @@ trait SetsValue
     /**
      * Mark this field as required.
      */
-    public function required(bool $required = true): static
+    public function required(?Closure $condition = null): static
     {
-        $this->required = $required;
+        $this->required = $condition ?: fn() => true;
 
         return $this;
     }
@@ -119,6 +119,14 @@ trait SetsValue
     {
         return $this->isWritable($context) ||
             ($this->writableOnCreate && ($this->writableOnCreate)($context->model, $context));
+    }
+
+    /**
+     * Check if this field is required.
+     */
+    public function isRequired(): bool
+    {
+        return $this->required && ($this->required)();
     }
 
     /**

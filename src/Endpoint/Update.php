@@ -15,6 +15,7 @@ use Tobyz\JsonApiServer\OpenApi\OpenApiPathsProvider;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Updatable;
 use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
+use Tobyz\JsonApiServer\Schema\Concerns\HasSummary;
 use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 
 use function Tobyz\JsonApiServer\json_api_response;
@@ -25,6 +26,7 @@ class Update implements Endpoint, OpenApiPathsProvider
     use FindsResources;
     use SavesData;
     use ShowsResources;
+    use HasSummary;
     use HasDescription;
     use BuildsOpenApiPaths;
 
@@ -82,6 +84,7 @@ class Update implements Endpoint, OpenApiPathsProvider
         return [
             "/{$collection->name()}/{id}" => [
                 'patch' => [
+                    'summary' => $this->getSummary(),
                     'description' => $this->getDescription(),
                     'tags' => [$collection->name()],
                     'parameters' => [
@@ -95,6 +98,7 @@ class Update implements Endpoint, OpenApiPathsProvider
                     'requestBody' => [
                         'required' => true,
                         'content' => $this->buildOpenApiContent(
+                            $collection->name(),
                             array_map(
                                 fn($resource) => [
                                     '$ref' => "#/components/schemas/{$resource}Update",
@@ -105,13 +109,20 @@ class Update implements Endpoint, OpenApiPathsProvider
                     ],
                     'responses' => [
                         '200' => [
+                            'description' => 'Successful update response.',
                             'content' => $this->buildOpenApiContent(
+                                $collection->name(),
                                 array_map(
                                     fn($resource) => ['$ref' => "#/components/schemas/$resource"],
                                     $collection->resources(),
                                 ),
                             ),
                         ],
+                        '400' => $this->buildBadRequestErrorResponse(),
+                        '401' => $this->buildUnauthorizedErrorResponse(),
+                        '403' => $this->buildForbiddenErrorResponse(),
+                        '404' => $this->buildNotFoundErrorResponse(),
+                        '500' => $this->buildInternalServerErrorResponse(),
                     ],
                 ],
             ],

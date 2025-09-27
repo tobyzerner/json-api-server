@@ -134,7 +134,7 @@ abstract class Relationship extends Field
             parent::getSchema($api) + [
                 'type' => 'object',
                 'properties' => ['data' => $this->getDataSchema($api)],
-                'required' => $this->required ? ['data'] : [],
+                'required' => $this->isRequired() ? ['data'] : [],
             ];
     }
 

@@ -6,17 +6,21 @@ use Closure;
 use Nyholm\Psr7\Response;
 use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
 use Tobyz\JsonApiServer\OpenApi\OpenApiPathsProvider;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
+use Tobyz\JsonApiServer\Schema\Concerns\HasSummary;
 use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 
 class CollectionAction implements Endpoint, OpenApiPathsProvider
 {
     use HasVisibility;
+    use HasSummary;
     use HasDescription;
+    use BuildsOpenApiPaths;
 
     public string $method = 'POST';
 
@@ -52,9 +56,7 @@ class CollectionAction implements Endpoint, OpenApiPathsProvider
             throw new ForbiddenException();
         }
 
-        ($this->handler)($context);
-
-        return new Response(204);
+        return ($this->handler)($context) ?? new Response(204);
     }
 
     public function getOpenApiPaths(Collection $collection): array
@@ -62,10 +64,17 @@ class CollectionAction implements Endpoint, OpenApiPathsProvider
         return [
             "/{$collection->name()}/$this->name" => [
                 'post' => [
+                    'summary' => $this->getSummary(),
                     'description' => $this->getDescription(),
                     'tags' => [$collection->name()],
                     'responses' => [
-                        '204' => [],
+                        '204' => [
+                            'description' => 'No Content',
+                        ],
+                        '400' => $this->buildBadRequestErrorResponse(),
+                        '401' => $this->buildUnauthorizedErrorResponse(),
+                        '403' => $this->buildForbiddenErrorResponse(),
+                        '500' => $this->buildInternalServerErrorResponse(),
                     ],
                 ],
             ],

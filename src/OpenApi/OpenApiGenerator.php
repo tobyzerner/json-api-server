@@ -7,7 +7,7 @@ use Tobyz\JsonApiServer\Resource\Resource;
 
 use function Tobyz\JsonApiServer\location;
 
-class OpenApiGenerator
+class OpenApiGenerator implements GeneratorInterface
 {
     public function generate(JsonApi $api): array
     {
@@ -46,14 +46,14 @@ class OpenApiGenerator
 
                 if ($field->writable) {
                     $updateSchema[$location]['properties'][$field->name] = $fieldSchema;
-                    if ($field->required) {
+                    if ($field->isRequired()) {
                         $updateSchema[$location]['required'][] = $field->name;
                     }
                 }
 
-                if ($field->writableOnCreate) {
+                if ($field->writable || $field->writableOnCreate) {
                     $createSchema[$location]['properties'][$field->name] = $fieldSchema;
-                    if ($field->required) {
+                    if ($field->isRequired()) {
                         $createSchema[$location]['required'][] = $field->name;
                     }
                 }
@@ -62,14 +62,16 @@ class OpenApiGenerator
             $type = $resource->type();
 
             $schemas[$type] = $this->buildSchema($resource, $schema, [
+                'required' => ['id'],
                 'properties' => ['id' => ['type' => 'string', 'readOnly' => true]],
             ]);
 
-            $schemas["{$type}Create"] = $this->buildSchema($resource, $createSchema, [
-                'required' => ['type'],
-            ]);
+            $schemas["{$type}Create"] = $this->buildSchema($resource, $createSchema);
 
-            $schemas["{$type}Update"] = $this->buildSchema($resource, $updateSchema);
+            $schemas["{$type}Update"] = $this->buildSchema($resource, $updateSchema, [
+                'required' => ['type', 'id'],
+                'properties' => ['id' => ['type' => 'string']],
+            ]);
         }
 
         return array_filter([
@@ -88,13 +90,21 @@ class OpenApiGenerator
 
     private function buildSchema(Resource $resource, array $schema, array $overrides = []): array
     {
+        $hasAttributes = !empty($schema['attributes']);
+        $hasRelationships = !empty($schema['relationships']);
+
         return array_replace_recursive(
             [
                 'type' => 'object',
-                'required' => ['type', 'id'],
+                'required' => array_values(
+                    array_filter([
+                        'type',
+                        $hasAttributes ? 'attributes' : null,
+                        $hasRelationships ? 'relationships' : null,
+                    ])
+                ),
                 'properties' => [
                     'type' => ['type' => 'string', 'const' => $resource->type()],
-                    'id' => ['type' => 'string'],
                     'attributes' => ['type' => 'object'] + ($schema['attributes'] ?? []),
                     'relationships' => ['type' => 'object'] + ($schema['relationships'] ?? []),
                 ],

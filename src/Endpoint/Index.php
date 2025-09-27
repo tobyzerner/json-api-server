@@ -4,6 +4,7 @@ namespace Tobyz\JsonApiServer\Endpoint;
 
 use Closure;
 use Psr\Http\Message\ResponseInterface as Response;
+use ReflectionException;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
@@ -19,6 +20,7 @@ use Tobyz\JsonApiServer\Resource\Countable;
 use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
 use Tobyz\JsonApiServer\Schema\Concerns\HasMeta;
+use Tobyz\JsonApiServer\Schema\Concerns\HasSummary;
 use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 use Tobyz\JsonApiServer\Serializer;
 
@@ -31,6 +33,7 @@ class Index implements Endpoint, OpenApiPathsProvider
     use HasMeta;
     use HasVisibility;
     use IncludesData;
+    use HasSummary;
     use HasDescription;
     use BuildsOpenApiPaths;
 
@@ -173,23 +176,37 @@ class Index implements Endpoint, OpenApiPathsProvider
         }
     }
 
+    /**
+     * @throws ReflectionException
+     */
     public function getOpenApiPaths(Collection $collection): array
     {
         return [
             "/{$collection->name()}" => [
                 'get' => [
+                    'summary' => $this->getSummary(),
                     'description' => $this->getDescription(),
                     'tags' => [$collection->name()],
+                    'parameters' => $this->buildOpenApiParameters($collection),
                     'responses' => [
                         '200' => [
+                            'description' => 'Successful list all response.',
                             'content' => $this->buildOpenApiContent(
+                                $collection->name(),
                                 array_map(
                                     fn($resource) => ['$ref' => "#/components/schemas/$resource"],
                                     $collection->resources(),
                                 ),
                                 multiple: true,
+                                links: true,
+                                countable: true,
+                                paginatable: true,
                             ),
                         ],
+                        '400' => $this->buildBadRequestErrorResponse(),
+                        '401' => $this->buildUnauthorizedErrorResponse(),
+                        '403' => $this->buildForbiddenErrorResponse(),
+                        '500' => $this->buildInternalServerErrorResponse(),
                     ],
                 ],
             ],
