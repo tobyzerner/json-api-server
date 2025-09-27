@@ -218,6 +218,38 @@ GET /posts?filter[name]=Toby
 GET /posts?filter[name][]=Toby&filter[name][]=Franz
 ```
 
+### Boolean Filters
+
+By default it is assumed that each filter applied to the query will be combined
+with a logical `AND`. When a resource implements
+`Tobyz\\JsonApiServer\\Resource\\SupportsBooleanFilters` you can express more
+complex logic with `AND`, `OR`, and `NOT` groups.
+
+Boolean groups are expressed by nesting objects under the `filter` parameter.
+You may use either associative objects or indexed lists of clauses. Each clause
+can be another filter or another boolean group.
+
+```http
+GET /posts
+  ?filter[and][0][status]=published
+  &filter[and][1][or][0][views][gt]=100
+  &filter[and][1][or][1][not][status]=archived
+```
+
+In this request every result must be published, and it must also either have
+more than 100 views or it is not archived.
+
+```http
+GET /posts
+  ?filter[or][0][status]=draft
+  &filter[or][1][status]=published
+  &filter[or][1][not][comments]=0
+```
+
+This request returns drafts, or posts that are published and have comments. The
+second example also shows that in certain cases you can omit `[and]` groups and
+numeric indices; sibling filters at the same level default to `AND` behaviour.
+
 ### Writing Filters
 
 To create your own filter class, extend the `Tobyz\JsonApiServer\Schema\Filter`

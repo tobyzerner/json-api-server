@@ -11,6 +11,7 @@ use Tobyz\JsonApiServer\Resource\Deletable;
 use Tobyz\JsonApiServer\Resource\Findable;
 use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Resource\Paginatable;
+use Tobyz\JsonApiServer\Resource\SupportsBooleanFilters;
 use Tobyz\JsonApiServer\Resource\Updatable;
 use Tobyz\JsonApiServer\Schema\Field\Field;
 
@@ -21,7 +22,8 @@ class MockResource extends AbstractResource implements
     Paginatable,
     Creatable,
     Updatable,
-    Deletable
+    Deletable,
+    SupportsBooleanFilters
 {
     public function __construct(
         private readonly string $type,
@@ -137,5 +139,54 @@ class MockResource extends AbstractResource implements
     public function delete(object $model, Context $context): void
     {
         $this->models = array_filter($this->models, fn($m) => $m !== $model);
+    }
+
+    public function filterOr(object $query, array $clauses): void
+    {
+        if ($clauses === []) {
+            return;
+        }
+
+        $originalModels = $query->models;
+        $result = [];
+
+        foreach ($clauses as $clause) {
+            $branchQuery = clone $query;
+            $branchQuery->models = $originalModels;
+
+            $clause($branchQuery);
+
+            foreach ($branchQuery->models as $model) {
+                $result[spl_object_id($model)] = $model;
+            }
+        }
+
+        $query->models = array_values($result);
+    }
+
+    public function filterNot(object $query, array $clauses): void
+    {
+        if ($clauses === []) {
+            return;
+        }
+
+        $originalModels = $query->models;
+
+        $branchQuery = clone $query;
+        $branchQuery->models = $originalModels;
+
+        foreach ($clauses as $clause) {
+            $clause($branchQuery);
+        }
+
+        $excluded = [];
+
+        foreach ($branchQuery->models as $model) {
+            $excluded[spl_object_id($model)] = true;
+        }
+
+        $query->models = array_values(
+            array_filter($query->models, fn($model) => !isset($excluded[spl_object_id($model)])),
+        );
     }
 }

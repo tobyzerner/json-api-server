@@ -8,8 +8,13 @@ use Tobyz\JsonApiServer\Schema\Filter;
 
 class Scope extends Filter
 {
+    use SupportsOperators;
+
+    public const SUPPORTED_OPERATORS = ['eq', 'ne'];
+
     protected null|string|Closure $scope = null;
     protected bool $asBoolean = false;
+    protected bool $commaSeparated = false;
 
     public static function make(string $name): static
     {
@@ -30,6 +35,13 @@ class Scope extends Filter
         return $this;
     }
 
+    public function commaSeparated(): static
+    {
+        $this->commaSeparated = true;
+
+        return $this;
+    }
+
     public function apply(object $query, array|string $value, Context $context): void
     {
         $scope = $this->scope ?: $this->name;
@@ -46,8 +58,26 @@ class Scope extends Filter
             } else {
                 $query->whereNot(fn($query) => $scope($query));
             }
-        } else {
-            $scope($query, $value);
+            return;
         }
+
+        foreach ($this->resolveOperators($value) as $operator => $val) {
+            $val = $this->splitCommaSeparated($val);
+
+            if ($operator === 'ne') {
+                $query->whereNot(fn($query) => $scope($query, $val));
+            } else {
+                $scope($query, $val);
+            }
+        }
+    }
+
+    private function splitCommaSeparated(array|string $value): array|string
+    {
+        if ($this->commaSeparated && is_string($value)) {
+            return explode(',', $value);
+        }
+
+        return $value;
     }
 }

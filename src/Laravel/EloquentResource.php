@@ -18,6 +18,7 @@ use Tobyz\JsonApiServer\Resource\Deletable;
 use Tobyz\JsonApiServer\Resource\Findable;
 use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Resource\Paginatable;
+use Tobyz\JsonApiServer\Resource\SupportsBooleanFilters;
 use Tobyz\JsonApiServer\Resource\Updatable;
 use Tobyz\JsonApiServer\Schema\Field\Attribute;
 use Tobyz\JsonApiServer\Schema\Field\Field;
@@ -32,7 +33,8 @@ abstract class EloquentResource extends AbstractResource implements
     Paginatable,
     Creatable,
     Updatable,
-    Deletable
+    Deletable,
+    SupportsBooleanFilters
 {
     public function resource(object $model, Context $context): ?string
     {
@@ -238,6 +240,34 @@ abstract class EloquentResource extends AbstractResource implements
     public function delete(object $model, Context $context): void
     {
         $model->delete();
+    }
+
+    public function filterOr(object $query, array $clauses): void
+    {
+        if (!$clauses) {
+            return;
+        }
+
+        $query->where(function ($query) use ($clauses) {
+            foreach ($clauses as $clause) {
+                $query->orWhere(function ($nested) use ($clause) {
+                    $clause($nested);
+                });
+            }
+        });
+    }
+
+    public function filterNot(object $query, array $clauses): void
+    {
+        if (!$clauses) {
+            return;
+        }
+
+        $query->whereNot(function ($nested) use ($clauses) {
+            foreach ($clauses as $clause) {
+                $clause($nested);
+            }
+        });
     }
 
     /**

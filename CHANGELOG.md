@@ -8,6 +8,25 @@ and this project adheres to
 
 ## [Unreleased]
 
+### ⚠️ Breaking Changes
+
+- `Tobyz\\JsonApiServer\\Laravel\\Filter\\EloquentFilter` renamed to
+  `ColumnFilter`.
+- Remove the `Has` Laravel filter; use `WhereExists` instead.
+- Remove the `WhereDoesntHave` Laravel filter; use the operator support on
+  `WhereHas` instead.
+- Remove `Where::asNumber()`; express numeric comparisons with operators such as
+  `filter[score][gt]=...` or `filter[score][lte]=...`.
+
+### Added
+
+- Add support for boolean filter groups (`filter[and]`, `filter[or]`,
+  `filter[not]`) for resources that implement the `SupportsBooleanFilters`
+  interface
+- Laravel: Add support for boolean filter groups to `EloquentResource`
+- Laravel: Overhaul filter implementations to support operators like `eq`, `ne`,
+  `in`, `lt`, `lte`, `gt`, `gte`, `like`, `notlike`, `null`, and `notnull`
+
 ## [1.0.0-beta.4] - 2025-05-02
 
 ### Added
