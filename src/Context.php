@@ -2,6 +2,7 @@
 
 namespace Tobyz\JsonApiServer;
 
+use ArrayObject;
 use Psr\Http\Message\ServerRequestInterface;
 use Tobyz\JsonApiServer\Endpoint\Endpoint;
 use Tobyz\JsonApiServer\Resource\Collection;
@@ -19,6 +20,9 @@ class Context
     public mixed $model = null;
     public ?Field $field = null;
     public ?array $include = null;
+    public ArrayObject $documentMeta;
+    public ArrayObject $documentLinks;
+    public WeakMap $resourceMeta;
 
     private ?array $body;
     private ?string $path;
@@ -30,6 +34,11 @@ class Context
     {
         $this->fields = new WeakMap();
         $this->sparseFields = new WeakMap();
+
+        $this->documentMeta = new ArrayObject();
+        $this->documentLinks = new ArrayObject();
+
+        $this->resourceMeta = new WeakMap();
     }
 
     /**
@@ -218,5 +227,12 @@ class Context
         $new = clone $this;
         $new->include = $include;
         return $new;
+    }
+
+    public function resourceMeta($model, array $meta): static
+    {
+        $this->resourceMeta[$model] = array_merge($this->resourceMeta[$model] ?? [], $meta);
+
+        return $this;
     }
 }

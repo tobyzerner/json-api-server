@@ -8,12 +8,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Pagination\Cursor;
+use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Support\Str;
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Pagination\OffsetPagination;
+use Tobyz\JsonApiServer\Pagination\Exception\RangePaginationNotSupportedException;
+use Tobyz\JsonApiServer\Pagination\Page;
 use Tobyz\JsonApiServer\Resource\AbstractResource;
 use Tobyz\JsonApiServer\Resource\Countable;
 use Tobyz\JsonApiServer\Resource\Creatable;
+use Tobyz\JsonApiServer\Resource\CursorPaginatable;
 use Tobyz\JsonApiServer\Resource\Deletable;
 use Tobyz\JsonApiServer\Resource\Findable;
 use Tobyz\JsonApiServer\Resource\Listable;
@@ -30,6 +34,7 @@ abstract class EloquentResource extends AbstractResource implements
     Findable,
     Listable,
     Countable,
+    CursorPaginatable,
     Paginatable,
     Creatable,
     Updatable,
@@ -127,9 +132,45 @@ abstract class EloquentResource extends AbstractResource implements
         return $query->get()->all();
     }
 
-    public function paginate(object $query, OffsetPagination $pagination): void
+    public function paginate(object $query, int $offset, int $limit, Context $context): Page
     {
-        $query->take($pagination->limit)->skip($pagination->offset);
+        $results = $this->results($query->take($limit + 1)->skip($offset), $context);
+
+        return new Page(array_slice($results, 0, $limit), isLastPage: count($results) <= $limit);
+    }
+
+    public function cursorPaginate(
+        object $query,
+        int $size,
+        ?string $after,
+        ?string $before,
+        Context $context,
+    ): Page {
+        if ($after && $before) {
+            throw new RangePaginationNotSupportedException();
+        }
+
+        if ($cursor = Cursor::fromEncoded($after ?: $before)) {
+            $cursor = new Cursor($cursor->toArray(), (bool) $after);
+        }
+
+        $paginator = $query->cursorPaginate(perPage: $size, cursor: $cursor);
+
+        return new Page($paginator->items(), $paginator->onFirstPage(), $paginator->onLastPage());
+    }
+
+    public function itemCursor($model, object $query, Context $context): string
+    {
+        $baseQuery = $query->toBase();
+        $orders = $baseQuery->unionOrders ?: $baseQuery->orders;
+
+        $paginator = new CursorPaginator(
+            [],
+            1,
+            options: ['parameters' => array_column($orders, 'column')],
+        );
+
+        return $paginator->getCursorForItem($model)->encode();
     }
 
     public function count(object $query, Context $context): ?int

@@ -4,7 +4,7 @@ namespace Tobyz\JsonApiServer\Laravel;
 
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Pagination\OffsetPagination;
+use Tobyz\JsonApiServer\Pagination\Page;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Countable;
 use Tobyz\JsonApiServer\Resource\Listable;
@@ -95,9 +95,11 @@ abstract class EloquentCollection implements Collection, Listable, Paginatable, 
         return [];
     }
 
-    public function paginate(object $query, OffsetPagination $pagination): void
+    public function paginate(object $query, int $offset, int $limit, Context $context): Page
     {
-        $query->take($pagination->limit)->skip($pagination->offset);
+        $results = $this->results($query->take($limit + 1)->skip($offset), $context);
+
+        return new Page(array_slice($results, 0, $limit), isLastPage: count($results) <= $limit);
     }
 
     public function count(object $query, Context $context): ?int

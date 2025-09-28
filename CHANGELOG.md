@@ -8,17 +8,37 @@ and this project adheres to
 
 ## [Unreleased]
 
+### ⚠️ Breaking Changes
+
+- Change `Resource\Paginatable::paginate()` to accept the resolved offset and
+  limit integers (plus the request context) and return the page of results
+  instead of mutating the query in place
+- New contract for custom `Pagination` implementations:
+    - Return results from the `paginate(object $query, Context $context): Page`
+    - Add `meta` and `links` via the `Context` object
+
+### Added
+
+- Add cursor pagination support via `Endpoint\Index::cursorPaginate()` and the
+  `Resource\CursorPaginatable` contract, following the
+  `ethanresnick/cursor-pagination` profile
+- Introduce `MaxPageSizeExceededException` and
+  `RangePaginationNotSupportedException` with JSON:API profile links for cursor
+  pagination errors
+- Allow exceptions to attach `meta` and `links` members to the error response
+- Add `Context::$meta` and `Context::$links` as `ArrayObject` instances to allow
+  callbacks to add meta information to the response document
+
 ## [1.0.0-beta.5] - 2025-09-27
 
 ### ⚠️ Breaking Changes
 
-- `Tobyz\\JsonApiServer\\Laravel\\Filter\\EloquentFilter` renamed to
-  `ColumnFilter`.
-- Remove the `Has` Laravel filter; use `WhereExists` instead.
+- `Tobyz\JsonApiServer\Laravel\Filter\EloquentFilter` renamed to `ColumnFilter`
+- Remove the `Has` Laravel filter; use `WhereExists` instead
 - Remove the `WhereDoesntHave` Laravel filter; use the operator support on
-  `WhereHas` instead.
+  `WhereHas` instead
 - Remove `Where::asNumber()`; express numeric comparisons with operators such as
-  `filter[score][gt]=...` or `filter[score][lte]=...`.
+  `filter[score][gt]=...` or `filter[score][lte]=...`
 
 ### Added
 

@@ -3,10 +3,13 @@
 namespace Tobyz\Tests\JsonApiServer;
 
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Pagination\OffsetPagination;
+use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Pagination\Exception\RangePaginationNotSupportedException;
+use Tobyz\JsonApiServer\Pagination\Page;
 use Tobyz\JsonApiServer\Resource\AbstractResource;
 use Tobyz\JsonApiServer\Resource\Countable;
 use Tobyz\JsonApiServer\Resource\Creatable;
+use Tobyz\JsonApiServer\Resource\CursorPaginatable;
 use Tobyz\JsonApiServer\Resource\Deletable;
 use Tobyz\JsonApiServer\Resource\Findable;
 use Tobyz\JsonApiServer\Resource\Listable;
@@ -20,6 +23,7 @@ class MockResource extends AbstractResource implements
     Listable,
     Countable,
     Paginatable,
+    CursorPaginatable,
     Creatable,
     Updatable,
     Deletable,
@@ -82,9 +86,79 @@ class MockResource extends AbstractResource implements
         return null;
     }
 
-    public function paginate(object $query, OffsetPagination $pagination): void
+    public function paginate(object $query, int $offset, int $limit, Context $context): Page
     {
-        $query->models = array_slice($query->models, $pagination->offset, $pagination->limit);
+        $query->models = array_slice($query->models, $offset, $limit + 1);
+
+        $results = $this->results($query, $context);
+
+        return new Page(array_slice($results, 0, $limit), $offset === 0, count($results) <= $limit);
+    }
+
+    public function cursorPaginate(
+        object $query,
+        int $size,
+        ?string $after,
+        ?string $before,
+        Context $context,
+    ): Page {
+        if ($before && $after) {
+            throw new RangePaginationNotSupportedException();
+        }
+
+        $models = $query->models;
+
+        [$startIndex, $endIndex] = $this->determineBounds($models, $after, $before);
+
+        $range = array_slice($models, $startIndex, max(0, $endIndex - $startIndex));
+
+        if ($before !== null && $after === null) {
+            $slice = array_slice($range, max(0, count($range) - $size), $size);
+        } else {
+            $slice = array_slice($range, 0, $size);
+        }
+
+        $rangeTruncated = count($range) > count($slice);
+
+        $slice = array_values($slice);
+
+        return new Page($slice, $slice[0] === $models[0], !$rangeTruncated);
+    }
+
+    public function itemCursor($model, object $query, Context $context): string
+    {
+        return $model->id;
+    }
+
+    private function determineBounds(array $models, ?string $after, ?string $before): array
+    {
+        $startIndex = 0;
+
+        if ($after !== null) {
+            $afterIndex = $this->indexForCursor($models, $after, '[after]');
+            $startIndex = $afterIndex + 1;
+        }
+
+        $endIndex = count($models);
+
+        if ($before !== null) {
+            $endIndex = $this->indexForCursor($models, $before, '[before]');
+        }
+
+        return [$startIndex, max($startIndex, $endIndex)];
+    }
+
+    private function indexForCursor(array $models, string $cursor, string $parameter): int
+    {
+        foreach ($models as $index => $model) {
+            if (($model->id ?? null) === $cursor) {
+                return $index;
+            }
+        }
+
+        throw (new BadRequestException(sprintf('Unknown cursor "%s"', $cursor)))->setSource([
+            'parameter' => $parameter,
+        ]);
     }
 
     public function results(object $query, Context $context): array

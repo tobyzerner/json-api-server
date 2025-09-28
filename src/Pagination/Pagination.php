@@ -2,9 +2,9 @@
 
 namespace Tobyz\JsonApiServer\Pagination;
 
+use Tobyz\JsonApiServer\Context;
+
 interface Pagination
 {
-    public function meta(): array;
-
-    public function links(int $count, ?int $total): array;
+    public function paginate(object $query, Context $context): array;
 }

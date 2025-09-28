@@ -2,7 +2,6 @@
 
 namespace Tobyz\JsonApiServer\Endpoint;
 
-use Closure;
 use Psr\Http\Message\ResponseInterface as Response;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
@@ -13,7 +12,9 @@ use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
 use Tobyz\JsonApiServer\Exception\Sourceable;
 use Tobyz\JsonApiServer\OpenApi\OpenApiPathsProvider;
+use Tobyz\JsonApiServer\Pagination\CursorPagination;
 use Tobyz\JsonApiServer\Pagination\OffsetPagination;
+use Tobyz\JsonApiServer\Pagination\Pagination;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Countable;
 use Tobyz\JsonApiServer\Resource\Listable;
@@ -34,26 +35,24 @@ class Index implements Endpoint, OpenApiPathsProvider
     use HasDescription;
     use BuildsOpenApiPaths;
 
-    public Closure $paginationResolver;
+    public ?Pagination $pagination = null;
     public ?string $defaultSort = null;
-
-    public function __construct()
-    {
-        $this->paginationResolver = fn() => null;
-    }
 
     public static function make(): static
     {
         return new static();
     }
 
-    public function paginate(int $defaultLimit = 20, int $maxLimit = 50): static
+    public function paginate(int $defaultLimit = 20, ?int $maxLimit = 50): static
     {
-        $this->paginationResolver = fn(Context $context) => new OffsetPagination(
-            $context,
-            $defaultLimit,
-            $maxLimit,
-        );
+        $this->pagination = new OffsetPagination($defaultLimit, $maxLimit);
+
+        return $this;
+    }
+
+    public function cursorPaginate(int $defaultSize = 20, ?int $maxSize = 50): static
+    {
+        $this->pagination = new CursorPagination($defaultSize, $maxSize);
 
         return $this;
     }
@@ -94,21 +93,18 @@ class Index implements Endpoint, OpenApiPathsProvider
         $this->applySorts($query, $context);
         $this->applyFilters($query, $context);
 
-        $meta = $this->serializeMeta($context);
-        $links = [];
-
         if (
             $collection instanceof Countable &&
             !is_null($total = $collection->count($query, $context))
         ) {
-            $meta['page']['total'] = $collection->count($query, $context);
+            $context->documentMeta['page']['total'] = $total;
         }
 
-        if ($pagination = ($this->paginationResolver)($context)) {
-            $pagination->apply($query);
+        if ($this->pagination) {
+            $models = $this->pagination->paginate($query, $context);
+        } else {
+            $models = $collection->results($query, $context);
         }
-
-        $models = $collection->results($query, $context);
 
         $serializer = new Serializer($context);
 
@@ -124,10 +120,13 @@ class Index implements Endpoint, OpenApiPathsProvider
 
         [$data, $included] = $serializer->serialize();
 
-        if ($pagination) {
-            $meta['page'] = array_merge($meta['page'] ?? [], $pagination->meta());
-            $links = array_merge($links, $pagination->links(count($data), $total ?? null));
+        $meta = $context->documentMeta;
+
+        foreach ($this->serializeMeta($context) as $key => $value) {
+            $meta[$key] = $value;
         }
+
+        $links = $context->documentLinks;
 
         return json_api_response(compact('data', 'included', 'meta', 'links'));
     }

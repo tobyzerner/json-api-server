@@ -14,7 +14,7 @@ interface Listable
     public function query(Context $context): object;
 
     /**
-     * Get results from the given query.
+     * Get all results from the given query.
      */
     public function results(object $query, Context $context): array;
 

@@ -7,6 +7,8 @@ use ReflectionClass;
 trait SingleError
 {
     protected ?array $source = null;
+    protected ?array $meta = null;
+    protected ?array $links = null;
 
     public function setSource(?array $source): static
     {
@@ -24,6 +26,20 @@ trait SingleError
         return $this;
     }
 
+    public function setMeta(?array $meta): static
+    {
+        $this->meta = $meta;
+
+        return $this;
+    }
+
+    public function setLinks(?array $links): static
+    {
+        $this->links = $links;
+
+        return $this;
+    }
+
     public function getJsonApiErrors(): array
     {
         $members = [];
@@ -34,6 +50,14 @@ trait SingleError
 
         if ($this->source) {
             $members['source'] = $this->source;
+        }
+
+        if ($this->meta) {
+            $members['meta'] = $this->meta;
+        }
+
+        if ($this->links) {
+            $members['links'] = $this->links;
         }
 
         return [

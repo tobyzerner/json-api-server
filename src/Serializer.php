@@ -115,6 +115,10 @@ class Serializer
             });
         }
 
+        foreach ($context->resourceMeta[$model] ?? [] as $k => $v) {
+            $this->map[$key]['meta'][$k] = $v;
+        }
+
         return $this->map[$key];
     }
 

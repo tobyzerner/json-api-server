@@ -5,25 +5,26 @@ namespace Tobyz\JsonApiServer\Pagination;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Pagination\Concerns\BuildsUrls;
+use Tobyz\JsonApiServer\Pagination\Concerns\HasSizeParameter;
 use Tobyz\JsonApiServer\Resource\Paginatable;
 
 class OffsetPagination implements Pagination
 {
-    public int $offset;
-    public int $limit;
+    use HasSizeParameter;
+    use BuildsUrls;
 
-    public function __construct(
-        public Context $context,
-        public int $defaultLimit = 20,
-        public int $maxLimit = 50,
-    ) {
-        $this->offset = $this->getOffset($context);
-        $this->limit = $this->getLimit($context);
+    public function __construct(int $defaultLimit = 20, ?int $maxLimit = 50)
+    {
+        $this->configureSizeParameter($defaultLimit, $maxLimit);
     }
 
-    public function apply($query): void
+    public function paginate(object $query, Context $context): array
     {
-        $collection = $this->context->collection;
+        $offset = $this->getOffset($context);
+        $limit = $this->getSize($context, 'limit');
+
+        $collection = $context->collection;
 
         if (!$collection instanceof Paginatable) {
             throw new RuntimeException(
@@ -31,74 +32,42 @@ class OffsetPagination implements Pagination
             );
         }
 
-        $collection->paginate($query, $this);
-    }
+        $page = $collection->paginate($query, $offset, $limit, $context);
 
-    public function meta(): array
-    {
-        return [
-            'offset' => $this->offset,
-            'limit' => $this->limit,
-        ];
-    }
+        if ($page->isFirstPage !== true && $offset > 0) {
+            $context->documentLinks['first'] = $this->buildUrl(
+                ['page' => ['offset' => null]],
+                $context,
+            );
 
-    public function links(int $count, ?int $total): array
-    {
-        $links = [];
-
-        if ($this->offset > 0) {
-            $links['first'] = $this->buildUrl(['page' => ['offset' => 0]]);
-
-            $prevOffset = $this->offset - $this->limit;
+            $prevOffset = $offset - $limit;
 
             if ($prevOffset < 0) {
-                $params = ['page' => ['offset' => 0, 'limit' => $this->offset]];
+                $params = ['page' => ['offset' => null, 'limit' => $offset]];
             } else {
-                $params = ['page' => ['offset' => max(0, $prevOffset)]];
+                $params = ['page' => ['offset' => max(0, $prevOffset) ?: null]];
             }
 
-            $links['prev'] = $this->buildUrl($params);
+            $context->documentLinks['prev'] = $this->buildUrl($params, $context);
         }
 
-        if ($total !== null && $this->limit && $this->offset + $this->limit < $total) {
-            $links['last'] = $this->buildUrl([
-                'page' => ['offset' => floor(($total - 1) / $this->limit) * $this->limit],
-            ]);
+        $total = $context->documentMeta['page']['total'] ?? null;
+
+        if ($total !== null && $limit && $offset + $limit < $total) {
+            $context->documentLinks['last'] = $this->buildUrl(
+                ['page' => ['offset' => floor(($total - 1) / $limit) * $limit ?: null]],
+                $context,
+            );
         }
 
-        if (($total === null && $count === $this->limit) || $this->offset + $count < $total) {
-            $links['next'] = $this->buildUrl([
-                'page' => ['offset' => $this->offset + $this->limit],
-            ]);
+        if (!$page->isLastPage) {
+            $context->documentLinks['next'] = $this->buildUrl(
+                ['page' => ['offset' => $offset + $limit]],
+                $context,
+            );
         }
 
-        return $links;
-    }
-
-    private function buildUrl(array $overrideParams = []): string
-    {
-        [$selfUrl] = explode('?', $this->context->request->getUri(), 2);
-
-        $queryParams = array_replace_recursive(
-            $this->context->request->getQueryParams(),
-            $overrideParams,
-        );
-
-        if (isset($queryParams['page']['offset']) && $queryParams['page']['offset'] <= 0) {
-            unset($queryParams['page']['offset']);
-        }
-
-        if (isset($queryParams['filter'])) {
-            foreach ($queryParams['filter'] as $k => &$v) {
-                $v = $v === null ? '' : $v;
-            }
-        }
-
-        ksort($queryParams);
-
-        $queryString = http_build_query($queryParams, '', '&', PHP_QUERY_RFC3986);
-
-        return $selfUrl . ($queryString ? '?' . $queryString : '');
+        return $page->results;
     }
 
     private function getOffset(Context $context): int
@@ -107,33 +76,12 @@ class OffsetPagination implements Pagination
             if (preg_match('/\D+/', $offset) || $offset < 0) {
                 throw (new BadRequestException(
                     'page[offset] must be a non-negative integer',
-                ))->setSource([
-                    'parameter' => 'page[offset]',
-                ]);
+                ))->setSource(['parameter' => 'page[offset]']);
             }
 
             return $offset;
         }
 
         return 0;
-    }
-
-    private function getLimit(Context $context): int
-    {
-        if ($limit = $context->queryParam('page')['limit'] ?? null) {
-            if (preg_match('/\D+/', $limit) || $limit < 1) {
-                throw (new BadRequestException(
-                    'page[limit] must be a positive integer',
-                ))->setSource(['parameter' => 'page[limit]']);
-            }
-
-            if ($this->maxLimit) {
-                $limit = min($this->maxLimit, $limit);
-            }
-
-            return $limit;
-        }
-
-        return $this->defaultLimit;
     }
 }

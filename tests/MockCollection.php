@@ -3,7 +3,7 @@
 namespace Tobyz\Tests\JsonApiServer;
 
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Pagination\OffsetPagination;
+use Tobyz\JsonApiServer\Pagination\Page;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Resource\Paginatable;
@@ -63,9 +63,13 @@ class MockCollection implements Collection, Listable, Paginatable
         ];
     }
 
-    public function paginate(object $query, OffsetPagination $pagination): void
+    public function paginate(object $query, int $offset, int $limit, Context $context): Page
     {
-        $query->models = array_slice($query->models, $pagination->offset, $pagination->limit);
+        $query->models = array_slice($query->models, $offset, $limit + 1);
+
+        $results = $this->results($query, $context);
+
+        return new Page(array_slice($results, 0, $limit), count($results) > $limit);
     }
 
     public function results(object $query, Context $context): array

@@ -288,9 +288,11 @@ The JSON:API specification reserves the `page` query parameter for
 [paginating collections](https://jsonapi.org/format/#fetching-pagination). The
 specification is agnostic about the pagination strategy used by the server.
 
-Currently json-api-server supports an offset pagination strategy, using the
-`page[limit]` and `page[offset]` query parameters. Support for cursor pagination
-is planned.
+json-api-server supports both offset and cursor pagination strategies. Offset
+pagination uses the `page[limit]` and `page[offset]` query parameters, while
+cursor pagination follows the
+[`ethanresnick/cursor-pagination` profile](https://jsonapi.org/profiles/ethanresnick/cursor-pagination/)
+and relies on the `page[size]`, `page[after]`, and `page[before]` parameters.
 
 ### Offset Pagination
 
@@ -306,25 +308,83 @@ is 50. If you would like to use different values, pass them as arguments to the
 `paginate` method:
 
 ```php
-Index::make()->paginate(10, 100);
+Index::make()->paginate(defaultLimit: 10, maxLimit: 100);
 ```
 
 You will also need to implement the `Tobyz\JsonApiServer\Resource\Paginatable`
-interface on your resource and specify how the limit and offset values should be
-applied to your query:
+interface on your resource and return a page of results:
 
 ```php
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Pagination\OffsetPagination;
+use Tobyz\JsonApiServer\Pagination\Page;
 use Tobyz\JsonApiServer\Resource\{Listable, Paginatable, AbstractResource};
 
 class PostsResource extends AbstractResource implements Listable, Paginatable
 {
-    // ...
+    public function paginate(
+        object $query,
+        int $offset,
+        int $limit,
+        Context $context,
+    ): Page {
+        return new Page(
+            results: $this->results(
+                $query->offset($offset)->limit($limit + 1),
+                $context,
+            ),
+            isLastPage: count($results) <= $limit,
+        );
+    }
+}
+```
 
-    public function paginate(object $query, OffsetPagination $pagination): void
+### Cursor Pagination
+
+Cursor pagination is enabled by calling the `cursorPaginate` method on the
+`Index` endpoint:
+
+```php
+Index::make()->cursorPaginate();
+```
+
+By default the page size is 20 with a maximum of 50. You can customise these
+values by passing arguments:
+
+```php
+Index::make()->cursorPaginate(defaultSize: 25, maxSize: 100);
+```
+
+Cursor pagination requires implementing the
+`Tobyz\JsonApiServer\Resource\CursorPaginatable` interface on the resource. The
+`cursorPaginate` method must return page of results, while the `itemCursor`
+method must return a cursor for the given model/query.
+
+```php
+use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Pagination\CursorPagination;
+use Tobyz\JsonApiServer\Pagination\Page;
+use Tobyz\JsonApiServer\Resource\CursorPaginatable;
+
+class PostsResource extends AbstractResource implements
+    Listable,
+    CursorPaginatable
+{
+    public function cursorPaginate(
+        object $query,
+        int $size,
+        ?string $after,
+        ?string $before,
+        Context $context,
+    ): Page {
+        // ...
+
+        return new Page($results, $isFirstPage, $isLastPage);
+    }
+
+    public function itemCursor($model, object $query, Context $context): string
     {
-        $query->offset($pagination->offset)->limit($pagination->limit);
+        // ...
     }
 }
 ```
