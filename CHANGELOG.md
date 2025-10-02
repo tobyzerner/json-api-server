@@ -348,7 +348,8 @@ Still to come:
 
 - Fix pagination next link appearing when it shouldn't
 
-[1.0.0-beta.6]: https://github.com/tobyzerner/json-api-server/compare/v1.0.0-beta.5...v1.0.0-beta.6
+[1.0.0-beta.6]:
+    https://github.com/tobyzerner/json-api-server/compare/v1.0.0-beta.5...v1.0.0-beta.6
 [1.0.0-beta.5]:
     https://github.com/tobyzerner/json-api-server/compare/v1.0.0-beta.4...v1.0.0-beta.5
 [1.0.0-beta.4]:
@@ -389,5 +390,5 @@ Still to come:
     https://github.com/tobyzerner/json-api-server/compare/v1.0.0-beta.4...HEAD
 [unreleased]:
     https://github.com/tobyzerner/json-api-server/compare/v1.0.0-beta.5...HEAD
-
-[unreleased]: https://github.com/tobyzerner/json-api-server/compare/v1.0.0-beta.6...HEAD
+[unreleased]:
+    https://github.com/tobyzerner/json-api-server/compare/v1.0.0-beta.6...HEAD

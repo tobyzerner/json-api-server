@@ -58,7 +58,11 @@ class UpdatingRelationshipsTest extends AbstractTestCase
                 'users',
                 models: [(object) ['id' => '1']],
                 endpoints: [Update::make()],
-                fields: [ToMany::make('pets')->writable()->attachable()],
+                fields: [
+                    ToMany::make('pets')
+                        ->writable()
+                        ->attachable(),
+                ],
             ),
         );
 
@@ -91,7 +95,11 @@ class UpdatingRelationshipsTest extends AbstractTestCase
                 'users',
                 models: [(object) ['id' => '1', 'pets' => [$pet]]],
                 endpoints: [Update::make()],
-                fields: [ToMany::make('pets')->writable()->attachable()],
+                fields: [
+                    ToMany::make('pets')
+                        ->writable()
+                        ->attachable(),
+                ],
             ),
         );
 
@@ -124,7 +132,11 @@ class UpdatingRelationshipsTest extends AbstractTestCase
                 'users',
                 models: [(object) ['id' => '1', 'pets' => [$pet1, $pet2]]],
                 endpoints: [Update::make()],
-                fields: [ToMany::make('pets')->writable()->attachable()],
+                fields: [
+                    ToMany::make('pets')
+                        ->writable()
+                        ->attachable(),
+                ],
             ),
         );
 
@@ -197,9 +209,7 @@ class UpdatingRelationshipsTest extends AbstractTestCase
                 'users',
                 models: [(object) ['id' => '1', 'pets' => [$pet1]]],
                 endpoints: [Update::make()],
-                fields: [
-                    ToMany::make('pets')->writable(),
-                ],
+                fields: [ToMany::make('pets')->writable()],
             ),
         );
 
