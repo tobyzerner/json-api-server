@@ -56,7 +56,7 @@ class OpenApiGenerator
 
             foreach ([$id, ...$resource->fields()] as $field) {
                 $location = $field::location();
-                $valueSchema = $field->getSchema($api);
+                $valueSchema = (object) $field->getSchema($api);
 
                 if ($field instanceof Relationship) {
                     $relationshipSchema = "{$type}_{$field->name}";

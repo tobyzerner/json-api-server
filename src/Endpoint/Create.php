@@ -109,17 +109,19 @@ class Create implements Endpoint, OpenApiPathsProvider
 
     public function getOpenApiPaths(Collection $collection, JsonApi $api): array
     {
+        $type = $collection->name();
+
         return [
-            "/{$collection->name()}" => [
+            "/$type" => [
                 'post' => [
-                    'description' => $this->getDescription(),
-                    'tags' => [$collection->name()],
+                    'description' => $this->getDescription() ?: "Create $type resource",
+                    'tags' => [$type],
                     'requestBody' => [
                         'required' => true,
                         'content' => $this->buildOpenApiContent(
                             array_map(
                                 fn($resource) => [
-                                    '$ref' => "#/components/schemas/{$resource}Create",
+                                    '$ref' => "#/components/schemas/{$resource}_create",
                                 ],
                                 $collection->resources(),
                             ),
