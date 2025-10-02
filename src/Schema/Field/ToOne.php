@@ -25,12 +25,16 @@ class ToOne extends Relationship
 
     protected function serializeData($value, Context $context): array
     {
+        if (!$value) {
+            return ['data' => null];
+        }
+
+        $context = $context->withField($this);
+
         return [
-            'data' => $value
-                ? $context->serializer->addIncluded(
-                    $context->withField($this)->forModel($this->collections, $value),
-                )
-                : null,
+            'data' => $context->serializer->addIncluded(
+                $context->forModel($this->collections, $value),
+            ),
         ];
     }
 

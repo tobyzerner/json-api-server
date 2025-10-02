@@ -93,10 +93,12 @@ class ToMany extends Relationship
             return [];
         }
 
+        $context = $context->withField($this);
+
         return [
             'data' => array_map(
                 fn($model) => $context->serializer->addIncluded(
-                    $context->withField($this)->forModel($this->collections, $model),
+                    $context->forModel($this->collections, $model),
                 ),
                 $value,
             ),
