@@ -95,16 +95,14 @@ abstract class Relationship extends Field
             $relationship['meta'] = $meta;
         }
 
+        $links = [];
         foreach ($context->collection->endpoints() as $endpoint) {
             if ($endpoint instanceof RelationshipEndpoint) {
-                $links = array_merge(
-                    $links ?? [],
-                    $endpoint->relationshipLinks($context->model, $this, $context),
-                );
+                $links += $endpoint->relationshipLinks($context->model, $this, $context);
             }
         }
 
-        if (!empty($links)) {
+        if ($links) {
             $relationship['links'] = $links;
         }
 
