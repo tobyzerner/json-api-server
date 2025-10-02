@@ -37,7 +37,10 @@
         "phpunit/phpunit": "^10.2.2"
     },
     "scripts": {
-        "test": "phpunit"
+        "test": "phpunit",
+        "bench": "vendor/bin/phpbench run --report=default",
+        "bench:baseline": "vendor/bin/phpbench run --tag=baseline --report=default",
+        "bench:compare": "vendor/bin/phpbench run --ref=baseline --report=default"
     },
     "config": {
         "sort-packages": true
