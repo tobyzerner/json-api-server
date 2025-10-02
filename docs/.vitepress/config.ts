@@ -21,9 +21,12 @@ export default defineConfig({
                 text: 'Resources',
                 items: [
                     { text: 'Defining Resources', link: '/resources' },
-                    { text: 'Defining Fields', link: '/fields' },
+                    { text: 'Fields', link: '/fields' },
                     { text: 'Attributes', link: '/attributes' },
                     { text: 'Relationships', link: '/relationships' },
+                    { text: 'Filtering', link: '/filtering' },
+                    { text: 'Sorting', link: '/sorting' },
+                    { text: 'Pagination', link: '/pagination' },
                 ],
             },
             {

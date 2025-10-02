@@ -23,25 +23,15 @@ class ToOne extends Relationship
         $this->withLinkage();
     }
 
-    public function serializeValue($value, Context $context): mixed
+    protected function serializeData($value, Context $context): array
     {
-        $meta = $this->serializeMeta($context);
-
-        if ($context->include === null && !$this->hasLinkage($context) && !$meta) {
-            return null;
-        }
-
-        $relationship = [
+        return [
             'data' => $value
-                ? $context->serializer->addIncluded($this, $value, $context->include)
+                ? $context->serializer->addIncluded(
+                    $context->withField($this)->forModel($this->collections, $value),
+                )
                 : null,
         ];
-
-        if ($meta) {
-            $relationship['meta'] = $meta;
-        }
-
-        return $relationship;
     }
 
     public function deserializeValue(mixed $value, Context $context): mixed
@@ -59,7 +49,7 @@ class ToOne extends Relationship
         }
 
         try {
-            return $this->findResourceForIdentifier($value['data'], $context);
+            return $this->resourceForIdentifier($value['data'], $context);
         } catch (Sourceable $e) {
             throw $e->prependSource(['pointer' => '/data']);
         }

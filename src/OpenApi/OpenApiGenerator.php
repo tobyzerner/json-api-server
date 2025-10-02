@@ -4,6 +4,7 @@ namespace Tobyz\JsonApiServer\OpenApi;
 
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Resource\Resource;
+use Tobyz\JsonApiServer\Schema\Field\Relationship;
 
 use function Tobyz\JsonApiServer\location;
 
@@ -27,12 +28,17 @@ class OpenApiGenerator
         foreach ($api->collections as $collection) {
             foreach ($collection->endpoints() as $endpoint) {
                 if ($endpoint instanceof OpenApiPathsProvider) {
-                    $paths = array_merge_recursive($paths, $endpoint->getOpenApiPaths($collection));
+                    $paths = array_merge_recursive(
+                        $paths,
+                        $endpoint->getOpenApiPaths($collection, $api),
+                    );
                 }
             }
         }
 
         foreach ($api->resources as $resource) {
+            $type = $resource->type();
+
             $schema = [];
             $createSchema = [];
             $updateSchema = [];
@@ -40,6 +46,12 @@ class OpenApiGenerator
             foreach ($resource->fields() as $field) {
                 $location = location($field);
                 $fieldSchema = $field->getSchema($api);
+
+                if ($field instanceof Relationship) {
+                    $relationshipSchema = "{$type}_{$field->name}";
+                    $schemas[$relationshipSchema] = $fieldSchema;
+                    $fieldSchema = ['$ref' => "#/components/schemas/$relationshipSchema"];
+                }
 
                 $schema[$location]['properties'][$field->name] = $fieldSchema;
                 $schema[$location]['required'][] = $field->name;
@@ -58,8 +70,6 @@ class OpenApiGenerator
                     }
                 }
             }
-
-            $type = $resource->type();
 
             $schemas[$type] = $this->buildSchema($resource, $schema, [
                 'properties' => ['id' => ['type' => 'string', 'readOnly' => true]],

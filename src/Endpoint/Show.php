@@ -2,26 +2,41 @@
 
 namespace Tobyz\JsonApiServer\Endpoint;
 
+use Nyholm\Psr7\ServerRequest;
 use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsRelationshipDocument;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsResourceDocument;
 use Tobyz\JsonApiServer\Endpoint\Concerns\FindsResources;
+use Tobyz\JsonApiServer\Endpoint\Concerns\ListsResources;
 use Tobyz\JsonApiServer\Endpoint\Concerns\ShowsResources;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
+use Tobyz\JsonApiServer\Exception\NotFoundException;
+use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\OpenApi\OpenApiPathsProvider;
 use Tobyz\JsonApiServer\Resource\Collection;
+use Tobyz\JsonApiServer\Resource\Findable;
+use Tobyz\JsonApiServer\Resource\Listable;
+use Tobyz\JsonApiServer\Resource\RelatedListable;
 use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
 use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
+use Tobyz\JsonApiServer\Schema\Field\Relationship;
+use Tobyz\JsonApiServer\Schema\Field\ToMany;
 
 use function Tobyz\JsonApiServer\json_api_response;
+use function Tobyz\JsonApiServer\resolve_value;
 
-class Show implements Endpoint, OpenApiPathsProvider
+class Show implements Endpoint, ResourceEndpoint, RelationshipEndpoint, OpenApiPathsProvider
 {
     use HasVisibility;
-    use FindsResources;
-    use ShowsResources;
     use HasDescription;
+    use FindsResources;
+    use ListsResources;
+    use ShowsResources;
+    use BuildsResourceDocument;
+    use BuildsRelationshipDocument;
     use BuildsOpenApiPaths;
 
     public static function make(): static
@@ -29,11 +44,27 @@ class Show implements Endpoint, OpenApiPathsProvider
         return new static();
     }
 
+    public function relationshipLinks($model, Relationship $field, Context $context): array
+    {
+        $links = [];
+
+        if ($this->hasRelationshipLink($field, $context)) {
+            $links['self'] = $this->selfLink($model, $context) . '/relationships/' . $field->name;
+        }
+
+        if ($this->hasRelatedLink($field, $context)) {
+            $links['related'] = $this->relatedLink($model, $field, $context);
+        }
+
+        return $links;
+    }
+
     public function handle(Context $context): ?ResponseInterface
     {
         $segments = explode('/', $context->path());
+        $count = count($segments);
 
-        if (count($segments) !== 2) {
+        if ($count < 2 || $count > 4 || ($count === 4 && $segments[2] !== 'relationships')) {
             return null;
         }
 
@@ -43,28 +74,90 @@ class Show implements Endpoint, OpenApiPathsProvider
 
         $model = $this->findResource($context, $segments[1]);
 
-        if (!$this->isVisible($context = $context->withModel($model))) {
+        $context = $context
+            ->withModel($model)
+            ->withResource($context->resource($context->collection->resource($model, $context)));
+
+        if (!$this->isVisible($context)) {
             throw new ForbiddenException();
         }
 
-        return json_api_response($this->showResource($context, $model));
+        if ($count === 2) {
+            return json_api_response($this->buildResourceDocument($model, $context));
+        }
+
+        $isRelatedEndpoint = $count === 3;
+        $relationshipName = $isRelatedEndpoint ? $segments[2] : $segments[3];
+        $relationshipField = $context->fields($context->resource)[$relationshipName] ?? null;
+
+        if (
+            !$relationshipField instanceof Relationship ||
+            !($isRelatedEndpoint
+                ? $this->hasRelatedLink($relationshipField, $context)
+                : $this->hasRelationshipLink($relationshipField, $context))
+        ) {
+            throw new NotFoundException();
+        }
+
+        if (!$relationshipField->isVisible($context->withField($relationshipField))) {
+            throw new ForbiddenException();
+        }
+
+        $relatedCollections = array_map(
+            fn($collection) => $context->api->getCollection($collection),
+            $relationshipField->collections,
+        );
+
+        if (
+            $relationshipField instanceof ToMany &&
+            count($relatedCollections) === 1 &&
+            $context->resource instanceof RelatedListable &&
+            $relatedCollections[0] instanceof Listable &&
+            ($relatedQuery = $context->resource->relatedQuery($model, $relationshipField, $context))
+        ) {
+            $relatedData = $this->listResources(
+                $relatedQuery,
+                $relatedCollections[0],
+                $context,
+                $relationshipField->defaultSort,
+                $relationshipField->pagination,
+            );
+        } else {
+            $relatedData = resolve_value($relationshipField->getValue($context->withInclude([])));
+        }
+
+        if ($isRelatedEndpoint) {
+            $document = $this->buildResourceDocument($relatedData, $context, $relatedCollections);
+
+            $document['links']['self'] ??= $this->relatedLink($model, $relationshipField, $context);
+
+            return json_api_response($document);
+        }
+
+        return json_api_response(
+            $this->buildRelationshipDocument($relationshipField, $relatedData, $context),
+        );
     }
 
-    public function getOpenApiPaths(Collection $collection): array
+    public function getOpenApiPaths(Collection $collection, JsonApi $api): array
     {
-        return [
-            "/{$collection->name()}/{id}" => [
+        $type = $collection->name();
+
+        $idParameter = [
+            [
+                'name' => 'id',
+                'in' => 'path',
+                'required' => true,
+                'schema' => ['type' => 'string'],
+            ],
+        ];
+
+        $paths = [
+            "/$type/{id}" => [
                 'get' => [
-                    'description' => $this->getDescription(),
-                    'tags' => [$collection->name()],
-                    'parameters' => [
-                        [
-                            'name' => 'id',
-                            'in' => 'path',
-                            'required' => true,
-                            'schema' => ['type' => 'string'],
-                        ],
-                    ],
+                    'description' => $this->getDescription() ?: "Retrieve $type resource",
+                    'tags' => [$type],
+                    'parameters' => $idParameter,
                     'responses' => [
                         '200' => [
                             'content' => $this->buildOpenApiContent(
@@ -78,5 +171,105 @@ class Show implements Endpoint, OpenApiPathsProvider
                 ],
             ],
         ];
+
+        $context = new Context($api, new ServerRequest('GET', '/'));
+
+        foreach ($collection->resources() as $resource) {
+            $resource = $api->getResource($resource);
+
+            foreach ($resource->fields() as $field) {
+                if (!$field instanceof Relationship) {
+                    continue;
+                }
+
+                if ($this->hasRelatedLink($field, $context)) {
+                    $relatedResources = [];
+
+                    foreach ($field->collections as $relatedCollection) {
+                        $relatedCollection = $api->getCollection($relatedCollection);
+
+                        foreach ($relatedCollection->resources() as $relatedResource) {
+                            $relatedResources[] = [
+                                '$ref' => "#/components/schemas/$relatedResource",
+                            ];
+                        }
+                    }
+
+                    if ($field->nullable) {
+                        $relatedResources[] = ['type' => 'null'];
+                    }
+
+                    $paths["/$type/{id}/$field->name"]['get'] = [
+                        'description' => "Retrieve related $field->name",
+                        'tags' => [$type],
+                        'parameters' => $idParameter,
+                        'responses' => [
+                            '200' => [
+                                'content' => $this->buildOpenApiContent(
+                                    $relatedResources,
+                                    $field instanceof ToMany,
+                                ),
+                            ],
+                        ],
+                    ];
+                }
+
+                if ($this->hasRelationshipLink($field, $context)) {
+                    $paths["/$type/{id}/relationships/$field->name"]['get'] = [
+                        'description' => "Retrieve $field->name relationship",
+                        'tags' => [$type],
+                        'parameters' => $idParameter,
+                        'responses' => [
+                            '200' => [
+                                'content' => [
+                                    JsonApi::MEDIA_TYPE => [
+                                        'schema' => [
+                                            '$ref' => "#/components/schemas/{$type}_{$field->name}",
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ];
+                }
+            }
+        }
+
+        return $paths;
+    }
+
+    private function hasRelatedLink(Relationship $field, Context $context): bool
+    {
+        if ($field->includable) {
+            return true;
+        }
+
+        $collection =
+            count($field->collections) === 1
+                ? $context->api->getCollection($field->collections[0])
+                : null;
+
+        return $field instanceof ToMany
+            ? $collection instanceof Listable
+            : $collection instanceof Findable;
+    }
+
+    private function hasRelationshipLink(Relationship $field, Context $context): bool
+    {
+        if ($field->includable || $field->hasLinkage($context)) {
+            return true;
+        }
+
+        $collection =
+            count($field->collections) === 1
+                ? $context->api->getCollection($field->collections[0])
+                : null;
+
+        return $field instanceof ToMany && $collection instanceof Listable;
+    }
+
+    private function relatedLink($model, Relationship $field, Context $context): string
+    {
+        return $this->selfLink($model, $context) . '/' . $field->name;
     }
 }

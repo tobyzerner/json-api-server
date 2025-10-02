@@ -55,6 +55,15 @@ Be careful when enabling linkage on to-many relationships as pagination is not
 supported.  
 :::
 
+## Relationship Mutations
+
+The JSON:API
+[`POST`/`DELETE` relationship routes](https://jsonapi.org/format/#crud-updating-relationships)
+replace relationship linkage by default. Call `attachable()` on a `ToMany` field
+– and implement the `Tobyz\JsonApiServer\Resource\Attachable` contract – when
+you want to hook into the attach/detach flow with the array of resolved models
+and apply validation via `validateAttach` / `validateDetach`.
+
 ## Relationship Inclusion
 
 To make a relationship available for

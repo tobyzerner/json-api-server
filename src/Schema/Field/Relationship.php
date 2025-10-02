@@ -5,6 +5,7 @@ namespace Tobyz\JsonApiServer\Schema\Field;
 use Closure;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Concerns\FindsResources;
+use Tobyz\JsonApiServer\Endpoint\RelationshipEndpoint;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Concerns\HasMeta;
@@ -83,6 +84,35 @@ abstract class Relationship extends Field
         return parent::getValue($context);
     }
 
+    public function serializeValue($value, Context $context): mixed
+    {
+        $relationship =
+            $context->include !== null || $this->hasLinkage($context)
+                ? $this->serializeData($value, $context)
+                : [];
+
+        if ($meta = $this->serializeMeta($context)) {
+            $relationship['meta'] = $meta;
+        }
+
+        foreach ($context->collection->endpoints() as $endpoint) {
+            if ($endpoint instanceof RelationshipEndpoint) {
+                $links = array_merge(
+                    $links ?? [],
+                    $endpoint->relationshipLinks($context->model, $this, $context),
+                );
+            }
+        }
+
+        if (!empty($links)) {
+            $relationship['links'] = $links;
+        }
+
+        return $relationship;
+    }
+
+    abstract protected function serializeData($value, Context $context): array;
+
     public function hasLinkage(Context $context): mixed
     {
         if ($this->linkage instanceof Closure) {
@@ -92,19 +122,17 @@ abstract class Relationship extends Field
         return $this->linkage;
     }
 
-    protected function getRelatedResources(JsonApi $api): array
+    public function getSchema(JsonApi $api): array
     {
-        return array_merge(
-            ...array_map(
-                fn($collection) => isset($api->collections[$collection])
-                    ? $api->getCollection($collection)->resources()
-                    : [],
-                $this->collections,
-            ),
-        );
+        return ['nullable' => false] +
+            parent::getSchema($api) + [
+                'type' => 'object',
+                'properties' => ['data' => $this->getDataSchema($api)],
+                'required' => $this->required ? ['data'] : [],
+            ];
     }
 
-    protected function findResourceForIdentifier(array $identifier, Context $context): mixed
+    protected function resourceForIdentifier(array $identifier, Context $context): mixed
     {
         if (!isset($identifier['type'])) {
             throw new BadRequestException('type not specified');
@@ -128,14 +156,14 @@ abstract class Relationship extends Field
         ]);
     }
 
-    public function getSchema(JsonApi $api): array
+    protected function getRelatedResources(JsonApi $api): array
     {
-        return ['nullable' => false] +
-            parent::getSchema($api) + [
-                'type' => 'object',
-                'properties' => ['data' => $this->getDataSchema($api)],
-                'required' => $this->required ? ['data'] : [],
-            ];
+        return array_merge(
+            ...array_map(
+                fn($collection) => $api->getCollection($collection)->resources(),
+                $this->collections,
+            ),
+        );
     }
 
     abstract protected function getDataSchema(JsonApi $api): array;

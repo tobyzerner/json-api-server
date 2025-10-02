@@ -6,10 +6,11 @@ use Closure;
 use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsResourceDocument;
 use Tobyz\JsonApiServer\Endpoint\Concerns\FindsResources;
-use Tobyz\JsonApiServer\Endpoint\Concerns\ShowsResources;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
+use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\OpenApi\OpenApiPathsProvider;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
@@ -22,7 +23,7 @@ class ResourceAction implements Endpoint, OpenApiPathsProvider
     use HasVisibility;
     use HasDescription;
     use FindsResources;
-    use ShowsResources;
+    use BuildsResourceDocument;
     use BuildsOpenApiPaths;
 
     public string $method = 'POST';
@@ -67,10 +68,10 @@ class ResourceAction implements Endpoint, OpenApiPathsProvider
 
         ($this->handler)($model, $context);
 
-        return json_api_response($this->showResource($context, $model));
+        return json_api_response($this->buildResourceDocument($model, $context));
     }
 
-    public function getOpenApiPaths(Collection $collection): array
+    public function getOpenApiPaths(Collection $collection, JsonApi $api): array
     {
         return [
             "/{$collection->name()}/{id}/{$this->name}" => [

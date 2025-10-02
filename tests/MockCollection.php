@@ -4,6 +4,7 @@ namespace Tobyz\Tests\JsonApiServer;
 
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Pagination\Page;
+use Tobyz\JsonApiServer\Pagination\Pagination;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Resource\Paginatable;
@@ -53,6 +54,16 @@ class MockCollection implements Collection, Listable, Paginatable
     public function sorts(): array
     {
         return $this->sorts;
+    }
+
+    public function defaultSort(): ?string
+    {
+        return null;
+    }
+
+    public function pagination(): ?Pagination
+    {
+        return null;
     }
 
     public function query(Context $context): object

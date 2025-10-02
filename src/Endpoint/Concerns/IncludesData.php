@@ -4,6 +4,7 @@ namespace Tobyz\JsonApiServer\Endpoint\Concerns;
 
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
 
 trait IncludesData
@@ -17,7 +18,7 @@ trait IncludesData
         return $this;
     }
 
-    private function getInclude(Context $context): array
+    private function getInclude(Context $context, array $collections = null): array
     {
         if (
             $includeString = $context->request->getQueryParams()['include'] ?? $this->defaultInclude
@@ -26,10 +27,7 @@ trait IncludesData
 
             $this->validateInclude(
                 $context,
-                array_map(
-                    fn($resource) => $context->resource($resource),
-                    $context->collection->resources(),
-                ),
+                $this->getRelatedResources($collections ?? [$context->collection], $context),
                 $include,
             );
 
@@ -76,17 +74,13 @@ trait IncludesData
                     continue;
                 }
 
-                $relatedResources = $field->collections
-                    ? array_merge(
-                        ...array_map(
-                            fn($collection) => array_map(
-                                fn($resource) => $context->api->getResource($resource),
-                                $context->api->getCollection($collection)->resources(),
-                            ),
-                            $field->collections,
-                        ),
-                    )
-                    : array_values($context->api->resources);
+                $relatedResources = $this->getRelatedResources(
+                    array_map(
+                        fn($collection) => $context->api->getCollection($collection),
+                        $field->collections,
+                    ),
+                    $context,
+                );
 
                 $this->validateInclude($context, $relatedResources, $nested, $name . '.');
 
@@ -97,5 +91,18 @@ trait IncludesData
                 'parameter' => 'include',
             ]);
         }
+    }
+
+    private function getRelatedResources(array $collections, Context $context): array
+    {
+        return array_merge(
+            ...array_map(
+                fn(Collection $collection) => array_map(
+                    fn($resource) => $context->api->getResource($resource),
+                    $collection->resources(),
+                ),
+                $collections,
+            ),
+        );
     }
 }

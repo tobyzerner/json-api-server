@@ -4,7 +4,9 @@ namespace Tobyz\JsonApiServer;
 
 use ArrayObject;
 use Psr\Http\Message\ServerRequestInterface;
+use RuntimeException;
 use Tobyz\JsonApiServer\Endpoint\Endpoint;
+use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Resource;
 use Tobyz\JsonApiServer\Schema\Field\Field;
@@ -123,9 +125,14 @@ class Context
 
         if (is_array($fieldsParam) && array_key_exists($type, $fieldsParam)) {
             $requested = $fieldsParam[$type];
-            $requested = is_array($requested) ? $requested : explode(',', $requested);
 
-            $fields = array_intersect_key($fields, array_flip($requested));
+            if (!is_string($requested)) {
+                throw (new BadRequestException(
+                    'Sparse fieldsets must be comma-separated strings.',
+                ))->setSource(['parameter' => "fields[$type]"]);
+            }
+
+            $fields = array_intersect_key($fields, array_flip(explode(',', $requested)));
         } else {
             $fields = array_filter($fields, fn(Field $field) => !$field->sparse);
         }
@@ -138,13 +145,7 @@ class Context
      */
     public function fieldRequested(string $type, string $field): bool
     {
-        $fieldsParam = $this->queryParam('fields');
-
-        if (is_array($fieldsParam) && array_key_exists($type, $fieldsParam)) {
-            return in_array($field, explode(',', $fieldsParam[$type]));
-        }
-
-        return !($this->fields($this->resource($type))[$field]?->sparse ?? null);
+        return isset($this->sparseFields($this->resource($type))[$field]);
     }
 
     /**
@@ -173,35 +174,42 @@ class Context
         return $new;
     }
 
-    public function withCollection(Collection $collection): static
+    public function withBody(?array $body): static
+    {
+        $new = clone $this;
+        $new->body = $body;
+        return $new;
+    }
+
+    public function withCollection(?Collection $collection): static
     {
         $new = clone $this;
         $new->collection = $collection;
         return $new;
     }
 
-    public function withResource(Resource $resource): static
+    public function withResource(?Resource $resource): static
     {
         $new = clone $this;
         $new->resource = $resource;
         return $new;
     }
 
-    public function withEndpoint(Endpoint $endpoint): static
+    public function withEndpoint(?Endpoint $endpoint): static
     {
         $new = clone $this;
         $new->endpoint = $endpoint;
         return $new;
     }
 
-    public function withQuery(object $query): static
+    public function withQuery(?object $query): static
     {
         $new = clone $this;
         $new->query = $query;
         return $new;
     }
 
-    public function withSerializer(Serializer $serializer): static
+    public function withSerializer(?Serializer $serializer): static
     {
         $new = clone $this;
         $new->serializer = $serializer;
@@ -215,7 +223,7 @@ class Context
         return $new;
     }
 
-    public function withField(Field $field): static
+    public function withField(?Field $field): static
     {
         $new = clone $this;
         $new->field = $field;
@@ -234,5 +242,30 @@ class Context
         $this->resourceMeta[$model] = array_merge($this->resourceMeta[$model] ?? [], $meta);
 
         return $this;
+    }
+
+    public function forModel(array $collections, mixed $model): static
+    {
+        if (!$model) {
+            return $this->withCollection(null)
+                ->withResource(null)
+                ->withModel(null);
+        }
+
+        foreach ($collections as $collection) {
+            if (is_string($collection)) {
+                $collection = $this->api->getCollection($collection);
+            }
+
+            if ($type = $collection->resource($model, $this)) {
+                return $this->withCollection($collection)
+                    ->withResource($this->api->getResource($type))
+                    ->withModel($model);
+            }
+        }
+
+        throw new RuntimeException(
+            'No resource type defined to represent model ' . get_class($model),
+        );
     }
 }

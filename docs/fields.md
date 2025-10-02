@@ -1,4 +1,4 @@
-# Defining Fields
+# Fields
 
 A resource object's attributes and relationships are collectively called its
 "fields".

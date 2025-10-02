@@ -5,12 +5,15 @@ namespace Tobyz\JsonApiServer\Laravel;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Pagination\Page;
-use Tobyz\JsonApiServer\Resource\Collection;
+use Tobyz\JsonApiServer\Resource\AbstractCollection;
 use Tobyz\JsonApiServer\Resource\Countable;
 use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Resource\Paginatable;
 
-abstract class EloquentCollection implements Collection, Listable, Paginatable, Countable
+abstract class EloquentCollection extends AbstractCollection implements
+    Listable,
+    Countable,
+    Paginatable
 {
     public function resource(object $model, Context $context): ?string
     {
@@ -39,11 +42,6 @@ abstract class EloquentCollection implements Collection, Listable, Paginatable, 
 
             return $resource;
         }, $this->resources());
-    }
-
-    public function endpoints(): array
-    {
-        return [];
     }
 
     public function query(Context $context): object
@@ -83,16 +81,6 @@ abstract class EloquentCollection implements Collection, Listable, Paginatable, 
         }
 
         return $results->map(fn($row) => $types[$row->type]->find($row->id))->all();
-    }
-
-    public function filters(): array
-    {
-        return [];
-    }
-
-    public function sorts(): array
-    {
-        return [];
     }
 
     public function paginate(object $query, int $offset, int $limit, Context $context): Page

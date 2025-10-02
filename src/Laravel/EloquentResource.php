@@ -12,6 +12,7 @@ use Illuminate\Pagination\Cursor;
 use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Support\Str;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Laravel\Field\ToMany as LaravelToMany;
 use Tobyz\JsonApiServer\Pagination\Exception\RangePaginationNotSupportedException;
 use Tobyz\JsonApiServer\Pagination\Page;
 use Tobyz\JsonApiServer\Resource\AbstractResource;
@@ -22,6 +23,7 @@ use Tobyz\JsonApiServer\Resource\Deletable;
 use Tobyz\JsonApiServer\Resource\Findable;
 use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Resource\Paginatable;
+use Tobyz\JsonApiServer\Resource\RelatedListable;
 use Tobyz\JsonApiServer\Resource\SupportsBooleanFilters;
 use Tobyz\JsonApiServer\Resource\Updatable;
 use Tobyz\JsonApiServer\Schema\Field\Attribute;
@@ -34,12 +36,13 @@ abstract class EloquentResource extends AbstractResource implements
     Findable,
     Listable,
     Countable,
-    CursorPaginatable,
     Paginatable,
+    CursorPaginatable,
+    SupportsBooleanFilters,
     Creatable,
     Updatable,
     Deletable,
-    SupportsBooleanFilters
+    RelatedListable
 {
     public function resource(object $model, Context $context): ?string
     {
@@ -68,47 +71,47 @@ abstract class EloquentResource extends AbstractResource implements
 
     protected function getAttributeValue(Model $model, Field $field, Context $context)
     {
-        return $model->getAttribute($this->property($field));
+        return $model->getAttribute($this->modelProperty($field));
     }
 
     protected function getRelationshipValue(Model $model, Relationship $field, Context $context)
     {
-        $method = $this->method($field);
+        $method = $this->modelMethod($field);
 
-        if ($model->isRelation($method)) {
-            $relation = $model->$method();
-
-            // If this is a belongs-to relationship, and we only need to get the ID
-            // for linkage, then we don't have to actually load the relation because
-            // the ID is stored in a column directly on the model. We will mock up a
-            // related model with the value of the ID filled.
-            if ($relation instanceof BelongsTo && $context->include === null) {
-                if ($key = $model->getAttribute($relation->getForeignKeyName())) {
-                    if ($relation instanceof MorphTo) {
-                        $morphType = $model->{$relation->getMorphType()};
-                        $related = $relation->createModelByType($morphType);
-                    } else {
-                        $related = $relation->getRelated();
-                    }
-
-                    return $related->newInstance()->forceFill([$related->getKeyName() => $key]);
-                }
-
-                return null;
-            }
-
-            EloquentBuffer::add($model, $method);
-
-            return function () use ($model, $method, $field, $context) {
-                EloquentBuffer::load($model, $method, $field, $context);
-
-                $data = $model->getRelation($method);
-
-                return $data instanceof Collection ? $data->all() : $data;
-            };
+        if (!$model->isRelation($method)) {
+            return $this->getAttributeValue($model, $field, $context);
         }
 
-        return $this->getAttributeValue($model, $field, $context);
+        $relation = $model->$method();
+
+        // If this is a belongs-to relationship, and we only need to get the ID
+        // for linkage, then we don't have to actually load the relation because
+        // the ID is stored in a column directly on the model. We will mock up a
+        // related model with the value of the ID filled.
+        if ($relation instanceof BelongsTo && $context->include === null) {
+            if ($key = $model->getAttribute($relation->getForeignKeyName())) {
+                if ($relation instanceof MorphTo) {
+                    $morphType = $model->{$relation->getMorphType()};
+                    $related = $relation->createModelByType($morphType);
+                } else {
+                    $related = $relation->getRelated();
+                }
+
+                return $related->newInstance()->forceFill([$related->getKeyName() => $key]);
+            }
+
+            return null;
+        }
+
+        EloquentBuffer::add($model, $method);
+
+        return function () use ($model, $method, $field, $context) {
+            EloquentBuffer::load($model, $method, $field, $context);
+
+            $data = $model->getRelation($method);
+
+            return $data instanceof Collection ? $data->all() : $data;
+        };
     }
 
     public function query(Context $context): object
@@ -118,6 +121,23 @@ abstract class EloquentResource extends AbstractResource implements
         $this->scope($query, $context);
 
         return $query;
+    }
+
+    public function relatedQuery(object $model, ToMany $relationship, Context $context): ?object
+    {
+        $method = $this->modelMethod($relationship);
+
+        if (!$model->isRelation($method)) {
+            return null;
+        }
+
+        $relation = $model->$method();
+
+        if ($relationship instanceof LaravelToMany && $relationship->scope) {
+            ($relationship->scope)($relation, $context);
+        }
+
+        return $relation->getQuery();
     }
 
     /**
@@ -186,7 +206,7 @@ abstract class EloquentResource extends AbstractResource implements
     public function setValue(object $model, Field $field, mixed $value, Context $context): void
     {
         if ($field instanceof Relationship) {
-            $method = $this->method($field);
+            $method = $this->modelMethod($field);
             $relation = $model->$method();
 
             // If this is a belongs-to relationship, then the ID is stored on the
@@ -212,13 +232,13 @@ abstract class EloquentResource extends AbstractResource implements
             );
         }
 
-        $model->setAttribute($this->property($field), $value);
+        $model->setAttribute($this->modelProperty($field), $value);
     }
 
     public function saveValue(object $model, Field $field, mixed $value, Context $context): void
     {
         if ($field instanceof ToMany) {
-            $method = $this->method($field);
+            $method = $this->modelMethod($field);
             $relation = $model->$method();
 
             if ($relation instanceof BelongsToMany) {
@@ -314,7 +334,7 @@ abstract class EloquentResource extends AbstractResource implements
     /**
      * Get the model property that a field represents.
      */
-    protected function property(Field $field): string
+    protected function modelProperty(Field $field): string
     {
         return $field->property ?: Str::snake($field->name);
     }
@@ -322,7 +342,7 @@ abstract class EloquentResource extends AbstractResource implements
     /**
      * Get the model method that a field represents.
      */
-    protected function method(Field $field): string
+    protected function modelMethod(Field $field): string
     {
         return $field->property ?: $field->name;
     }

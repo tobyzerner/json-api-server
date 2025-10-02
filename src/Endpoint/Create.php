@@ -6,10 +6,12 @@ use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsResourceDocument;
 use Tobyz\JsonApiServer\Endpoint\Concerns\SavesData;
 use Tobyz\JsonApiServer\Endpoint\Concerns\ShowsResources;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
+use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\OpenApi\OpenApiPathsProvider;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Creatable;
@@ -23,9 +25,10 @@ use function Tobyz\JsonApiServer\set_value;
 class Create implements Endpoint, OpenApiPathsProvider
 {
     use HasVisibility;
+    use HasDescription;
     use SavesData;
     use ShowsResources;
-    use HasDescription;
+    use BuildsResourceDocument;
     use BuildsOpenApiPaths;
 
     private array $afterCallbacks = [];
@@ -78,7 +81,7 @@ class Create implements Endpoint, OpenApiPathsProvider
         }
 
         $response = json_api_response(
-            $document = $this->showResource($context, $model),
+            $document = $this->buildResourceDocument($model, $context),
         )->withStatus(201);
 
         if ($location = $document['data']['links']['self'] ?? null) {
@@ -104,7 +107,7 @@ class Create implements Endpoint, OpenApiPathsProvider
         }
     }
 
-    public function getOpenApiPaths(Collection $collection): array
+    public function getOpenApiPaths(Collection $collection, JsonApi $api): array
     {
         return [
             "/{$collection->name()}" => [

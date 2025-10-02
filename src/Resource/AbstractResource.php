@@ -5,7 +5,7 @@ namespace Tobyz\JsonApiServer\Resource;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Schema\Field\Field;
 
-abstract class AbstractResource implements Resource, Collection
+abstract class AbstractResource extends AbstractCollection implements Resource
 {
     public function name(): string
     {
@@ -22,27 +22,12 @@ abstract class AbstractResource implements Resource, Collection
         return $this->type();
     }
 
-    public function endpoints(): array
-    {
-        return [];
-    }
-
     public function fields(): array
     {
         return [];
     }
 
     public function meta(): array
-    {
-        return [];
-    }
-
-    public function filters(): array
-    {
-        return [];
-    }
-
-    public function sorts(): array
     {
         return [];
     }

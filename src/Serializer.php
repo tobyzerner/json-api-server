@@ -4,28 +4,21 @@ namespace Tobyz\JsonApiServer;
 
 use Closure;
 use RuntimeException;
-use Tobyz\JsonApiServer\Endpoint\Show;
-use Tobyz\JsonApiServer\Resource\Resource;
+use Tobyz\JsonApiServer\Endpoint\ResourceEndpoint;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
 
 class Serializer
 {
-    private Context $context;
     private array $map = [];
     private array $primary = [];
     private array $deferred = [];
 
-    public function __construct(Context $context)
-    {
-        $this->context = $context->withSerializer($this);
-    }
-
     /**
      * Add a primary resource to the document.
      */
-    public function addPrimary(Resource $resource, mixed $model, array $include): void
+    public function addPrimary(Context $context): void
     {
-        $data = $this->addToMap($resource, $model, $include);
+        $data = $this->addToMap($context->withSerializer($this));
 
         $this->primary[] = $this->key($data['type'], $data['id']);
     }
@@ -46,9 +39,10 @@ class Serializer
         return [$primary, $included];
     }
 
-    private function addToMap(Resource $resource, mixed $model, array $include): array
+    private function addToMap(Context $context): array
     {
-        $context = $this->context->withResource($resource)->withModel($model);
+        $resource = $context->resource;
+        $model = $context->model;
 
         $key = $this->key($type = $resource->type(), $id = $resource->getId($model, $context));
 
@@ -58,40 +52,42 @@ class Serializer
                 'id' => $id,
             ];
 
-            foreach ($this->context->api->collections as $collection) {
+            foreach ($context->api->collections as $collection) {
                 if (!in_array($resource->type(), $collection->resources())) {
                     continue;
                 }
 
                 foreach ($collection->endpoints() as $endpoint) {
-                    if ($endpoint instanceof Show) {
-                        $this->map[$key]['links']['self'] = implode('/', [
-                            $context->api->basePath,
-                            $collection->name(),
-                            $id,
-                        ]);
-                        break;
+                    if ($endpoint instanceof ResourceEndpoint) {
+                        foreach (
+                            $endpoint->resourceLinks($model, $context->withCollection($collection))
+                            as $k => $v
+                        ) {
+                            $this->map[$key]['links'][$k] = $v;
+                        }
                     }
                 }
             }
         }
 
-        foreach ($this->context->sparseFields($resource) as $field) {
+        foreach ($context->sparseFields($resource) as $field) {
             if (has_value($this->map[$key], $field)) {
                 continue;
             }
 
-            $context = $context->withField($field)->withInclude($include[$field->name] ?? null);
+            $fieldContext = $context
+                ->withField($field)
+                ->withInclude($context->include[$field->name] ?? null);
 
-            if (!$field->isVisible($context)) {
+            if (!$field->isVisible($fieldContext)) {
                 continue;
             }
 
-            $value = $field->getValue($context);
+            $value = $field->getValue($fieldContext);
 
-            $this->whenResolved($value, function (mixed $value) use ($key, $field, $context) {
+            $this->whenResolved($value, function (mixed $value) use ($key, $field, $fieldContext) {
                 if (
-                    ($value = $field->serializeValue($value, $context)) ||
+                    ($value = $field->serializeValue($value, $fieldContext)) ||
                     !$field instanceof Relationship
                 ) {
                     set_value($this->map[$key], $field, $value);
@@ -101,17 +97,22 @@ class Serializer
 
         // TODO: cache
         foreach ($resource->meta() as $field) {
+            $metaContext = $context->withField($field);
+
             if (
                 array_key_exists($field->name, $this->map[$key]['meta'] ?? []) ||
-                !$field->isVisible($context)
+                !$field->isVisible($metaContext)
             ) {
                 continue;
             }
 
-            $value = $field->getValue($context);
+            $value = $field->getValue($metaContext);
 
-            $this->whenResolved($value, function (mixed $value) use ($key, $field, $context) {
-                $this->map[$key]['meta'][$field->name] = $field->serializeValue($value, $context);
+            $this->whenResolved($value, function (mixed $value) use ($key, $field, $metaContext) {
+                $this->map[$key]['meta'][$field->name] = $field->serializeValue(
+                    $value,
+                    $metaContext,
+                );
             });
         }
 
@@ -142,38 +143,23 @@ class Serializer
      *
      * @return array The resource identifier which can be used for linkage.
      */
-    public function addIncluded(Relationship $field, $model, ?array $include): array
+    public function addIncluded(Context $context): array
     {
-        $relatedResource = $this->resourceForModel($field, $model);
+        $context = $context->withSerializer($this);
 
-        if ($include === null) {
+        if ($context->include === null) {
             return [
-                'type' => $relatedResource->type(),
-                'id' => $relatedResource->getId($model, $this->context),
+                'type' => $context->resource->type(),
+                'id' => $context->resource->getId($context->model, $context),
             ];
         }
 
-        $data = $this->addToMap($relatedResource, $model, $include);
+        $data = $this->addToMap($context);
 
         return [
             'type' => $data['type'],
             'id' => $data['id'],
         ];
-    }
-
-    private function resourceForModel(Relationship $field, $model): Resource
-    {
-        foreach ($field->collections as $name) {
-            $collection = $this->context->api->getCollection($name);
-
-            if ($type = $collection->resource($model, $this->context)) {
-                return $this->context->api->getResource($type);
-            }
-        }
-
-        throw new RuntimeException(
-            'No resource type defined to represent model ' . get_class($model),
-        );
     }
 
     private function resolveDeferred(): void

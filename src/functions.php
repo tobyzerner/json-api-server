@@ -5,7 +5,6 @@ namespace Tobyz\JsonApiServer;
 use Closure;
 use Nyholm\Psr7\Response;
 use Nyholm\Psr7\Stream;
-use Tobyz\JsonApiServer\Filterer;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Schema\Field\Field;
@@ -58,6 +57,15 @@ function get_value(array $data, Field $field)
 function set_value(array &$data, Field $field, $value): void
 {
     $data[location($field)][$field->name] = $value;
+}
+
+function resolve_value(mixed $value): mixed
+{
+    while ($value instanceof Closure) {
+        $value = $value();
+    }
+
+    return $value;
 }
 
 function parse_sort_string(string $string): array

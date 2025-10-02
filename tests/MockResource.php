@@ -6,7 +6,9 @@ use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Pagination\Exception\RangePaginationNotSupportedException;
 use Tobyz\JsonApiServer\Pagination\Page;
+use Tobyz\JsonApiServer\Pagination\Pagination;
 use Tobyz\JsonApiServer\Resource\AbstractResource;
+use Tobyz\JsonApiServer\Resource\Attachable;
 use Tobyz\JsonApiServer\Resource\Countable;
 use Tobyz\JsonApiServer\Resource\Creatable;
 use Tobyz\JsonApiServer\Resource\CursorPaginatable;
@@ -14,9 +16,12 @@ use Tobyz\JsonApiServer\Resource\Deletable;
 use Tobyz\JsonApiServer\Resource\Findable;
 use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Resource\Paginatable;
+use Tobyz\JsonApiServer\Resource\RelatedListable;
 use Tobyz\JsonApiServer\Resource\SupportsBooleanFilters;
 use Tobyz\JsonApiServer\Resource\Updatable;
 use Tobyz\JsonApiServer\Schema\Field\Field;
+use Tobyz\JsonApiServer\Schema\Field\Relationship;
+use Tobyz\JsonApiServer\Schema\Field\ToMany;
 
 class MockResource extends AbstractResource implements
     Findable,
@@ -27,7 +32,9 @@ class MockResource extends AbstractResource implements
     Creatable,
     Updatable,
     Deletable,
-    SupportsBooleanFilters
+    SupportsBooleanFilters,
+    RelatedListable,
+    Attachable
 {
     public function __construct(
         private readonly string $type,
@@ -37,6 +44,8 @@ class MockResource extends AbstractResource implements
         private readonly array $meta = [],
         private readonly array $filters = [],
         private readonly array $sorts = [],
+        private readonly ?string $defaultSort = null,
+        private readonly ?Pagination $pagination = null,
     ) {
     }
 
@@ -70,9 +79,26 @@ class MockResource extends AbstractResource implements
         return $this->sorts;
     }
 
+    public function defaultSort(): ?string
+    {
+        return $this->defaultSort;
+    }
+
+    public function pagination(): ?Pagination
+    {
+        return $this->pagination;
+    }
+
     public function query(Context $context): object
     {
         return (object) ['models' => $this->models, 'sorts' => []];
+    }
+
+    public function relatedQuery(object $model, ToMany $relationship, Context $context): ?object
+    {
+        $related = $model->{$relationship->property ?: $relationship->name} ?? [];
+
+        return (object) ['models' => $related, 'sorts' => []];
     }
 
     public function find(string $id, Context $context): ?object
@@ -213,6 +239,56 @@ class MockResource extends AbstractResource implements
     public function delete(object $model, Context $context): void
     {
         $this->models = array_filter($this->models, fn($m) => $m !== $model);
+    }
+
+    public function attach(
+        object $model,
+        Relationship $relationship,
+        array $related,
+        Context $context,
+    ): void {
+        $property = $relationship->property ?: $relationship->name;
+
+        $items = $model->{$property} ?? [];
+
+        foreach ($related as $candidate) {
+            $already = false;
+
+            foreach ($items as $item) {
+                if ($item === $candidate) {
+                    $already = true;
+                    break;
+                }
+            }
+
+            if (!$already) {
+                $items[] = $candidate;
+            }
+        }
+
+        $model->{$property} = $items;
+    }
+
+    public function detach(
+        object $model,
+        Relationship $relationship,
+        array $related,
+        Context $context,
+    ): void {
+        $property = $relationship->property ?: $relationship->name;
+
+        if (!isset($model->{$property}) || !is_array($model->{$property})) {
+            return;
+        }
+
+        $ids = array_map(fn($item) => spl_object_id($item), $related);
+
+        $model->{$property} = array_values(
+            array_filter(
+                $model->{$property},
+                fn($item) => !in_array(spl_object_id($item), $ids, true),
+            ),
+        );
     }
 
     public function filterOr(object $query, array $clauses): void

@@ -2,14 +2,20 @@
 
 namespace Tobyz\JsonApiServer\Schema\Field;
 
-use Closure;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\Sourceable;
 use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\Pagination\Pagination;
 
 class ToMany extends Relationship
 {
+    public ?string $defaultSort = null;
+    public ?Pagination $pagination = null;
+    public bool $attachable = false;
+    public array $attachValidators = [];
+    public array $detachValidators = [];
+
     public function __construct(string $name)
     {
         parent::__construct($name);
@@ -17,31 +23,39 @@ class ToMany extends Relationship
         $this->type($name);
     }
 
-    public function serializeValue($value, Context $context): mixed
+    public function defaultSort(?string $defaultSort): static
     {
-        $meta = $this->serializeMeta($context);
+        $this->defaultSort = $defaultSort;
 
-        if (
-            (($context->include === null && !$this->hasLinkage($context)) || $value === null) &&
-            !$meta
-        ) {
-            return null;
-        }
+        return $this;
+    }
 
-        $relationship = [];
+    public function pagination(?Pagination $pagination): static
+    {
+        $this->pagination = $pagination;
 
-        if ($value !== null) {
-            $relationship['data'] = array_map(
-                fn($model) => $context->serializer->addIncluded($this, $model, $context->include),
-                $value,
-            );
-        }
+        return $this;
+    }
 
-        if ($meta) {
-            $relationship['meta'] = $meta;
-        }
+    public function attachable(bool $attachable = true): static
+    {
+        $this->attachable = $attachable;
 
-        return $relationship;
+        return $this;
+    }
+
+    public function validateAttach(callable $validator): static
+    {
+        $this->attachValidators[] = $validator;
+
+        return $this;
+    }
+
+    public function validateDetach(callable $validator): static
+    {
+        $this->detachValidators[] = $validator;
+
+        return $this;
     }
 
     public function deserializeValue(mixed $value, Context $context): mixed
@@ -60,7 +74,7 @@ class ToMany extends Relationship
 
         foreach ($value['data'] as $i => $identifier) {
             try {
-                $models[] = $this->findResourceForIdentifier($identifier, $context);
+                $models[] = $this->resourceForIdentifier($identifier, $context);
             } catch (Sourceable $e) {
                 throw $e->prependSource(['pointer' => "/data/$i"]);
             }
@@ -71,6 +85,22 @@ class ToMany extends Relationship
         }
 
         return $models;
+    }
+
+    protected function serializeData($value, Context $context): array
+    {
+        if ($value === null) {
+            return [];
+        }
+
+        return [
+            'data' => array_map(
+                fn($model) => $context->serializer->addIncluded(
+                    $context->withField($this)->forModel($this->collections, $model),
+                ),
+                $value,
+            ),
+        ];
     }
 
     protected function getDataSchema(JsonApi $api): array

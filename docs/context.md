@@ -41,6 +41,12 @@ class Context
     // that are included
     public ?array $include = null;
 
+    // Data to be returned in the document's meta object
+    public ArrayObject $documentMeta;
+
+    // Links to be returned in the document's links object
+    public ArrayObject $documentLinks;
+
     // Get the request method
     public function method(): string;
 

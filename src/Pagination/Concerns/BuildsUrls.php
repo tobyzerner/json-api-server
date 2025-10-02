@@ -8,8 +8,6 @@ trait BuildsUrls
 {
     private function buildUrl(array $params, Context $context): string
     {
-        [$selfUrl] = explode('?', $context->request->getUri(), 2);
-
         $queryParams = array_replace_recursive($context->request->getQueryParams(), $params);
 
         if (isset($queryParams['filter'])) {
@@ -22,6 +20,9 @@ trait BuildsUrls
 
         $queryString = http_build_query($queryParams, '', '&', PHP_QUERY_RFC3986);
 
-        return $selfUrl . ($queryString ? '?' . $queryString : '');
+        return $context->api->basePath .
+            '/' .
+            $context->path() .
+            ($queryString ? '?' . $queryString : '');
     }
 }

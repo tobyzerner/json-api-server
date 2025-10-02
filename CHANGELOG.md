@@ -10,24 +10,37 @@ and this project adheres to
 
 ### ⚠️ Breaking Changes
 
-- Change `Resource\Paginatable::paginate()` to accept the resolved offset and
-  limit integers (plus the request context) and return the page of results
-  instead of mutating the query in place
+- Change `Resource\Paginatable::paginate()` signature to accept the resolved
+  offset and limit integers (plus the request context) and return the page of
+  results instead of mutating the query in place
 - New contract for custom `Pagination` implementations:
-    - Return results from the `paginate(object $query, Context $context): Page`
-    - Add `meta` and `links` via the `Context` object
+    - Add `paginate(object $query, Context $context): Page` method which should
+      return a page of results
+    - Remove `meta` and `links` methods; set this data in `paginate` via the
+      `Context` object
+- `Resource\\Listable` implementations must now provide `defaultSort()` and
+  `pagination()` methods so defaults can be reused when listing related data
+- Refactor `Serializer` so it is instantiated without a `Context` and expects
+  the resource context to be provided to `addPrimary()` / `addIncluded()`
 
 ### Added
 
 - Add cursor pagination support via `Endpoint\Index::cursorPaginate()` and the
   `Resource\CursorPaginatable` contract, following the
-  `ethanresnick/cursor-pagination` profile
-- Introduce `MaxPageSizeExceededException` and
-  `RangePaginationNotSupportedException` with JSON:API profile links for cursor
-  pagination errors
+  `ethanresnick/cursor-pagination` JSON:API profile
 - Allow exceptions to attach `meta` and `links` members to the error response
-- Add `Context::$meta` and `Context::$links` as `ArrayObject` instances to allow
-  callbacks to add meta information to the response document
+- Add `Context::$documentMeta` and `Context::$documentLinks` as `ArrayObject`
+  instances to allow callbacks to add meta information to the response document
+- Support JSON:API relationship URLs via the `Show` endpoint, adding automatic
+  `self` / `related` links, and paginated/filterable/sortable to-many responses
+  when the related resource is `Listable`
+- Allow the `Update` endpoint to handle `PATCH` / `POST` / `DELETE` requests to
+  relationship URLs and return the updated relationship document
+- Implement the `Resource\Attachable` contract and add `ToMany::attachable()`,
+  `validateAttach()`, and `validateDetach()` helpers for controlling
+  relationship mutation endpoints with attach/detach hooks
+- Introduce `Endpoint\ResourceEndpoint` and `Endpoint\RelationshipEndpoint` so
+  endpoints can contribute relationship and resource links during serialization
 
 ## [1.0.0-beta.5] - 2025-09-27
 

@@ -95,7 +95,7 @@ class RelationshipToOneTest extends AbstractTestCase
         $response = $this->api->handle($this->buildRequest('GET', '/users/2'));
         $document = json_decode($response->getBody(), true);
 
-        $this->assertArrayNotHasKey('friend', $document['data']['relationships'] ?? []);
+        $this->assertArrayNotHasKey('data', $document['data']['relationships']['friend'] ?? []);
     }
 
     public function test_to_one_not_includable()
@@ -224,10 +224,14 @@ class RelationshipToOneTest extends AbstractTestCase
                 endpoints: [Create::make()],
                 fields: [
                     ToOne::make('friend')
-                        ->type(['users', 'animals'])
+                        ->collection('creatures')
                         ->writable(),
                 ],
             ),
+        );
+
+        $this->api->collection(
+            new MockCollection('creatures', models: ['users' => [], 'animals' => [$friend]]),
         );
 
         $response = $this->api->handle(

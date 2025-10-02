@@ -8,6 +8,7 @@ use Tobyz\JsonApiServer\Exception\ConflictException;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\Sourceable;
 use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
+use Tobyz\JsonApiServer\Schema\Field\Field;
 
 use function Tobyz\JsonApiServer\get_value;
 use function Tobyz\JsonApiServer\has_value;
@@ -128,17 +129,27 @@ trait SavesData
                 continue;
             }
 
-            $context = $context->withField($field);
-
-            $writable = $creating
-                ? $field->isWritableOnCreate($context)
-                : $field->isWritable($context);
-
-            if (!$writable) {
-                throw (new ForbiddenException("Field [$field->name] is not writable"))->setSource([
+            try {
+                $this->assertFieldWritable($context, $field, $creating);
+            } catch (Sourceable $e) {
+                throw $e->prependSource([
                     'pointer' => '/data/' . location($field) . '/' . $field->name,
                 ]);
             }
+        }
+    }
+
+    private function assertFieldWritable(
+        Context $context,
+        Field $field,
+        bool $creating = false,
+    ): void {
+        $context = $context->withField($field);
+
+        $writable = $creating ? $field->isWritableOnCreate($context) : $field->isWritable($context);
+
+        if (!$writable) {
+            throw new ForbiddenException("Field [$field->name] is not writable");
         }
     }
 
@@ -174,29 +185,45 @@ trait SavesData
         $errors = [];
 
         foreach ($context->fields($context->resource) as $field) {
-            $empty = !has_value($data, $field);
+            $present = has_value($data, $field);
 
-            if ($empty && (!$field->required || !$validateAll)) {
+            if (!$present && (!$field->required || !$validateAll)) {
                 continue;
             }
 
-            $fail = function ($detail = null) use (&$errors, $field) {
-                $errors[] = [
-                    'source' => ['pointer' => '/data/' . location($field) . '/' . $field->name],
-                    'detail' => $detail,
-                ];
-            };
-
-            if ($empty && $field->required) {
-                $fail('field is required');
+            if (!$present && $field->required) {
+                $fieldErrors = [['detail' => 'field is required']];
             } else {
-                $field->validateValue(get_value($data, $field), $fail, $context->withField($field));
+                $fieldErrors = $this->validateField($context, $field, get_value($data, $field));
             }
+
+            $errors = array_merge(
+                $errors,
+                array_map(
+                    fn($error) => $error + [
+                        'source' => ['pointer' => '/data/' . location($field) . '/' . $field->name],
+                    ],
+                    $fieldErrors,
+                ),
+            );
         }
 
         if (count($errors)) {
             throw new UnprocessableEntityException($errors);
         }
+    }
+
+    private function validateField(Context $context, Field $field, mixed $value): array
+    {
+        $errors = [];
+
+        $fail = function ($detail = null) use (&$errors, $field) {
+            $errors[] = ['detail' => $detail];
+        };
+
+        $field->validateValue($value, $fail, $context->withField($field));
+
+        return $errors;
     }
 
     /**

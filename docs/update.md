@@ -4,6 +4,9 @@ The `Update` endpoint handles PATCH requests to resources (e.g.
 `PATCH /posts/1`) and responds with a JSON:API document containing the updated
 resource object.
 
+The `Update` endpoint also handles PATCH, POST, and DELETE requests to
+relationship URLs (e.g. `GET /posts/1/relationships/author`).
+
 To enable it for a resource or collection, add the `Update` endpoint to the
 `endpoints` array:
 
@@ -93,3 +96,74 @@ For Laravel applications with Eloquent-backed resources, you can extend the
 interface for you. Learn more on the
 [Laravel Integration](laravel.md#eloquent-resources) page.  
 :::
+
+## Modifying To-Many Relationships
+
+By default, the JSON:API `POST` and `DELETE` relationship routes behave like a
+full replacement: the provided resource identifiers are merged into (or removed
+from) the relationship value and then persisted via the normal `setValue` /
+`saveValue` flow.
+
+If you need finer control – such as running domain logic when attaching or
+detaching related models – mark the field as attachable and implement the
+`Tobyz\JsonApiServer\Resource\Attachable` contract on the owning resource.
+
+```php
+use Tobyz\JsonApiServer\Resource\Attachable;
+use Tobyz\JsonApiServer\Schema\Field\ToMany;
+
+class PostsResource extends Resource implements Updatable, Attachable
+{
+    public function fields(): array
+    {
+        return [
+            ToMany::make('tags')
+                ->type('tags')
+                ->writable()
+                ->attachable()
+                ->validateAttach(function (
+                    $fail,
+                    array $related,
+                    $model,
+                    $context,
+                ) {
+                    foreach ($related as $index => $candidate) {
+                        if ($candidate->id === $model->id) {
+                            $fail('A post cannot tag itself.', $index);
+                        }
+                    }
+                }),
+        ];
+    }
+
+    public function attach(
+        $model,
+        $relationship,
+        array $related,
+        $context,
+    ): void {
+        foreach ($related as $tag) {
+            $model->tags[] = $tag;
+        }
+    }
+
+    public function detach(
+        $model,
+        $relationship,
+        array $related,
+        $context,
+    ): void {
+        $ids = array_map(fn($tag) => $tag->id, $related);
+
+        $model->tags = array_values(
+            array_filter($model->tags, fn($tag) => !in_array($tag->id, $ids)),
+        );
+    }
+}
+```
+
+The `validateAttach` and `validateDetach` helpers receive the full array of
+resolved models. Call the `$fail` callback – optionally passing the zero-based
+index of an offending entry – to surface `422 Unprocessable Entity` responses
+with the correct JSON:API `source` pointers. Use `validateDetach` to apply the
+same guard rails when removing related records.

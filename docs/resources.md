@@ -150,13 +150,13 @@ The main endpoints available for use are listed in the table below. Each of
 these endpoints requires the implementation of an interface on your class to
 define the behavior of how the endpoint should interact with your storage.
 
-| Method | URI           | Endpoint            | Interface                                |
-| ------ | ------------- | ------------------- | ---------------------------------------- |
-| GET    | `/users`      | [Index](list.md)    | `Tobyz\JsonApiServer\Resource\Listable`  |
-| POST   | `/users`      | [Create](create.md) | `Tobyz\JsonApiServer\Resource\Creatable` |
-| GET    | `/users/{id}` | [Show](show.md)     | `Tobyz\JsonApiServer\Resource\Findable`  |
-| PATCH  | `/users/{id}` | [Update](update.md) | `Tobyz\JsonApiServer\Resource\Updatable` |
-| DELETE | `/users/{id}` | [Delete](delete.md) | `Tobyz\JsonApiServer\Resource\Deletable` |
+| Endpoint            | Requests                                                                                | Interface   |
+| ------------------- | --------------------------------------------------------------------------------------- | ----------- |
+| [Index](list.md)    | `GET /users`                                                                            | `Listable`  |
+| [Create](create.md) | `POST /users`                                                                           | `Creatable` |
+| [Show](show.md)     | `GET /users/{id}`<br>`GET /users/{id}/{name}`<br>`GET /users/{id}/relationships/{name}` | `Findable`  |
+| [Update](update.md) | `PATCH /users/{id}`<br>`PATCH\|POST\|DELETE /users/{id}/relationships/{name}`           | `Updatable` |
+| [Delete](delete.md) | `DELETE /users/{id}`                                                                    | `Deletable` |
 
 ::: tip Laravel Integration  
 For Laravel applications with Eloquent-backed resources, you can extend the

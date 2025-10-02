@@ -3,6 +3,7 @@
 namespace Tobyz\JsonApiServer\Resource;
 
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Pagination\Pagination;
 use Tobyz\JsonApiServer\Schema\Filter;
 use Tobyz\JsonApiServer\Schema\Sort;
 
@@ -31,4 +32,14 @@ interface Listable
      * @return Sort[]
      */
     public function sorts(): array;
+
+    /**
+     * The default sort string that should be used when listing this resource.
+     */
+    public function defaultSort(): ?string;
+
+    /**
+     * The default pagination method that should be used when listing this resource.
+     */
+    public function pagination(): ?Pagination;
 }

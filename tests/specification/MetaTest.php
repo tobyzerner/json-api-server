@@ -56,6 +56,8 @@ class MetaTest extends AbstractTestCase
             ),
         );
 
+        $this->api->resource(new MockResource('pets'));
+
         $response = $this->api->handle($this->buildRequest('GET', '/users/1'));
 
         $this->assertJsonApiDocumentSubset(
@@ -74,6 +76,8 @@ class MetaTest extends AbstractTestCase
                 fields: [ToMany::make('pets')->meta([Attribute::make('foo')->get(fn() => 'bar')])],
             ),
         );
+
+        $this->api->resource(new MockResource('pets'));
 
         $response = $this->api->handle($this->buildRequest('GET', '/users/1'));
 

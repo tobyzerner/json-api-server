@@ -8,6 +8,7 @@ use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Field\ToMany;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
+use Tobyz\Tests\JsonApiServer\MockCollection;
 use Tobyz\Tests\JsonApiServer\MockResource;
 
 class RelationshipToManyTest extends AbstractTestCase
@@ -108,7 +109,7 @@ class RelationshipToManyTest extends AbstractTestCase
         $response = $this->api->handle($this->buildRequest('GET', '/users/3'));
         $document = json_decode($response->getBody(), true);
 
-        $this->assertArrayNotHasKey('friends', $document['data']['relationships'] ?? []);
+        $this->assertArrayNotHasKey('data', $document['data']['relationships']['friends'] ?? []);
     }
 
     public function test_to_many_not_includable()
@@ -252,7 +253,9 @@ class RelationshipToManyTest extends AbstractTestCase
 
     public function test_to_many_create_polymorphic()
     {
-        $this->api->resource(new MockResource('animals', models: [(object) ['id' => '1']]));
+        $this->api->resource(
+            new MockResource('animals', models: [($friend = (object) ['id' => '1'])]),
+        );
 
         $this->api->resource(
             new MockResource(
@@ -261,10 +264,14 @@ class RelationshipToManyTest extends AbstractTestCase
                 endpoints: [Create::make()],
                 fields: [
                     ToMany::make('friends')
-                        ->type(['users', 'animals'])
+                        ->type('creatures')
                         ->writable(),
                 ],
             ),
+        );
+
+        $this->api->collection(
+            new MockCollection('creatures', models: ['users' => [], 'animals' => [$friend]]),
         );
 
         $response = $this->api->handle(

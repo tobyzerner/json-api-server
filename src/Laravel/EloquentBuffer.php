@@ -43,11 +43,15 @@ abstract class EloquentBuffer
                 // may be multiple if this is a polymorphic relationship. We
                 // start by getting the resource types this relationship
                 // could possibly contain.
-                $resources = $context->api->resources;
-
-                if ($type = $relationship->collections) {
-                    $resources = array_intersect_key($resources, array_flip($type));
-                }
+                $resources = array_merge(
+                    ...array_map(
+                        fn($collection) => array_map(
+                            fn($resource) => $context->api->getResource($resource),
+                            $context->api->getCollection($collection)->resources(),
+                        ),
+                        $relationship->collections,
+                    ),
+                );
 
                 // Now, construct a map of model class names -> scoping
                 // functions. This will be provided to the MorphTo::constrain

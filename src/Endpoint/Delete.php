@@ -9,6 +9,7 @@ use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Concerns\FindsResources;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
+use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\OpenApi\OpenApiPathsProvider;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Deletable;
@@ -67,7 +68,7 @@ class Delete implements Endpoint, OpenApiPathsProvider
         return new Response(204);
     }
 
-    public function getOpenApiPaths(Collection $collection): array
+    public function getOpenApiPaths(Collection $collection, JsonApi $api): array
     {
         return [
             "/{$collection->name()}/{id}" => [

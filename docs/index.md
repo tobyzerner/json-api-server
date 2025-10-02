@@ -17,6 +17,8 @@ support for:
 - **Creating** resources (`POST /articles`)
 - **Updating** resources (`PATCH /articles/1`)
 - **Deleting** resources (`DELETE /articles/1`)
+- **Related resource** URLs (`GET /articles/1/author`)
+- **Relationship** URLs (`/articles/1/relationships/author`)
 - **Content negotiation**
 - **Error handling**
 - **Extensions** including Atomic Operations
@@ -63,7 +65,7 @@ class UsersResource extends EloquentResource
     {
         return [
             Endpoint\Show::make(),
-            Endpoint\Index::make()->paginate(),
+            Endpoint\Index::make(),
             Endpoint\Create::make()->visible(Laravel\can('create')),
             Endpoint\Update::make()->visible(Laravel\can('update')),
             Endpoint\Delete::make()->visible(Laravel\can('delete')),

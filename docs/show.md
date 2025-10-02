@@ -3,6 +3,10 @@
 The `Show` endpoint handles GET requests to resources (e.g. `GET /posts/1`) and
 responds with a JSON:API document containing a single resource object.
 
+The `Show` endpoint also handles GET requests to related resource URLs (e.g.
+`GET /posts/1/author`) and relationship URLs (e.g.
+`GET /posts/1/relationships/author`).
+
 To enable it for a resource or collection, add the `Show` endpoint to the
 `endpoints` array:
 

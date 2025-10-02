@@ -8,22 +8,22 @@ use Tobyz\JsonApiServer\Schema\Field\Relationship;
 interface Attachable
 {
     /**
-     * Attach a related model to a model.
+     * Attach related models to a model.
      */
     public function attach(
         object $model,
         Relationship $relationship,
-        mixed $related,
+        array $related,
         Context $context,
     ): void;
 
     /**
-     * Detach a related model from a model.
+     * Detach related models from a model.
      */
     public function detach(
         object $model,
         Relationship $relationship,
-        mixed $related,
+        array $related,
         Context $context,
     ): void;
 }
