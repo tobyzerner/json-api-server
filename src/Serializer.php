@@ -13,6 +13,7 @@ class Serializer
     private array $map = [];
     private array $primary = [];
     private array $deferred = [];
+    private array $processedFields = [];
 
     /**
      * Add a primary resource to the document.
@@ -68,9 +69,11 @@ class Serializer
         }
 
         foreach ($context->sparseFields($resource) as $field) {
-            if (has_value($this->map[$key], $field)) {
+            if (in_array($field, $this->processedFields[$key] ?? [])) {
                 continue;
             }
+
+            $this->processedFields[$key][] = $field;
 
             $fieldContext = $context
                 ->withField($field)
