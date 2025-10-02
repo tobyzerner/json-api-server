@@ -40,6 +40,11 @@ class JsonApi implements RequestHandlerInterface
      */
     public array $collections = [];
 
+    /**
+     * @var array<string, Collection[]>
+     */
+    private array $collectionsByResource = [];
+
     public function __construct(public string $basePath = '')
     {
         $this->basePath = rtrim($this->basePath, '/');
@@ -59,6 +64,10 @@ class JsonApi implements RequestHandlerInterface
     public function collection(Collection $collection): void
     {
         $this->collections[$collection->name()] = $collection;
+
+        foreach ($collection->resources() as $type) {
+            $this->collectionsByResource[$type][] = $collection;
+        }
     }
 
     /**
@@ -85,6 +94,16 @@ class JsonApi implements RequestHandlerInterface
         }
 
         return $this->collections[$type];
+    }
+
+    /**
+     * Get collections that contain the given resource type.
+     *
+     * @return Collection[]
+     */
+    public function getResourceCollections(string $type): array
+    {
+        return $this->collectionsByResource[$type] ?? [];
     }
 
     /**

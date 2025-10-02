@@ -52,11 +52,7 @@ class Serializer
                 'id' => $id,
             ];
 
-            foreach ($context->api->collections as $collection) {
-                if (!in_array($resource->type(), $collection->resources())) {
-                    continue;
-                }
-
+            foreach ($context->api->getResourceCollections($resource->type()) as $collection) {
                 foreach ($collection->endpoints() as $endpoint) {
                     if ($endpoint instanceof ResourceEndpoint) {
                         foreach (
