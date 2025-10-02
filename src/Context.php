@@ -19,7 +19,7 @@ class Context
     public ?Endpoint $endpoint = null;
     public ?object $query = null;
     public ?Serializer $serializer = null;
-    public mixed $model = null;
+    public ?object $model = null;
     public ?Field $field = null;
     public ?array $include = null;
     public ArrayObject $documentMeta;
@@ -238,7 +238,7 @@ class Context
         return $new;
     }
 
-    public function withModel(mixed $model): static
+    public function withModel(?object $model): static
     {
         $new = clone $this;
         $new->model = $model;
@@ -266,7 +266,7 @@ class Context
         return $this;
     }
 
-    public function forModel(array $collections, mixed $model): static
+    public function forModel(array $collections, ?object $model): static
     {
         $new = clone $this;
 

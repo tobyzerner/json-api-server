@@ -32,7 +32,7 @@ class Context
     public ?Serializer $serializer = null;
 
     // The model that is currently being serialized, updated, or deleted
-    public mixed $model = null;
+    public object $model = null;
 
     // The field that is currently being processed
     public ?Field $field = null;
@@ -63,7 +63,7 @@ class Context
     public function resource(string $type): Resource;
 
     // Get the ID for a model
-    public function id(Resource $resource, mixed $model): string;
+    public function id(Resource $resource, object $model): string;
 
     // Get the fields for the given resource, keyed by name
     public function fields(Resource $resource): array;

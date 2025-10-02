@@ -154,7 +154,7 @@ trait SetsValue
     /**
      * Set a value for this field to a model.
      */
-    public function setValue(mixed $model, mixed $value, Context $context): void
+    public function setValue(object $model, mixed $value, Context $context): void
     {
         if ($this->setter) {
             ($this->setter)($model, $value, $context);
@@ -169,7 +169,7 @@ trait SetsValue
     /**
      * Save a value for this field to a model.
      */
-    public function saveValue(mixed $model, mixed $value, Context $context): void
+    public function saveValue(object $model, mixed $value, Context $context): void
     {
         if ($this->saver) {
             ($this->saver)($model, $value, $context);

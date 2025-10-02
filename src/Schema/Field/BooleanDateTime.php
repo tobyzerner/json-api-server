@@ -14,12 +14,12 @@ class BooleanDateTime extends Attribute
         $this->type(Boolean::make());
     }
 
-    public function setValue(mixed $model, mixed $value, Context $context): void
+    public function setValue(object $model, mixed $value, Context $context): void
     {
         parent::setValue($model, $value ? new \DateTime() : null, $context);
     }
 
-    public function saveValue(mixed $model, mixed $value, Context $context): void
+    public function saveValue(object $model, mixed $value, Context $context): void
     {
         parent::saveValue($model, $value ? new \DateTime() : null, $context);
     }
