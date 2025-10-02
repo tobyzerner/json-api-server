@@ -44,9 +44,7 @@ function location(Field $field): string
 
 function has_value(array $data, Field $field): bool
 {
-    $location = location($field);
-
-    return array_key_exists($location, $data) && array_key_exists($field->name, $data[$location]);
+    return array_key_exists($field->name, $data[location($field)] ?? []);
 }
 
 function get_value(array $data, Field $field)
