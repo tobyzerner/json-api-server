@@ -62,6 +62,9 @@ class Context
     // Get a resource by type
     public function resource(string $type): Resource;
 
+    // Get the ID for a model
+    public function id(Resource $resource, mixed $model): string;
+
     // Get the fields for the given resource, keyed by name
     public function fields(Resource $resource): array;
 

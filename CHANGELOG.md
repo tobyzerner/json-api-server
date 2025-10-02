@@ -8,14 +8,27 @@ and this project adheres to
 
 ## [Unreleased]
 
+### ⚠️ Breaking Changes
+
+- Replace `Resource::getId(object $model, Context $context): string` method with
+  `Resource::id(): Id` method, which returns an `Id` field instance to define ID
+  schema, validation, and writability
+
 ### Added
 
+- Add `Id` field class for customizing resource ID behavior, including type
+  constraints, client-generated IDs via `writableOnCreate()`, and validation
 - Add `linkageMeta()` method to relationship fields for adding meta to resource
   identifier objects in linkage
+- Add static `location()` method to field classes to determine where they appear
+  in the JSON:API document (`attributes`, `relationships`, or root level for
+  `id`)
 
 ### Changed
 
 - Various performance optimizations to improve serialization speed
+- Improve OpenAPI schema generation to properly handle ID field constraints and
+  avoid redundant properties
 
 ## [1.0.0-beta.6] - 2025-10-02
 

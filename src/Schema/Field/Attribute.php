@@ -10,6 +10,16 @@ class Attribute extends Field
 {
     public ?Type $type = null;
 
+    public static function make(string $name): static
+    {
+        return new static($name);
+    }
+
+    public static function location(): ?string
+    {
+        return 'attributes';
+    }
+
     public function type(?Type $type): static
     {
         $this->type = $type;

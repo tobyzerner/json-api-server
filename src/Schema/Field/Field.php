@@ -24,9 +24,9 @@ abstract class Field
     {
     }
 
-    public static function make(string $name): static
+    public static function location(): ?string
     {
-        return new static($name);
+        return null;
     }
 
     public function nullable(bool $nullable = true): static
@@ -52,11 +52,17 @@ abstract class Field
 
     public function getSchema(JsonApi $api): array
     {
-        return $this->schema + [
-            'description' => $this->description,
-            'nullable' => $this->nullable,
-            'readOnly' => !$this->writable,
-        ];
+        $schema = $this->schema;
+
+        if ($this->description) {
+            $schema['description'] = $this->description;
+        }
+
+        if ($this->nullable) {
+            $schema['nullable'] = $this->nullable;
+        }
+
+        return $schema;
     }
 
     /**

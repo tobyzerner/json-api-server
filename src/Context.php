@@ -30,12 +30,16 @@ class Context
     private ?string $path;
 
     private WeakMap $endpoints;
+    private WeakMap $resourceIds;
+    private WeakMap $modelIds;
     private WeakMap $fields;
     private WeakMap $sparseFields;
 
     public function __construct(public JsonApi $api, public ServerRequestInterface $request)
     {
         $this->endpoints = new WeakMap();
+        $this->resourceIds = new WeakMap();
+        $this->modelIds = new WeakMap();
         $this->fields = new WeakMap();
         $this->sparseFields = new WeakMap();
 
@@ -93,6 +97,17 @@ class Context
     public function endpoints(Collection $collection): array
     {
         return $this->endpoints[$collection] ??= $collection->endpoints();
+    }
+
+    public function id(Resource $resource, $model): string
+    {
+        if (isset($this->modelIds[$model])) {
+            return $this->modelIds[$model];
+        }
+
+        $id = $this->resourceIds[$resource] ??= $resource->id();
+
+        return $this->modelIds[$model] = $id->serializeValue($id->getValue($this), $this);
     }
 
     /**

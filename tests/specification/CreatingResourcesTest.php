@@ -11,6 +11,7 @@ use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Field\Attribute;
 use Tobyz\JsonApiServer\Schema\Field\ToOne;
+use Tobyz\JsonApiServer\Schema\Id;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockResource;
 
@@ -63,7 +64,7 @@ class CreatingResourcesTest extends AbstractTestCase
         );
     }
 
-    public function test_forbidden_error_if_client_generated_id_provided()
+    public function test_forbidden_error_if_client_generated_id_not_supported()
     {
         $this->expectException(ForbiddenException::class);
 
@@ -74,6 +75,41 @@ class CreatingResourcesTest extends AbstractTestCase
                     'id' => '1',
                 ],
             ]),
+        );
+    }
+
+    public function test_client_generated_id_accepted_when_allowed()
+    {
+        $this->api->resource(
+            new MockResource(
+                'articles',
+                endpoints: [Create::make(), Show::make()],
+                id: Id::make()->writableOnCreate(),
+                fields: [Attribute::make('title')->writable()],
+            ),
+        );
+
+        $response = $this->api->handle(
+            $this->buildRequest('POST', '/articles')->withParsedBody([
+                'data' => [
+                    'type' => 'articles',
+                    'id' => 'my-custom-id',
+                    'attributes' => [
+                        'title' => 'Hello World',
+                    ],
+                ],
+            ]),
+        );
+
+        $this->assertEquals(201, $response->getStatusCode());
+        $this->assertJsonApiDocumentSubset(
+            [
+                'data' => [
+                    'type' => 'articles',
+                    'id' => 'my-custom-id',
+                ],
+            ],
+            $response->getBody(),
         );
     }
 

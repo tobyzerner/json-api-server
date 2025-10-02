@@ -16,7 +16,7 @@ trait ShowsResources
         return implode('/', [
             $context->api->basePath,
             $context->collection->name(),
-            $context->resource->getId($model, $context),
+            $context->id($context->resource, $model),
         ]);
     }
 }

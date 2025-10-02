@@ -22,6 +22,7 @@ export default defineConfig({
                 items: [
                     { text: 'Defining Resources', link: '/resources' },
                     { text: 'Fields', link: '/fields' },
+                    { text: 'ID', link: '/id' },
                     { text: 'Attributes', link: '/attributes' },
                     { text: 'Relationships', link: '/relationships' },
                     { text: 'Filtering', link: '/filtering' },

@@ -9,10 +9,11 @@ use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\Sourceable;
 use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
 use Tobyz\JsonApiServer\Schema\Field\Field;
+use Tobyz\JsonApiServer\Schema\Id;
 
+use function Tobyz\JsonApiServer\field_path;
 use function Tobyz\JsonApiServer\get_value;
 use function Tobyz\JsonApiServer\has_value;
-use function Tobyz\JsonApiServer\location;
 use function Tobyz\JsonApiServer\set_value;
 
 trait SavesData
@@ -47,15 +48,11 @@ trait SavesData
                 ]);
             }
 
-            if ($body['data']['id'] !== $context->resource->getId($context->model, $context)) {
+            if ($body['data']['id'] !== $context->id($context->resource, $context->model)) {
                 throw (new ConflictException('data.id does not match the resource ID'))->setSource([
                     'pointer' => '/data/id',
                 ]);
             }
-        } elseif (isset($body['data']['id'])) {
-            throw (new ForbiddenException('Client-generated IDs are not supported'))->setSource([
-                'pointer' => '/data/id',
-            ]);
         }
 
         if (!in_array($body['data']['type'], $context->collection->resources())) {
@@ -85,6 +82,17 @@ trait SavesData
         return array_merge(['attributes' => [], 'relationships' => []], $body['data']);
     }
 
+    private function getFields(Context $context, bool $creating = false): array
+    {
+        $fields = $context->fields($context->resource);
+
+        if ($creating) {
+            array_unshift($fields, $context->resource->id());
+        }
+
+        return $fields;
+    }
+
     /**
      * Assert that the fields contained within a data object are valid.
      */
@@ -101,13 +109,13 @@ trait SavesData
      */
     private function assertFieldsExist(Context $context, array $data): void
     {
-        $fields = $context->fields($context->resource);
+        $fields = $this->getFields($context);
 
         foreach (['attributes', 'relationships'] as $location) {
             foreach ($data[$location] as $name => $value) {
-                if (!isset($fields[$name]) || $location !== location($fields[$name])) {
+                if (!isset($fields[$name]) || $location !== $fields[$name]->location()) {
                     throw (new BadRequestException("Unknown field [$name]"))->setSource([
-                        'pointer' => "/data/$location/$name",
+                        'pointer' => '/data/' . implode('/', array_filter([$location, $name])),
                     ]);
                 }
             }
@@ -124,7 +132,7 @@ trait SavesData
         array $data,
         bool $creating = false,
     ): void {
-        foreach ($context->fields($context->resource) as $field) {
+        foreach ($this->getFields($context, $creating) as $field) {
             if (!has_value($data, $field)) {
                 continue;
             }
@@ -132,9 +140,7 @@ trait SavesData
             try {
                 $this->assertFieldWritable($context, $field, $creating);
             } catch (Sourceable $e) {
-                throw $e->prependSource([
-                    'pointer' => '/data/' . location($field) . '/' . $field->name,
-                ]);
+                throw $e->prependSource(['pointer' => '/data' . field_path($field)]);
             }
         }
     }
@@ -156,9 +162,9 @@ trait SavesData
     /**
      *
      */
-    private function deserializeValues(Context $context, array &$data): void
+    private function deserializeValues(Context $context, array &$data, bool $creating = false): void
     {
-        foreach ($context->fields($context->resource) as $field) {
+        foreach ($this->getFields($context, $creating) as $field) {
             if (!has_value($data, $field)) {
                 continue;
             }
@@ -168,9 +174,7 @@ trait SavesData
             try {
                 set_value($data, $field, $field->deserializeValue($value, $context));
             } catch (Sourceable $e) {
-                throw $e->prependSource([
-                    'pointer' => '/data/' . location($field) . '/' . $field->name,
-                ]);
+                throw $e->prependSource(['pointer' => '/data' . field_path($field)]);
             }
         }
     }
@@ -184,7 +188,7 @@ trait SavesData
     {
         $errors = [];
 
-        foreach ($context->fields($context->resource) as $field) {
+        foreach ($this->getFields($context, $validateAll) as $field) {
             $present = has_value($data, $field);
 
             if (!$present && (!$field->required || !$validateAll)) {
@@ -201,7 +205,7 @@ trait SavesData
                 $errors,
                 array_map(
                     fn($error) => $error + [
-                        'source' => ['pointer' => '/data/' . location($field) . '/' . $field->name],
+                        'source' => ['pointer' => '/data' . field_path($field)],
                     ],
                     $fieldErrors,
                 ),
@@ -213,7 +217,7 @@ trait SavesData
         }
     }
 
-    private function validateField(Context $context, Field $field, mixed $value): array
+    private function validateField(Context $context, Field|Id $field, mixed $value): array
     {
         $errors = [];
 
@@ -229,9 +233,9 @@ trait SavesData
     /**
      * Set field values from a data object to the model instance.
      */
-    private function setValues(Context $context, array $data): void
+    private function setValues(Context $context, array $data, bool $creating = false): void
     {
-        foreach ($context->fields($context->resource) as $field) {
+        foreach ($this->getFields($context, $creating) as $field) {
             if (!has_value($data, $field)) {
                 continue;
             }
@@ -245,9 +249,9 @@ trait SavesData
     /**
      * Run any field save callbacks.
      */
-    private function saveFields(Context $context, array $data): void
+    private function saveFields(Context $context, array $data, bool $creating = false): void
     {
-        foreach ($context->fields($context->resource) as $field) {
+        foreach ($this->getFields($context, $creating) as $field) {
             if (!has_value($data, $field)) {
                 continue;
             }

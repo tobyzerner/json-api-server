@@ -5,6 +5,7 @@ namespace Tobyz\JsonApiServer\Resource;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Schema\Field\Attribute;
 use Tobyz\JsonApiServer\Schema\Field\Field;
+use Tobyz\JsonApiServer\Schema\Id;
 
 interface Resource
 {
@@ -28,9 +29,9 @@ interface Resource
     public function meta(): array;
 
     /**
-     * Get the ID for a model.
+     * Get the ID schema for this resource.
      */
-    public function getId(object $model, Context $context): string;
+    public function id(): Id;
 
     /**
      * Get the value of a field for a model.

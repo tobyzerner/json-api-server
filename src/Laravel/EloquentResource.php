@@ -30,6 +30,7 @@ use Tobyz\JsonApiServer\Schema\Field\Attribute;
 use Tobyz\JsonApiServer\Schema\Field\Field;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
 use Tobyz\JsonApiServer\Schema\Field\ToMany;
+use Tobyz\JsonApiServer\Schema\Id;
 use Tobyz\JsonApiServer\Schema\Type\DateTime;
 
 abstract class EloquentResource extends AbstractResource implements
@@ -55,9 +56,9 @@ abstract class EloquentResource extends AbstractResource implements
         return null;
     }
 
-    public function getId(object $model, Context $context): string
+    public function id(): Id
     {
-        return $model->getKey();
+        return Id::make()->get(fn($model) => $model->getKey());
     }
 
     public function getValue(object $model, Field $field, Context $context): mixed

@@ -3,10 +3,7 @@
 namespace Tobyz\JsonApiServer\OpenApi;
 
 use Tobyz\JsonApiServer\JsonApi;
-use Tobyz\JsonApiServer\Resource\Resource;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
-
-use function Tobyz\JsonApiServer\location;
 
 class OpenApiGenerator
 {
@@ -38,48 +35,63 @@ class OpenApiGenerator
 
         foreach ($api->resources as $resource) {
             $type = $resource->type();
+            $id = $resource->id();
 
-            $schema = [];
-            $createSchema = [];
-            $updateSchema = [];
+            $schema = [
+                'type' => 'object',
+                'required' => ['type'],
+                'properties' => [
+                    'type' => ['type' => 'string', 'const' => $type],
+                    'attributes' => ['type' => 'object'],
+                    'relationships' => ['type' => 'object'],
+                ],
+            ];
 
-            foreach ($resource->fields() as $field) {
-                $location = location($field);
-                $fieldSchema = $field->getSchema($api);
+            $createSchema = $schema;
+
+            $updateSchema = array_merge_recursive($schema, [
+                'required' => ['id'],
+                'properties' => ['id' => $id->getSchema($api)],
+            ]);
+
+            foreach ([$id, ...$resource->fields()] as $field) {
+                $location = $field::location();
+                $valueSchema = $field->getSchema($api);
 
                 if ($field instanceof Relationship) {
                     $relationshipSchema = "{$type}_{$field->name}";
-                    $schemas[$relationshipSchema] = $fieldSchema;
-                    $fieldSchema = ['$ref' => "#/components/schemas/$relationshipSchema"];
+                    $schemas[$relationshipSchema] = $valueSchema;
+                    $valueSchema = ['$ref' => "#/components/schemas/$relationshipSchema"];
                 }
 
-                $schema[$location]['properties'][$field->name] = $fieldSchema;
-                $schema[$location]['required'][] = $field->name;
+                if ($location) {
+                    $fieldSchema = &$schema['properties'][$location];
+                    $fieldUpdateSchema = &$updateSchema['properties'][$location];
+                    $fieldCreateSchema = &$createSchema['properties'][$location];
+                } else {
+                    $fieldSchema = &$schema;
+                    $fieldUpdateSchema = &$updateSchema;
+                    $fieldCreateSchema = &$createSchema;
+                }
+
+                $fieldSchema['properties'][$field->name] = $valueSchema;
+                $fieldSchema['required'][] = $field->name;
 
                 if ($field->writable) {
-                    $updateSchema[$location]['properties'][$field->name] = $fieldSchema;
-                    if ($field->required) {
-                        $updateSchema[$location]['required'][] = $field->name;
-                    }
+                    $fieldUpdateSchema['properties'][$field->name] = $valueSchema;
                 }
 
                 if ($field->writableOnCreate) {
-                    $createSchema[$location]['properties'][$field->name] = $fieldSchema;
+                    $fieldCreateSchema['properties'][$field->name] = $valueSchema;
                     if ($field->required) {
-                        $createSchema[$location]['required'][] = $field->name;
+                        $fieldCreateSchema['required'][] = $field->name;
                     }
                 }
             }
 
-            $schemas[$type] = $this->buildSchema($resource, $schema, [
-                'properties' => ['id' => ['type' => 'string', 'readOnly' => true]],
-            ]);
-
-            $schemas["{$type}Create"] = $this->buildSchema($resource, $createSchema, [
-                'required' => ['type'],
-            ]);
-
-            $schemas["{$type}Update"] = $this->buildSchema($resource, $updateSchema);
+            $schemas[$type] = $schema;
+            $schemas["{$type}_create"] = $createSchema;
+            $schemas["{$type}_update"] = $updateSchema;
         }
 
         return array_filter([
@@ -94,22 +106,5 @@ class OpenApiGenerator
                 'url' => "https://jsonapi.org/format/$jsonApiVersion/",
             ],
         ]);
-    }
-
-    private function buildSchema(Resource $resource, array $schema, array $overrides = []): array
-    {
-        return array_replace_recursive(
-            [
-                'type' => 'object',
-                'required' => ['type', 'id'],
-                'properties' => [
-                    'type' => ['type' => 'string', 'const' => $resource->type()],
-                    'id' => ['type' => 'string'],
-                    'attributes' => ['type' => 'object'] + ($schema['attributes'] ?? []),
-                    'relationships' => ['type' => 'object'] + ($schema['relationships'] ?? []),
-                ],
-            ],
-            $overrides,
-        );
     }
 }

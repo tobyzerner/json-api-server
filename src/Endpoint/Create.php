@@ -68,13 +68,13 @@ class Create implements Endpoint, OpenApiPathsProvider
 
         $this->assertFieldsValid($context, $data, true);
         $this->fillDefaultValues($context, $data);
-        $this->deserializeValues($context, $data);
+        $this->deserializeValues($context, $data, true);
         $this->assertDataValid($context, $data, true);
-        $this->setValues($context, $data);
+        $this->setValues($context, $data, true);
 
         $context = $context->withModel($model = $resource->create($model, $context));
 
-        $this->saveFields($context, $data);
+        $this->saveFields($context, $data, true);
 
         foreach ($this->afterCallbacks as $callback) {
             $callback($model, $context);
@@ -100,7 +100,7 @@ class Create implements Endpoint, OpenApiPathsProvider
 
     private function fillDefaultValues(Context $context, array &$data): void
     {
-        foreach ($context->fields($context->resource) as $field) {
+        foreach ($this->getFields($context, true) as $field) {
             if (!has_value($data, $field) && ($default = $field->default)) {
                 set_value($data, $field, $default($context->withField($field)));
             }

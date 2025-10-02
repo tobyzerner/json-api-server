@@ -8,7 +8,6 @@ use Nyholm\Psr7\Stream;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Schema\Field\Field;
-use Tobyz\JsonApiServer\Schema\Field\Relationship;
 
 function json_api_response($document, int $status = 200): Response
 {
@@ -37,24 +36,36 @@ function negate(bool|Closure $condition): bool|Closure
     return fn(...$args) => !$condition(...$args);
 }
 
-function location(Field $field): string
+function field_path(Field $field): string
 {
-    return $field instanceof Relationship ? 'relationships' : 'attributes';
+    return '/' . implode('/', array_filter([$field::location(), $field->name]));
 }
 
 function has_value(array $data, Field $field): bool
 {
-    return array_key_exists($field->name, $data[location($field)] ?? []);
+    if ($location = $field::location()) {
+        $data = $data[$location] ?? [];
+    }
+
+    return array_key_exists($field->name, $data);
 }
 
 function get_value(array $data, Field $field)
 {
-    return $data[location($field)][$field->name] ?? null;
+    if ($location = $field::location()) {
+        $data = $data[$location] ?? [];
+    }
+
+    return $data[$field->name] ?? null;
 }
 
 function set_value(array &$data, Field $field, $value): void
 {
-    $data[location($field)][$field->name] = $value;
+    if ($location = $field::location()) {
+        $data = &$data[$location];
+    }
+
+    $data[$field->name] = $value;
 }
 
 function resolve_value(mixed $value): mixed

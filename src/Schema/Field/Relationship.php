@@ -20,6 +20,16 @@ abstract class Relationship extends Field
     public bool|Closure $linkage = false;
     public array $linkageMeta = [];
 
+    public static function make(string $name): static
+    {
+        return new static($name);
+    }
+
+    public static function location(): ?string
+    {
+        return 'relationships';
+    }
+
     /**
      * Set the collection(s) that this relationship is to.
      */
@@ -128,7 +138,7 @@ abstract class Relationship extends Field
 
         $identifier = $context->serializer->addIncluded($context);
 
-        if ($meta = $this->serializeLinkageMeta($context)) {
+        if ($this->linkageMeta && ($meta = $this->serializeLinkageMeta($context))) {
             $identifier['meta'] = $meta;
         }
 
@@ -163,12 +173,18 @@ abstract class Relationship extends Field
 
     public function getSchema(JsonApi $api): array
     {
-        return ['nullable' => false] +
-            parent::getSchema($api) + [
-                'type' => 'object',
-                'properties' => ['data' => $this->getDataSchema($api)],
-                'required' => $this->required ? ['data'] : [],
-            ];
+        $schema = parent::getSchema($api);
+
+        unset($schema['nullable']);
+
+        if ($this->required) {
+            $schema['required'] = ['data'];
+        }
+
+        return $schema + [
+            'type' => 'object',
+            'properties' => ['data' => $this->getDataSchema($api)],
+        ];
     }
 
     protected function resourceForIdentifier(array $identifier, Context $context): mixed

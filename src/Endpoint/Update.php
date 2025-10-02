@@ -346,8 +346,9 @@ class Update implements Endpoint, OpenApiPathsProvider
         $map = [];
 
         foreach ($models as $model) {
-            $resource = $context->forModel($field->collections, $model)->resource;
-            $map[$resource->type() . '-' . $resource->getId($model, $context)] = $model;
+            $modelContext = $context->forModel($field->collections, $model);
+            $resource = $modelContext->resource;
+            $map[$resource->type() . '-' . $modelContext->id($resource, $model)] = $model;
         }
 
         return $map;

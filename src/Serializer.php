@@ -46,7 +46,7 @@ class Serializer
         $resource = $context->resource;
         $model = $context->model;
 
-        $key = $this->key($type = $resource->type(), $id = $resource->getId($model, $context));
+        $key = $this->key($type = $resource->type(), $id = $context->id($resource, $model));
 
         if (!isset($this->map[$key])) {
             $this->map[$key] = [
@@ -157,7 +157,7 @@ class Serializer
         if ($context->include === null) {
             return [
                 'type' => $context->resource->type(),
-                'id' => $context->resource->getId($context->model, $context),
+                'id' => $context->id($context->resource, $context->model),
             ];
         }
 

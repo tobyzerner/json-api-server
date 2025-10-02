@@ -55,24 +55,31 @@ $api->resource(new PostsResource());
 
 ## Identifier
 
-When serializing a model into a JSON:API resource object, the `getId` method on
-your resource class will be used to get the `id` for the model. A default
-implementation is provided in the `AbstractResource` class which assumes that
-your models have an `id` property. You may override this if needed:
+Every JSON:API resource has an `id` field. You can customize how the ID is
+handled by defining an `id()` method on your resource that returns an `Id` field
+instance:
 
 ```php
-use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Schema\Id;
 
 class PostsResource extends AbstractResource
 {
     // ...
 
-    public function getId(object $model, Context $context): string
+    public function id(): Id
     {
-        return $model->getKey();
+        return Id::make()
+            ->writableOnCreate() // Allow client-generated IDs
+            ->validate(fn($value, $fail) => /* ... */);
     }
 }
 ```
+
+If you don't define an `id()` method, a default implementation will be used that
+reads the `id` property from your model.
+
+Learn more about customizing the [Resource ID](id.md), including
+client-generated IDs and validation.
 
 ## Fields
 

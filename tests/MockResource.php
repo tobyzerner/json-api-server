@@ -22,6 +22,7 @@ use Tobyz\JsonApiServer\Resource\Updatable;
 use Tobyz\JsonApiServer\Schema\Field\Field;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
 use Tobyz\JsonApiServer\Schema\Field\ToMany;
+use Tobyz\JsonApiServer\Schema\Id;
 
 class MockResource extends AbstractResource implements
     Findable,
@@ -40,6 +41,7 @@ class MockResource extends AbstractResource implements
         private readonly string $type,
         public array $models = [],
         private readonly array $endpoints = [],
+        private readonly ?Id $id = null,
         private readonly array $fields = [],
         private readonly array $meta = [],
         private readonly array $filters = [],
@@ -57,6 +59,11 @@ class MockResource extends AbstractResource implements
     public function endpoints(): array
     {
         return $this->endpoints;
+    }
+
+    public function id(): Id
+    {
+        return $this->id ?? parent::id();
     }
 
     public function fields(): array
@@ -104,7 +111,7 @@ class MockResource extends AbstractResource implements
     public function find(string $id, Context $context): ?object
     {
         foreach ($this->models as $model) {
-            if ($model->id === $id) {
+            if ($model->id == $id) {
                 return $model;
             }
         }

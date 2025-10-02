@@ -4,6 +4,7 @@ namespace Tobyz\JsonApiServer\Resource;
 
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Schema\Field\Field;
+use Tobyz\JsonApiServer\Schema\Id;
 
 abstract class AbstractResource extends AbstractCollection implements Resource
 {
@@ -32,9 +33,9 @@ abstract class AbstractResource extends AbstractCollection implements Resource
         return [];
     }
 
-    public function getId(object $model, Context $context): string
+    public function id(): Id
     {
-        return $model->id;
+        return Id::make();
     }
 
     public function getValue(object $model, Field $field, Context $context): mixed
