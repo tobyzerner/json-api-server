@@ -57,7 +57,7 @@ class Serializer
             foreach ($context->api->getResourceCollections($resource->type()) as $collection) {
                 $collectionContext = $context->withCollection($collection);
 
-                foreach ($collection->endpoints() as $endpoint) {
+                foreach ($context->endpoints($collection) as $endpoint) {
                     if ($endpoint instanceof ResourceEndpoint) {
                         if ($links = $endpoint->resourceLinks($model, $collectionContext)) {
                             $this->map[$key]['links'] ??= [];

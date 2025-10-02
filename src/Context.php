@@ -29,11 +29,13 @@ class Context
     private ?array $body;
     private ?string $path;
 
+    private WeakMap $endpoints;
     private WeakMap $fields;
     private WeakMap $sparseFields;
 
     public function __construct(public JsonApi $api, public ServerRequestInterface $request)
     {
+        $this->endpoints = new WeakMap();
         $this->fields = new WeakMap();
         $this->sparseFields = new WeakMap();
 
@@ -86,6 +88,11 @@ class Context
     public function resource(string $type): Resource
     {
         return $this->api->getResource($type);
+    }
+
+    public function endpoints(Collection $collection): array
+    {
+        return $this->endpoints[$collection] ??= $collection->endpoints();
     }
 
     /**
