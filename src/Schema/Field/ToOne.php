@@ -29,13 +29,7 @@ class ToOne extends Relationship
             return ['data' => null];
         }
 
-        $context = $context->withField($this);
-
-        return [
-            'data' => $context->serializer->addIncluded(
-                $context->forModel($this->collections, $value),
-            ),
-        ];
+        return ['data' => $this->serializeIdentifier($value, $context)];
     }
 
     public function deserializeValue(mixed $value, Context $context): mixed

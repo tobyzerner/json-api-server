@@ -8,6 +8,15 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- Add `linkageMeta()` method to relationship fields for adding meta to resource
+  identifier objects in linkage
+
+### Changed
+
+- Various performance optimizations to improve serialization speed
+
 ## [1.0.0-beta.6] - 2025-10-02
 
 ### ⚠️ Breaking Changes

@@ -87,6 +87,95 @@ class MetaTest extends AbstractTestCase
         );
     }
 
+    public function test_to_one_linkage_meta()
+    {
+        $role = (object) ['id' => '1', 'name' => 'admin'];
+
+        $this->api->resource(
+            new MockResource(
+                'users',
+                models: [(object) ['id' => '1', 'role' => $role]],
+                endpoints: [Show::make()],
+                fields: [
+                    ToOne::make('role')
+                        ->get(fn($user) => $user->role)
+                        ->linkageMeta([Attribute::make('active')->get(fn() => true)]),
+                ],
+            ),
+        );
+
+        $this->api->resource(new MockResource('roles', models: [$role]));
+
+        $response = $this->api->handle($this->buildRequest('GET', '/users/1'));
+
+        $this->assertJsonApiDocumentSubset(
+            [
+                'data' => [
+                    'relationships' => [
+                        'role' => [
+                            'data' => [
+                                'type' => 'roles',
+                                'id' => '1',
+                                'meta' => ['active' => true],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            $response->getBody(),
+        );
+    }
+
+    public function test_to_many_linkage_meta()
+    {
+        $role1 = (object) ['id' => '1', 'name' => 'admin', 'assignedAt' => '2024-01-01'];
+        $role2 = (object) ['id' => '2', 'name' => 'editor', 'assignedAt' => '2024-01-02'];
+
+        $this->api->resource(
+            new MockResource(
+                'users',
+                models: [(object) ['id' => '1', 'roles' => [$role1, $role2]]],
+                endpoints: [Show::make()],
+                fields: [
+                    ToMany::make('roles')
+                        ->get(fn($user) => $user->roles)
+                        ->withLinkage()
+                        ->linkageMeta([
+                            Attribute::make('assignedAt')->get(fn($role) => $role->assignedAt),
+                        ]),
+                ],
+            ),
+        );
+
+        $this->api->resource(new MockResource('roles', models: [$role1, $role2]));
+
+        $response = $this->api->handle($this->buildRequest('GET', '/users/1'));
+
+        $this->assertJsonApiDocumentSubset(
+            [
+                'data' => [
+                    'relationships' => [
+                        'roles' => [
+                            'data' => [
+                                [
+                                    'type' => 'roles',
+                                    'id' => '1',
+                                    'meta' => ['assignedAt' => '2024-01-01'],
+                                ],
+                                [
+                                    'type' => 'roles',
+                                    'id' => '2',
+                                    'meta' => ['assignedAt' => '2024-01-02'],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            $response->getBody(),
+        );
+    }
+
     public function test_show_endpoint_meta()
     {
         $this->api->resource(

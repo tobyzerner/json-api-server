@@ -18,6 +18,7 @@ abstract class Relationship extends Field
     public array $collections;
     public bool $includable = false;
     public bool|Closure $linkage = false;
+    public array $linkageMeta = [];
 
     /**
      * Set the collection(s) that this relationship is to.
@@ -75,6 +76,16 @@ abstract class Relationship extends Field
         return $this->withLinkage(false);
     }
 
+    /**
+     * Define meta fields for resource identifier objects in linkage.
+     */
+    public function linkageMeta(array $fields): static
+    {
+        $this->linkageMeta = array_merge($this->linkageMeta, $fields);
+
+        return $this;
+    }
+
     public function getValue(Context $context): mixed
     {
         if ($context->include === null && !$this->hasLinkage($context)) {
@@ -110,6 +121,36 @@ abstract class Relationship extends Field
     }
 
     abstract protected function serializeData($value, Context $context): array;
+
+    protected function serializeIdentifier($model, Context $context): array
+    {
+        $context = $context->forModel($this->collections, $model);
+
+        $identifier = $context->serializer->addIncluded($context);
+
+        if ($meta = $this->serializeLinkageMeta($context)) {
+            $identifier['meta'] = $meta;
+        }
+
+        return $identifier;
+    }
+
+    protected function serializeLinkageMeta(Context $context): array
+    {
+        $meta = [];
+
+        foreach ($this->linkageMeta as $field) {
+            if (!$field->isVisible($context)) {
+                continue;
+            }
+
+            $value = $field->getValue($context);
+
+            $meta[$field->name] = $field->serializeValue($value, $context);
+        }
+
+        return $meta;
+    }
 
     public function hasLinkage(Context $context): mixed
     {

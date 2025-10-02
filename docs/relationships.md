@@ -50,10 +50,26 @@ ToOne::make('user')->withoutLinkage();
 ToMany::make('roles')->withLinkage();
 ```
 
-::: danger  
-Be careful when enabling linkage on to-many relationships as pagination is not
-supported.  
-:::
+::: danger Be careful when enabling linkage on to-many relationships as
+pagination is not supported. :::
+
+### Linkage Meta
+
+You can add
+[meta information](https://jsonapi.org/format/#document-resource-object-linkage)
+to resource identifier objects in relationship linkage using the `linkageMeta`
+method. This is useful for including additional data about the relationship
+itself, such as pivot table attributes.
+
+```php
+ToMany::make('roles')
+    ->withLinkage()
+    ->linkageMeta([
+        Attribute::make('assignedAt')->get(
+            fn($role) => $role->pivot->created_at,
+        ),
+    ]);
+```
 
 ## Relationship Mutations
 
