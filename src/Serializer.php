@@ -5,6 +5,7 @@ namespace Tobyz\JsonApiServer;
 use Closure;
 use RuntimeException;
 use Tobyz\JsonApiServer\Endpoint\ResourceEndpoint;
+use Tobyz\JsonApiServer\Schema\Field\Field;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
 
 class Serializer
@@ -81,14 +82,7 @@ class Serializer
 
             $value = $field->getValue($fieldContext);
 
-            $this->whenResolved($value, function (mixed $value) use ($key, $field, $fieldContext) {
-                if (
-                    ($value = $field->serializeValue($value, $fieldContext)) ||
-                    !$field instanceof Relationship
-                ) {
-                    set_value($this->map[$key], $field, $value);
-                }
-            });
+            $this->resolveFieldValue($key, $field, $fieldContext, $value);
         }
 
         // TODO: cache
@@ -104,12 +98,7 @@ class Serializer
 
             $value = $field->getValue($metaContext);
 
-            $this->whenResolved($value, function (mixed $value) use ($key, $field, $metaContext) {
-                $this->map[$key]['meta'][$field->name] = $field->serializeValue(
-                    $value,
-                    $metaContext,
-                );
-            });
+            $this->resolveMetaValue($key, $field, $metaContext, $value);
         }
 
         foreach ($context->resourceMeta[$model] ?? [] as $k => $v) {
@@ -124,14 +113,33 @@ class Serializer
         return "$type:$id";
     }
 
-    private function whenResolved($value, $callback): void
-    {
+    private function resolveFieldValue(
+        string $key,
+        Field $field,
+        Context $context,
+        mixed $value,
+    ): void {
         if ($value instanceof Closure) {
-            $this->deferred[] = fn() => $this->whenResolved($value(), $callback);
-            return;
+            $this->deferred[] = fn() => $this->resolveFieldValue($key, $field, $context, $value());
+        } elseif (
+            ($value = $field->serializeValue($value, $context)) ||
+            !$field instanceof Relationship
+        ) {
+            set_value($this->map[$key], $field, $value);
         }
+    }
 
-        $callback($value);
+    private function resolveMetaValue(
+        string $key,
+        Field $field,
+        Context $context,
+        mixed $value,
+    ): void {
+        if ($value instanceof Closure) {
+            $this->deferred[] = fn() => $this->resolveMetaValue($key, $field, $context, $value());
+        } else {
+            $this->map[$key]['meta'][$field->name] = $field->serializeValue($value, $context);
+        }
     }
 
     /**
