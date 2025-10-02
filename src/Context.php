@@ -246,10 +246,13 @@ class Context
 
     public function forModel(array $collections, mixed $model): static
     {
+        $new = clone $this;
+
         if (!$model) {
-            return $this->withCollection(null)
-                ->withResource(null)
-                ->withModel(null);
+            $new->collection = null;
+            $new->resource = null;
+            $new->model = null;
+            return $new;
         }
 
         foreach ($collections as $collection) {
@@ -258,9 +261,10 @@ class Context
             }
 
             if ($type = $collection->resource($model, $this)) {
-                return $this->withCollection($collection)
-                    ->withResource($this->api->getResource($type))
-                    ->withModel($model);
+                $new->collection = $collection;
+                $new->resource = $this->api->getResource($type);
+                $new->model = $model;
+                return $new;
             }
         }
 
