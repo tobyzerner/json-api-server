@@ -92,10 +92,9 @@ class Where extends ColumnFilter
 
                 default:
                     throw new BadRequestException(
-                        $context->translate(
-                            'laravel.filter.unsupported_operator',
-                            ['operator' => $operator],
-                        ),
+                        $context->translate('laravel.filter.unsupported_operator', [
+                            'operator' => $operator,
+                        ]),
                     );
             }
         }
