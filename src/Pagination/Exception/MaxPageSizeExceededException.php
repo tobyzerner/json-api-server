@@ -6,9 +6,11 @@ use Tobyz\JsonApiServer\Exception\BadRequestException;
 
 class MaxPageSizeExceededException extends BadRequestException
 {
-    public function __construct(private readonly int $maxSize)
-    {
-        parent::__construct('Page size requested is too large.');
+    public function __construct(
+        private readonly int $maxSize,
+        string $message = 'Page size requested is too large',
+    ) {
+        parent::__construct($message);
 
         $this->setMeta(['page' => ['maxSize' => $this->maxSize]])->setLinks([
             'type' => [

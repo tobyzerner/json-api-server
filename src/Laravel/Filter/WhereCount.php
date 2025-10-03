@@ -31,7 +31,9 @@ class WhereCount extends Filter
     {
         foreach ($this->resolveOperators($value) as $operator => $val) {
             if (!is_scalar($val)) {
-                throw new BadRequestException('Count filters require a single value');
+                throw new BadRequestException(
+                    $context->translate('laravel.filter.count_single_value'),
+                );
             }
 
             $query->whereHas(

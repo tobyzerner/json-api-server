@@ -8,6 +8,7 @@ use InvalidArgumentException;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface;
+use RuntimeException;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\ErrorProvider;
 use Tobyz\JsonApiServer\Exception\InternalServerErrorException;
@@ -19,6 +20,9 @@ use Tobyz\JsonApiServer\Exception\UnsupportedMediaTypeException;
 use Tobyz\JsonApiServer\Extension\Extension;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Resource;
+use Tobyz\JsonApiServer\Translation\EnglishCatalogue;
+use Tobyz\JsonApiServer\Translation\Translator;
+use Tobyz\JsonApiServer\Translation\TranslatorInterface;
 
 class JsonApi implements RequestHandlerInterface
 {
@@ -40,6 +44,8 @@ class JsonApi implements RequestHandlerInterface
      */
     public array $collections = [];
 
+    public TranslatorInterface $translator;
+
     /**
      * @var array<string, Collection[]>
      */
@@ -48,6 +54,7 @@ class JsonApi implements RequestHandlerInterface
     public function __construct(public string $basePath = '')
     {
         $this->basePath = rtrim($this->basePath, '/');
+        $this->translator = new Translator(EnglishCatalogue::messages());
     }
 
     /**
@@ -90,7 +97,10 @@ class JsonApi implements RequestHandlerInterface
     public function getCollection(string $type): Collection
     {
         if (!isset($this->collections[$type])) {
-            throw new ResourceNotFoundException($type);
+            throw new ResourceNotFoundException(
+                $type,
+                detail: $this->translator->translate('resource.not_found', ['identifier' => $type]),
+            );
         }
 
         return $this->collections[$type];
@@ -114,10 +124,33 @@ class JsonApi implements RequestHandlerInterface
     public function getResource(string $type): Resource
     {
         if (!isset($this->resources[$type])) {
-            throw new ResourceNotFoundException($type);
+            throw new ResourceNotFoundException(
+                $type,
+                detail: $this->translator->translate('resource.not_found', ['identifier' => $type]),
+            );
         }
 
         return $this->resources[$type];
+    }
+
+    public function messages(array $messages): static
+    {
+        if (!$this->translator instanceof Translator) {
+            throw new RuntimeException(
+                sprintf('Translator must be instance of %s to use messages()', Translator::class),
+            );
+        }
+
+        $this->translator->merge($messages);
+
+        return $this;
+    }
+
+    public function setTranslator(TranslatorInterface $translator): static
+    {
+        $this->translator = $translator;
+
+        return $this;
     }
 
     /**
@@ -191,9 +224,11 @@ class JsonApi implements RequestHandlerInterface
                 !preg_match('/[^a-z]/', $key) &&
                 !in_array($key, ['include', 'fields', 'filter', 'page', 'sort'])
             ) {
-                throw (new BadRequestException("Invalid query parameter: $key"))->setSource([
-                    'parameter' => $key,
-                ]);
+                throw (new BadRequestException(
+                    $this->translator->translate('request.query_parameter_invalid', [
+                        'parameter' => $key,
+                    ]),
+                ))->setSource(['parameter' => $key]);
             }
         }
     }

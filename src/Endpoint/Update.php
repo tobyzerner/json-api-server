@@ -134,7 +134,7 @@ class Update implements Endpoint, OpenApiPathsProvider
                         'content' => $this->buildOpenApiContent(
                             array_map(
                                 fn($resource) => [
-                                    '$ref' => "#/components/schemas/{$resource}Update",
+                                    '$ref' => "#/components/schemas/{$resource}_update",
                                 ],
                                 $collection->resources(),
                             ),

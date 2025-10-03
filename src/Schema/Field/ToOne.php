@@ -4,8 +4,6 @@ namespace Tobyz\JsonApiServer\Schema\Field;
 
 use Doctrine\Inflector\InflectorFactory;
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Exception\BadRequestException;
-use Tobyz\JsonApiServer\Exception\Sourceable;
 use Tobyz\JsonApiServer\JsonApi;
 
 class ToOne extends Relationship
@@ -32,25 +30,13 @@ class ToOne extends Relationship
         return ['data' => $this->serializeIdentifier($value, $context)];
     }
 
-    public function deserializeValue(mixed $value, Context $context): mixed
+    public function deserializeData(mixed $data, Context $context): mixed
     {
-        if ($this->deserializer) {
-            return ($this->deserializer)($value, $context);
-        }
-
-        if (!is_array($value) || !array_key_exists('data', $value)) {
-            throw new BadRequestException('relationship does not include data key');
-        }
-
-        if ($value['data'] === null) {
+        if ($data === null) {
             return null;
         }
 
-        try {
-            return $this->resourceForIdentifier($value['data'], $context);
-        } catch (Sourceable $e) {
-            throw $e->prependSource(['pointer' => '/data']);
-        }
+        return $this->resourceForIdentifier($data, $context);
     }
 
     protected function getDataSchema(JsonApi $api): array

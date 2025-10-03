@@ -87,9 +87,9 @@ trait IncludesData
                 continue 2;
             }
 
-            throw (new BadRequestException("Invalid include [$path$name]"))->setSource([
-                'parameter' => 'include',
-            ]);
+            throw (new BadRequestException(
+                $context->translate('request.include_invalid', ['include' => $path . $name]),
+            ))->setSource(['parameter' => 'include']);
         }
     }
 

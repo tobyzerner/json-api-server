@@ -9,11 +9,14 @@ class ResourceNotFoundException extends DomainException implements ErrorProvider
 {
     use SingleError;
 
-    public function __construct(public readonly string $type, public readonly ?string $id = null)
-    {
-        parent::__construct(
-            sprintf('Resource [%s] not found.', $type . ($id !== null ? '.' . $id : '')),
-        );
+    public function __construct(
+        public readonly string $type,
+        public readonly ?string $id = null,
+        ?string $detail = null,
+    ) {
+        $identifier = $type . ($id !== null ? '.' . $id : '');
+
+        parent::__construct($detail ?? sprintf('Resource not found: %s', $identifier));
     }
 
     public function getJsonApiStatus(): string

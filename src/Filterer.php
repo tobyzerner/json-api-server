@@ -35,7 +35,7 @@ class Filterer
             ) {
                 if (!is_array($value)) {
                     throw $this->badRequest(
-                        'Boolean groups must be objects or lists of clauses',
+                        $this->context->translate('filter.structure_invalid'),
                         $keyPath,
                     );
                 }
@@ -48,7 +48,7 @@ class Filterer
             if (is_int($key)) {
                 if (!is_array($value)) {
                     throw $this->badRequest(
-                        'Filter clauses must be expressed as objects',
+                        $this->context->translate('filter.structure_invalid'),
                         $keyPath,
                     );
                 }
@@ -59,7 +59,10 @@ class Filterer
             }
 
             if (!($filter = $availableFilters[$key] ?? null)) {
-                throw $this->badRequest("Invalid filter: $key", $keyPath);
+                throw $this->badRequest(
+                    $this->context->translate('filter.invalid', ['filter' => $key]),
+                    $keyPath,
+                );
             }
 
             $clauses[] = fn($query) => $filter->apply($query, $value, $this->context);

@@ -13,9 +13,17 @@ and this project adheres to
 - Replace `Resource::getId(object $model, Context $context): string` method with
   `Resource::id(): Id` method, which returns an `Id` field instance to define ID
   schema, validation, and writability
+- Custom deserializers on `ToOne` relationships now receive the resolved model
+  rather than the raw relationship object, for consistency with `ToMany`
 
 ### Added
 
+- Add localization system for customizable error messages
+    - Add `JsonApi::messages()` method for merging custom error messages with
+      defaults
+    - Add `JsonApi::setTranslator()` method for providing custom translator
+      implementations
+    - Add `Context::translate()` method for accessing the translation system
 - Add `Id` field class for customizing resource ID behavior, including type
   constraints, client-generated IDs via `writableOnCreate()`, and validation
 - Add `linkageMeta()` method to relationship fields for adding meta to resource
@@ -26,6 +34,7 @@ and this project adheres to
 
 ### Changed
 
+- Error messages now use the localization system
 - Various performance optimizations to improve serialization speed
 - Improve OpenAPI schema generation to properly handle ID field constraints and
   avoid redundant properties

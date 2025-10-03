@@ -6,9 +6,9 @@ use Tobyz\JsonApiServer\Exception\BadRequestException;
 
 class RangePaginationNotSupportedException extends BadRequestException
 {
-    public function __construct()
+    public function __construct(string $message = 'Range pagination is not supported')
     {
-        parent::__construct('Range pagination is not supported.');
+        parent::__construct($message);
 
         $this->setLinks([
             'type' => [

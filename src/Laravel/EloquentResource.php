@@ -168,7 +168,9 @@ abstract class EloquentResource extends AbstractResource implements
         Context $context,
     ): Page {
         if ($after && $before) {
-            throw new RangePaginationNotSupportedException();
+            throw new RangePaginationNotSupportedException(
+                $context->translate('pagination.range_not_supported'),
+            );
         }
 
         if ($cursor = Cursor::fromEncoded($after ?: $before)) {

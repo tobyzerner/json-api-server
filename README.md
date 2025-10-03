@@ -22,6 +22,7 @@ support for:
 - **Deleting** resources (`DELETE /articles/1`)
 - **Content negotiation**
 - **Error handling**
+- **Localization** for customizing error messages
 - **Extensions** including Atomic Operations
 - **Generating OpenAPI definitions**
 

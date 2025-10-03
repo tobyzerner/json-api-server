@@ -49,6 +49,11 @@ class Context
         $this->resourceMeta = new WeakMap();
     }
 
+    public function translate(string $key, array $replacements = []): string
+    {
+        return $this->api->translator->translate($key, $replacements);
+    }
+
     /**
      * Get the value of a query param.
      */
@@ -150,7 +155,7 @@ class Context
 
             if (!is_string($requested)) {
                 throw (new BadRequestException(
-                    'Sparse fieldsets must be comma-separated strings.',
+                    $this->translate('request.fields_invalid'),
                 ))->setSource(['parameter' => "fields[$type]"]);
             }
 

@@ -29,54 +29,54 @@ trait SavesData
     {
         $body = (array) $context->body();
 
-        if (!isset($body['data']) || !is_array($body['data'])) {
-            throw (new BadRequestException('data must be an object'))->setSource([
-                'pointer' => '/data',
+        if (!is_array($body['data'] ?? null)) {
+            throw (new BadRequestException($context->translate('data.invalid')))->setSource([
+                'pointer' => array_key_exists('data', $body) ? '/data' : '',
             ]);
         }
 
-        if (!isset($body['data']['type'])) {
-            throw (new BadRequestException('data.type must be present'))->setSource([
+        if (!is_string($body['data']['type'] ?? null)) {
+            throw (new BadRequestException($context->translate('data.type_invalid')))->setSource([
                 'pointer' => '/data/type',
             ]);
         }
 
         if (isset($context->model)) {
-            if (!isset($body['data']['id'])) {
-                throw (new BadRequestException('data.id must be present'))->setSource([
+            if (!is_string($body['data']['id'] ?? null)) {
+                throw (new BadRequestException($context->translate('data.id_invalid')))->setSource([
                     'pointer' => '/data/id',
                 ]);
             }
 
             if ($body['data']['id'] !== $context->id($context->resource, $context->model)) {
-                throw (new ConflictException('data.id does not match the resource ID'))->setSource([
+                throw (new ConflictException($context->translate('data.id_conflict')))->setSource([
                     'pointer' => '/data/id',
                 ]);
             }
         }
 
         if (!in_array($body['data']['type'], $context->collection->resources())) {
-            throw (new ConflictException(
-                'collection does not support this resource type',
-            ))->setSource(['pointer' => '/data/type']);
+            throw (new ConflictException($context->translate('data.type_unsupported')))->setSource([
+                'pointer' => '/data/type',
+            ]);
         }
 
         if (
             array_key_exists('attributes', $body['data']) &&
             !is_array($body['data']['attributes'])
         ) {
-            throw (new BadRequestException('data.attributes must be an object'))->setSource([
-                'pointer' => '/data/attributes',
-            ]);
+            throw (new BadRequestException(
+                $context->translate('data.attributes_invalid'),
+            ))->setSource(['pointer' => '/data/attributes']);
         }
 
         if (
             array_key_exists('relationships', $body['data']) &&
             !is_array($body['data']['relationships'])
         ) {
-            throw (new BadRequestException('data.relationships must be an object'))->setSource([
-                'pointer' => '/data/relationships',
-            ]);
+            throw (new BadRequestException(
+                $context->translate('data.relationships_invalid'),
+            ))->setSource(['pointer' => '/data/relationships']);
         }
 
         return array_merge(['attributes' => [], 'relationships' => []], $body['data']);
@@ -114,7 +114,9 @@ trait SavesData
         foreach (['attributes', 'relationships'] as $location) {
             foreach ($data[$location] as $name => $value) {
                 if (!isset($fields[$name]) || $location !== $fields[$name]->location()) {
-                    throw (new BadRequestException("Unknown field [$name]"))->setSource([
+                    throw (new BadRequestException(
+                        $context->translate('data.field_unknown', ['field' => $name]),
+                    ))->setSource([
                         'pointer' => '/data/' . implode('/', array_filter([$location, $name])),
                     ]);
                 }
@@ -155,7 +157,9 @@ trait SavesData
         $writable = $creating ? $field->isWritableOnCreate($context) : $field->isWritable($context);
 
         if (!$writable) {
-            throw new ForbiddenException("Field [$field->name] is not writable");
+            throw new ForbiddenException(
+                $context->translate('data.field_readonly', ['field' => $field->name]),
+            );
         }
     }
 
@@ -196,7 +200,7 @@ trait SavesData
             }
 
             if (!$present && $field->required) {
-                $fieldErrors = [['detail' => 'field is required']];
+                $fieldErrors = [['detail' => $context->translate('data.field_required')]];
             } else {
                 $fieldErrors = $this->validateField($context, $field, get_value($data, $field));
             }

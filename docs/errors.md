@@ -49,3 +49,9 @@ class ImATeapotException implements ErrorProvider
 
 Exceptions that do not implement this interface will result in a generic
 `500 Internal Server Error` response.
+
+## Customizing Error Messages
+
+Many of the built-in error messages can be customized using the
+[localization system](localization.md). This allows you to provide localized or
+custom error messages throughout your API.

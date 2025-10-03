@@ -56,6 +56,9 @@ class Context
     // Get the value of a query param
     public function queryParam(string $name, $default = null): mixed;
 
+    // Translate a message using the API's translator
+    public function translate(string $key, array $replacements = []): string;
+
     // Get the parsed JSON:API payload
     public function body(): ?array;
 

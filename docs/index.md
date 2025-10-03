@@ -21,6 +21,7 @@ support for:
 - **Relationship** URLs (`/articles/1/relationships/author`)
 - **Content negotiation**
 - **Error handling**
+- **Localization** for customizing error messages
 - **Extensions** including Atomic Operations
 - **Generating OpenAPI definitions**
 

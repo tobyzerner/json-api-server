@@ -7,6 +7,7 @@ use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Concerns\FindsResources;
 use Tobyz\JsonApiServer\Endpoint\RelationshipEndpoint;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Exception\Sourceable;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Concerns\HasMeta;
 
@@ -162,6 +163,27 @@ abstract class Relationship extends Field
         return $meta;
     }
 
+    public function deserializeValue(mixed $value, Context $context): mixed
+    {
+        if (!is_array($value) || !array_key_exists('data', $value)) {
+            throw new BadRequestException($context->translate('relationship.invalid'));
+        }
+
+        try {
+            $resolved = $this->deserializeData($value['data'], $context);
+        } catch (Sourceable $e) {
+            throw $e->prependSource(['pointer' => '/data']);
+        }
+
+        if ($this->deserializer) {
+            return ($this->deserializer)($resolved, $context);
+        }
+
+        return $resolved;
+    }
+
+    abstract protected function deserializeData(mixed $data, Context $context): mixed;
+
     public function hasLinkage(Context $context): mixed
     {
         if ($this->linkage instanceof Closure) {
@@ -189,12 +211,16 @@ abstract class Relationship extends Field
 
     protected function resourceForIdentifier(array $identifier, Context $context): mixed
     {
-        if (!isset($identifier['type'])) {
-            throw new BadRequestException('type not specified');
+        if (!is_string($identifier['type'] ?? null)) {
+            throw (new BadRequestException($context->translate('data.type_invalid')))->setSource([
+                'pointer' => array_key_exists('type', $identifier) ? '/type' : '',
+            ]);
         }
 
-        if (!isset($identifier['id'])) {
-            throw new BadRequestException('id not specified');
+        if (!is_string($identifier['id'] ?? null)) {
+            throw (new BadRequestException($context->translate('data.id_invalid')))->setSource([
+                'pointer' => array_key_exists('id', $identifier) ? '/id' : '',
+            ]);
         }
 
         $resources = $this->getRelatedResources($context->api);
@@ -206,9 +232,9 @@ abstract class Relationship extends Field
             );
         }
 
-        throw (new BadRequestException("type [{$identifier['type']}] not allowed"))->setSource([
-            'pointer' => '/type',
-        ]);
+        throw (new BadRequestException(
+            $context->translate('data.type_unsupported', ['type' => $identifier['type']]),
+        ))->setSource(['pointer' => '/type']);
     }
 
     protected function getRelatedResources(JsonApi $api): array

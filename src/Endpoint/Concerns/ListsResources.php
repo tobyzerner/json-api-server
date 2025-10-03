@@ -67,9 +67,9 @@ trait ListsResources
                 }
             }
 
-            throw (new BadRequestException("Invalid sort: $name"))->setSource([
-                'parameter' => 'sort',
-            ]);
+            throw (new BadRequestException(
+                $context->translate('request.sort_invalid', ['sort' => $name]),
+            ))->setSource(['parameter' => 'sort']);
         }
     }
 
@@ -83,7 +83,9 @@ trait ListsResources
         }
 
         if (!is_array($filters)) {
-            throw (new BadRequestException('filter must be an array'))->setSource([
+            throw (new BadRequestException(
+                $context->translate('request.filter_invalid'),
+            ))->setSource([
                 'parameter' => 'filter',
             ]);
         }

@@ -82,9 +82,9 @@ class CursorPagination implements Pagination
         $cursor = $context->queryParam('page')[$key] ?? null;
 
         if ($cursor && !is_string($cursor)) {
-            throw (new BadRequestException("page[$key] must be a cursor string"))->setSource([
-                'parameter' => "page[$key]",
-            ]);
+            throw (new BadRequestException(
+                $context->translate('pagination.cursor_invalid'),
+            ))->setSource(['parameter' => "page[$key]"]);
         }
 
         return $cursor;

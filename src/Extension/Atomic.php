@@ -39,7 +39,7 @@ class Atomic extends Extension
 
         if (!is_array($operations)) {
             throw (new BadRequestException(
-                'atomic:operations must be an array of operation objects',
+                $context->translate('atomic.operations_invalid'),
             ))->setSource(['pointer' => '/atomic:operations']);
         }
 
@@ -49,14 +49,18 @@ class Atomic extends Extension
         foreach ($operations as $i => $operation) {
             try {
                 if (isset($operation['ref']) && isset($operation['href'])) {
-                    throw new BadRequestException('Only one of href and ref may be specified');
+                    throw new BadRequestException($context->translate('atomic.href_ref_exclusive'));
                 }
 
                 $response = match ($operation['op'] ?? null) {
                     'add' => $this->add($context, $operation, $lids),
                     'update' => $this->update($context, $operation, $lids),
                     'remove' => $this->remove($context, $operation, $lids),
-                    default => throw new BadRequestException('Invalid operation'),
+                    default => throw new BadRequestException(
+                        $context->translate('atomic.operation_invalid', [
+                            'operation' => $operation['op'] ?? null,
+                        ]),
+                    ),
                 };
             } catch (Sourceable $e) {
                 throw $e->prependSource(['pointer' => "/atomic:operations/$i"]);
@@ -71,9 +75,9 @@ class Atomic extends Extension
     private function add(Context $context, array $operation, array &$lids): Response
     {
         if (isset($operation['ref'])) {
-            throw (new BadRequestException('ref is not supported for add operations'))->setSource([
-                'pointer' => '/ref',
-            ]);
+            throw (new BadRequestException(
+                $context->translate('atomic.ref_unsupported'),
+            ))->setSource(['pointer' => '/ref']);
         }
 
         $request = $context->request

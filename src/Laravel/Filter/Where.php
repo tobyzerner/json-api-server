@@ -91,7 +91,12 @@ class Where extends ColumnFilter
                     break;
 
                 default:
-                    throw new BadRequestException("Unsupported operator: $operator");
+                    throw new BadRequestException(
+                        $context->translate(
+                            'laravel.filter.unsupported_operator',
+                            ['operator' => $operator],
+                        ),
+                    );
             }
         }
     }

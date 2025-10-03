@@ -15,12 +15,12 @@ trait HasSizeParameter
     private function configureSizeParameter(int $defaultSize, ?int $maxSize): void
     {
         if ($defaultSize < 1) {
-            throw new InvalidArgumentException('Default page size must be at least 1.');
+            throw new InvalidArgumentException('Default page size must be at least 1');
         }
 
         if ($maxSize !== null) {
             if ($maxSize < 1) {
-                throw new InvalidArgumentException('Max page size must be at least 1.');
+                throw new InvalidArgumentException('Max page size must be at least 1');
             }
 
             $defaultSize = min($defaultSize, $maxSize);
@@ -37,14 +37,15 @@ trait HasSizeParameter
         if ($size !== null) {
             if (preg_match('/\D+/', $size) || $size < 1) {
                 throw (new BadRequestException(
-                    "page[$parameter] must be a positive integer",
+                    $context->translate('pagination.size_invalid'),
                 ))->setSource(['parameter' => "page[$parameter]"]);
             }
 
             if ($this->maxSize && $size > $this->maxSize) {
-                throw (new MaxPageSizeExceededException($this->maxSize))->setSource([
-                    'parameter' => "page[$parameter]",
-                ]);
+                throw (new MaxPageSizeExceededException(
+                    $this->maxSize,
+                    $context->translate('pagination.size_exceeded'),
+                ))->setSource(['parameter' => "page[$parameter]"]);
             }
 
             return $size;

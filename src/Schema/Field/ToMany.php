@@ -58,30 +58,20 @@ class ToMany extends Relationship
         return $this;
     }
 
-    public function deserializeValue(mixed $value, Context $context): mixed
+    public function deserializeData(mixed $data, Context $context): array
     {
-        if (!is_array($value) || !array_key_exists('data', $value)) {
-            throw new BadRequestException('relationship does not include data key');
-        }
-
-        if (!array_is_list($value['data'])) {
-            throw (new BadRequestException(
-                'relationship data must be a list of identifier objects',
-            ))->setSource(['pointer' => '/data']);
+        if (!is_array($data) || !array_is_list($data)) {
+            throw new BadRequestException($context->translate('relationship.data_invalid'));
         }
 
         $models = [];
 
-        foreach ($value['data'] as $i => $identifier) {
+        foreach ($data as $i => $identifier) {
             try {
                 $models[] = $this->resourceForIdentifier($identifier, $context);
             } catch (Sourceable $e) {
-                throw $e->prependSource(['pointer' => "/data/$i"]);
+                throw $e->prependSource(['pointer' => "/$i"]);
             }
-        }
-
-        if ($this->deserializer) {
-            return ($this->deserializer)($models, $context);
         }
 
         return $models;
