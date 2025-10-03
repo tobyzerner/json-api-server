@@ -59,6 +59,9 @@ class Context
     // Translate a message using the API's translator
     public function translate(string $key, array $replacements = []): string;
 
+    // Get the URL of the current request, optionally with query parameter overrides
+    public function currentUrl(array $queryParams = []): string;
+
     // Get the parsed JSON:API payload
     public function body(): ?array;
 

@@ -24,6 +24,9 @@ and this project adheres to
     - Add `JsonApi::setTranslator()` method for providing custom translator
       implementations
     - Add `Context::translate()` method for accessing the translation system
+- Add `Context::currentUrl()` method for building the current URL with query
+  parameter overrides
+- Add `self` link to `Index` endpoint document
 - Add `Id` field class for customizing resource ID behavior, including type
   constraints, client-generated IDs via `writableOnCreate()`, and validation
 - Add `linkageMeta()` method to relationship fields for adding meta to resource
@@ -38,6 +41,11 @@ and this project adheres to
 - Various performance optimizations to improve serialization speed
 - Improve OpenAPI schema generation to properly handle ID field constraints and
   avoid redundant properties
+
+### Removed
+
+- Remove `Pagination\Concerns\BuildsUrls` trait (replaced by
+  `Context::currentUrl()`)
 
 ## [1.0.0-beta.6] - 2025-10-02
 

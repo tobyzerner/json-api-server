@@ -91,7 +91,11 @@ class Index implements Endpoint, OpenApiPathsProvider
             $this->pagination,
         );
 
-        return json_api_response($this->buildResourceDocument($models, $context));
+        $document = $this->buildResourceDocument($models, $context);
+
+        $document['links']['self'] ??= $context->currentUrl();
+
+        return json_api_response($document);
     }
 
     public function getOpenApiPaths(Collection $collection, JsonApi $api): array

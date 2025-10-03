@@ -82,6 +82,29 @@ class Context
     }
 
     /**
+     * Get the URL of the current request, optionally with query parameter overrides.
+     */
+    public function currentUrl(array $queryParams = []): string
+    {
+        $queryParams = array_replace_recursive($this->request->getQueryParams(), $queryParams);
+
+        if (isset($queryParams['filter'])) {
+            foreach ($queryParams['filter'] as &$v) {
+                $v = $v === null ? '' : $v;
+            }
+        }
+
+        ksort($queryParams);
+
+        $queryString = http_build_query($queryParams, '', '&', PHP_QUERY_RFC3986);
+
+        return $this->api->basePath .
+            '/' .
+            $this->path() .
+            ($queryString ? '?' . $queryString : '');
+    }
+
+    /**
      * Get the parsed JSON:API payload.
      */
     public function body(): ?array

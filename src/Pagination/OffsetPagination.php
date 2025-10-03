@@ -5,14 +5,12 @@ namespace Tobyz\JsonApiServer\Pagination;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
-use Tobyz\JsonApiServer\Pagination\Concerns\BuildsUrls;
 use Tobyz\JsonApiServer\Pagination\Concerns\HasSizeParameter;
 use Tobyz\JsonApiServer\Resource\Paginatable;
 
 class OffsetPagination implements Pagination
 {
     use HasSizeParameter;
-    use BuildsUrls;
 
     public function __construct(int $defaultLimit = 20, ?int $maxLimit = 50)
     {
@@ -35,10 +33,7 @@ class OffsetPagination implements Pagination
         $page = $collection->paginate($query, $offset, $limit, $context);
 
         if ($page->isFirstPage !== true && $offset > 0) {
-            $context->documentLinks['first'] = $this->buildUrl(
-                ['page' => ['offset' => null]],
-                $context,
-            );
+            $context->documentLinks['first'] = $context->currentUrl(['page' => ['offset' => null]]);
 
             $prevOffset = $offset - $limit;
 
@@ -48,23 +43,21 @@ class OffsetPagination implements Pagination
                 $params = ['page' => ['offset' => max(0, $prevOffset) ?: null]];
             }
 
-            $context->documentLinks['prev'] = $this->buildUrl($params, $context);
+            $context->documentLinks['prev'] = $context->currentUrl($params);
         }
 
         $total = $context->documentMeta['page']['total'] ?? null;
 
         if ($total !== null && $limit && $offset + $limit < $total) {
-            $context->documentLinks['last'] = $this->buildUrl(
-                ['page' => ['offset' => floor(($total - 1) / $limit) * $limit ?: null]],
-                $context,
-            );
+            $context->documentLinks['last'] = $context->currentUrl([
+                'page' => ['offset' => floor(($total - 1) / $limit) * $limit ?: null],
+            ]);
         }
 
         if (!$page->isLastPage) {
-            $context->documentLinks['next'] = $this->buildUrl(
-                ['page' => ['offset' => $offset + $limit]],
-                $context,
-            );
+            $context->documentLinks['next'] = $context->currentUrl([
+                'page' => ['offset' => $offset + $limit],
+            ]);
         }
 
         return $page->results;

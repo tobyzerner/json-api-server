@@ -6,13 +6,11 @@ use RuntimeException;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\Sourceable;
-use Tobyz\JsonApiServer\Pagination\Concerns\BuildsUrls;
 use Tobyz\JsonApiServer\Pagination\Concerns\HasSizeParameter;
 use Tobyz\JsonApiServer\Resource\CursorPaginatable;
 
 class CursorPagination implements Pagination
 {
-    use BuildsUrls;
     use HasSizeParameter;
 
     public readonly int $size;
@@ -51,27 +49,21 @@ class CursorPagination implements Pagination
         }
 
         if ($page->results && !$page->isFirstPage) {
-            $context->documentLinks['prev'] = $this->buildUrl(
-                [
-                    'page' => [
-                        'after' => null,
-                        'before' => $collection->itemCursor($page->results[0], $query, $context),
-                    ],
+            $context->documentLinks['prev'] = $context->currentUrl([
+                'page' => [
+                    'after' => null,
+                    'before' => $collection->itemCursor($page->results[0], $query, $context),
                 ],
-                $context,
-            );
+            ]);
         }
 
         if ($page->results && !$page->isLastPage) {
-            $context->documentLinks['next'] = $this->buildUrl(
-                [
-                    'page' => [
-                        'before' => null,
-                        'after' => $collection->itemCursor(end($page->results), $query, $context),
-                    ],
+            $context->documentLinks['next'] = $context->currentUrl([
+                'page' => [
+                    'before' => null,
+                    'after' => $collection->itemCursor(end($page->results), $query, $context),
                 ],
-                $context,
-            );
+            ]);
         }
 
         return $page->results;
