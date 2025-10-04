@@ -13,6 +13,8 @@ class CursorPagination implements Pagination
 {
     use HasSizeParameter;
 
+    public const PROFILE_URI = 'https://jsonapi.org/profiles/ethanresnick/cursor-pagination';
+
     public readonly int $size;
     public readonly ?string $after;
     public readonly ?string $before;
@@ -24,6 +26,8 @@ class CursorPagination implements Pagination
 
     public function paginate(object $query, Context $context): array
     {
+        $context->activateProfile(self::PROFILE_URI);
+
         $size = $this->getSize($context, 'size');
         $after = $this->getCursor($context, 'after');
         $before = $this->getCursor($context, 'before');

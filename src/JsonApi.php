@@ -166,6 +166,16 @@ class JsonApi implements RequestHandlerInterface
             throw $e ?? new NotFoundException();
         }
 
+        if (count($context->activeProfiles)) {
+            $contentType = $response->getHeaderLine('Content-Type');
+
+            if (str_starts_with($contentType, self::MEDIA_TYPE)) {
+                $profileUris = array_keys(array_filter($context->activeProfiles->getArrayCopy()));
+                $contentType .= '; profile="' . implode(' ', $profileUris) . '"';
+                $response = $response->withHeader('Content-Type', $contentType);
+            }
+        }
+
         return $response->withAddedHeader('Vary', 'Accept');
     }
 

@@ -47,6 +47,9 @@ class Context
     // Links to be returned in the document's links object
     public ArrayObject $documentLinks;
 
+    // Active JSON:API profile URIs for the current response
+    public ArrayObject $activeProfiles;
+
     // Get the request method
     public function method(): string;
 
@@ -79,5 +82,8 @@ class Context
 
     // Determine whether a sort field has been requested
     public function sortRequested(string $field): bool;
+
+    // Activate a JSON:API profile for the current response
+    public function activateProfile(string $uri): static;
 }
 ```

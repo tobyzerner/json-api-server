@@ -4,9 +4,9 @@ namespace Tobyz\Tests\JsonApiServer\specification;
 
 use Tobyz\JsonApiServer\Endpoint\Index;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
-use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Exception\Pagination\MaxPageSizeExceededException;
 use Tobyz\JsonApiServer\Exception\Pagination\RangePaginationNotSupportedException;
+use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockResource;
 
@@ -24,6 +24,16 @@ class CursorPaginationTest extends AbstractTestCase
                 models: array_map(fn($i) => (object) ['id' => (string) $i], range(1, 10)),
                 endpoints: [Index::make()->cursorPaginate(2, 5)],
             ),
+        );
+    }
+
+    public function test_includes_profile_in_content_type(): void
+    {
+        $response = $this->api->handle($this->buildRequest('GET', '/articles'));
+
+        $this->assertEquals(
+            'application/vnd.api+json; profile="https://jsonapi.org/profiles/ethanresnick/cursor-pagination"',
+            $response->getHeaderLine('Content-Type'),
         );
     }
 

@@ -24,6 +24,7 @@ class Context
     public ?array $include = null;
     public ArrayObject $documentMeta;
     public ArrayObject $documentLinks;
+    public ArrayObject $activeProfiles;
     public WeakMap $resourceMeta;
 
     private ?array $body;
@@ -45,6 +46,7 @@ class Context
 
         $this->documentMeta = new ArrayObject();
         $this->documentLinks = new ArrayObject();
+        $this->activeProfiles = new ArrayObject();
 
         $this->resourceMeta = new WeakMap();
     }
@@ -285,6 +287,13 @@ class Context
     public function resourceMeta($model, array $meta): static
     {
         $this->resourceMeta[$model] = array_merge($this->resourceMeta[$model] ?? [], $meta);
+
+        return $this;
+    }
+
+    public function activateProfile(string $uri): static
+    {
+        $this->activeProfiles[$uri] = true;
 
         return $this;
     }

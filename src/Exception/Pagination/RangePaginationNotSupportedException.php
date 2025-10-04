@@ -3,6 +3,7 @@
 namespace Tobyz\JsonApiServer\Exception\Pagination;
 
 use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Pagination\CursorPagination;
 
 class RangePaginationNotSupportedException extends BadRequestException
 {
@@ -11,9 +12,7 @@ class RangePaginationNotSupportedException extends BadRequestException
         parent::__construct('Range pagination is not supported');
 
         $this->links([
-            'type' => [
-                'https://jsonapi.org/profiles/ethanresnick/cursor-pagination/range-pagination-not-supported',
-            ],
+            'type' => [CursorPagination::PROFILE_URI . '/range-pagination-not-supported'],
         ]);
     }
 }

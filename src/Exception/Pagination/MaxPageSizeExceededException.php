@@ -3,6 +3,7 @@
 namespace Tobyz\JsonApiServer\Exception\Pagination;
 
 use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Pagination\CursorPagination;
 
 class MaxPageSizeExceededException extends BadRequestException
 {
@@ -11,9 +12,7 @@ class MaxPageSizeExceededException extends BadRequestException
         parent::__construct('Page size requested is too large');
 
         $this->meta(['page' => ['maxSize' => $this->maxSize]])->links([
-            'type' => [
-                'https://jsonapi.org/profiles/ethanresnick/cursor-pagination/max-size-exceeded',
-            ],
+            'type' => [CursorPagination::PROFILE_URI . '/max-size-exceeded'],
         ]);
     }
 }
