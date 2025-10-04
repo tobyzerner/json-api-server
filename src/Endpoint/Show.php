@@ -157,7 +157,10 @@ class Show implements Endpoint, ResourceEndpoint, RelationshipEndpoint, OpenApiP
 
                 $location = $context->api->basePath . '/' . ltrim($result, '/');
 
-                return $context->createResponse([])->withStatus(303)->withHeader('Location', $location);
+                return $context
+                    ->createResponse([])
+                    ->withStatus(303)
+                    ->withHeader('Location', $location);
             }
 
             return $response;

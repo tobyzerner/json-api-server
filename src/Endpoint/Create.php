@@ -82,23 +82,25 @@ class Create implements Endpoint, OpenApiPathsProvider
 
             if ($asyncResult !== null) {
                 if (is_string($asyncResult)) {
-                    $response = $context->createResponse($this->buildDocument($context))->withHeader(
-                        'Location',
-                        $context->api->basePath . '/' . ltrim($asyncResult, '/'),
-                    );
+                    $response = $context
+                        ->createResponse($this->buildDocument($context))
+                        ->withHeader(
+                            'Location',
+                            $context->api->basePath . '/' . ltrim($asyncResult, '/'),
+                        );
                 } else {
                     $context = $context->forModel([$this->asyncCollection], $asyncResult);
 
-                    $response = $context->createResponse(
-                        $this->buildResourceDocument($asyncResult, $context),
-                    )->withHeader(
-                        'Content-Location',
-                        implode('/', [
-                            $context->api->basePath,
-                            $context->collection->name(),
-                            $context->id($context->resource, $asyncResult),
-                        ]),
-                    );
+                    $response = $context
+                        ->createResponse($this->buildResourceDocument($asyncResult, $context))
+                        ->withHeader(
+                            'Content-Location',
+                            implode('/', [
+                                $context->api->basePath,
+                                $context->collection->name(),
+                                $context->id($context->resource, $asyncResult),
+                            ]),
+                        );
                 }
 
                 return $response->withStatus(202);
