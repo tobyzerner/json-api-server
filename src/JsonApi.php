@@ -7,7 +7,6 @@ use InvalidArgumentException;
 use Nyholm\Psr7\ServerRequest;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Message\ServerServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Tobyz\JsonApiServer\Exception\ErrorProvider;
 use Tobyz\JsonApiServer\Exception\InternalServerErrorException;

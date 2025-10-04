@@ -27,6 +27,7 @@ and this project adheres to
 - Remove `Pagination\Concerns\BuildsUrls` trait (replaced by
   `Context::currentUrl()`)
 - Move `Extension\Atomic` to `Extension\Atomic\Atomic`
+- Remove `json_api_response()` helper (use `Context::createResponse()` instead)
 
 ### Added
 
@@ -34,10 +35,9 @@ and this project adheres to
   automatic `jsonapi` object inclusion
 - Add `JsonApi::meta()` method for including meta information in the `jsonapi`
   object
-- Add `Resource::links()` method for defining custom resource-level links
-  (including `describedby`)
-- Add `Schema\Link` class for defining rich link objects with metadata
-- Add `JsonApiError::id(string $id)` method for setting error IDs
+- Add support for resource links:
+    - Add `Resource::links()` method for defining custom resource-level links
+    - Add `Schema\Link` class for defining rich link objects with metadata
 - Add `Page::$rangeTruncated` parameter for cursor pagination range truncation
   support
 - Add full support for JSON:API profiles:

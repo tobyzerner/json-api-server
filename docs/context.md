@@ -96,6 +96,6 @@ class Context
     public function activateProfile(string $uri): static;
 
     // Create a JSON:API response with document data
-    public function createResponse(array $document): Response;
+    public function createResponse(array $document = []): Response;
 }
 ```
