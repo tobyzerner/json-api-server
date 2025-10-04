@@ -114,11 +114,17 @@ class ContentNegotiationTest extends AbstractTestCase
 
         $capturedProfiles = null;
 
-        $resource = new MockResource('users', models: [(object) ['id' => '1']], endpoints: [
-            Show::make()->response(function ($response, $model, $context) use (&$capturedProfiles) {
-                $capturedProfiles = $context->requestedProfiles();
-            }),
-        ]);
+        $resource = new MockResource(
+            'users',
+            models: [(object) ['id' => '1']],
+            endpoints: [
+                Show::make()->response(function ($response, $model, $context) use (
+                    &$capturedProfiles,
+                ) {
+                    $capturedProfiles = $context->requestedProfiles();
+                }),
+            ],
+        );
 
         $this->api->resource($resource);
 
@@ -139,12 +145,16 @@ class ContentNegotiationTest extends AbstractTestCase
     {
         $this->api = new JsonApi();
 
-        $resource = new MockResource('users', models: [(object) ['id' => '1']], endpoints: [
-            Show::make()->response(function ($response, $model, $context) {
-                $context->activateProfile('https://example.com/profile1');
-                $context->activateProfile('https://example.com/profile2');
-            }),
-        ]);
+        $resource = new MockResource(
+            'users',
+            models: [(object) ['id' => '1']],
+            endpoints: [
+                Show::make()->response(function ($response, $model, $context) {
+                    $context->activateProfile('https://example.com/profile1');
+                    $context->activateProfile('https://example.com/profile2');
+                }),
+            ],
+        );
 
         $this->api->resource($resource);
 
@@ -162,11 +172,17 @@ class ContentNegotiationTest extends AbstractTestCase
 
         $capturedProfiles = null;
 
-        $resource = new MockResource('users', models: [(object) ['id' => '1']], endpoints: [
-            Show::make()->response(function ($response, $model, $context) use (&$capturedProfiles) {
-                $capturedProfiles = $context->requestedProfiles();
-            }),
-        ]);
+        $resource = new MockResource(
+            'users',
+            models: [(object) ['id' => '1']],
+            endpoints: [
+                Show::make()->response(function ($response, $model, $context) use (
+                    &$capturedProfiles,
+                ) {
+                    $capturedProfiles = $context->requestedProfiles();
+                }),
+            ],
+        );
 
         $this->api->resource($resource);
 
