@@ -154,4 +154,44 @@ class ErrorTest extends AbstractTestCase
 
         $this->assertEquals(500, $response->getStatusCode());
     }
+
+    public function test_error_id_can_be_set_via_fluent_method()
+    {
+        $response = $this->api->error((new MockErrorException())->id('error-12345'));
+
+        $this->assertJsonApiDocumentSubset(
+            [
+                'errors' => [
+                    [
+                        'id' => 'error-12345',
+                        'status' => '400',
+                    ],
+                ],
+            ],
+            $response->getBody(),
+        );
+    }
+
+    public function test_error_id_can_be_set_via_customization()
+    {
+        $this->api->errors([
+            MockErrorException::class => [
+                'id' => 'custom-error-id',
+            ],
+        ]);
+
+        $response = $this->api->error(new MockErrorException());
+
+        $this->assertJsonApiDocumentSubset(
+            [
+                'errors' => [
+                    [
+                        'id' => 'custom-error-id',
+                        'status' => '400',
+                    ],
+                ],
+            ],
+            $response->getBody(),
+        );
+    }
 }

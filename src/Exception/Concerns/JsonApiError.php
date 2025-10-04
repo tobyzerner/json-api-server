@@ -48,6 +48,13 @@ trait JsonApiError
         return $this;
     }
 
+    public function id(string $id): static
+    {
+        $this->error['id'] = $id;
+
+        return $this;
+    }
+
     public function getJsonApiError(): array
     {
         $class = (new ReflectionClass($this))->getShortName();

@@ -37,6 +37,7 @@ and this project adheres to
 - Add `Resource::links()` method for defining custom resource-level links
   (including `describedby`)
 - Add `Schema\Link` class for defining rich link objects with metadata
+- Add `JsonApiError::id(string $id)` method for setting error IDs
 - Add full support for JSON:API profiles:
     - Parse profile URIs from `Accept` header
     - `Context::profileRequested(string $uri): bool` - check if a profile was
