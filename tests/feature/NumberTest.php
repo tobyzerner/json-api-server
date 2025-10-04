@@ -4,7 +4,7 @@ namespace Tobyz\Tests\JsonApiServer\feature;
 
 use Tobyz\JsonApiServer\Endpoint\Create;
 use Tobyz\JsonApiServer\Endpoint\Show;
-use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
+use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Field\Attribute;
 use Tobyz\JsonApiServer\Schema\Type\Number;
@@ -54,7 +54,7 @@ class NumberTest extends AbstractTestCase
             ),
         );
 
-        $this->expectException(UnprocessableEntityException::class);
+        $this->expectException(JsonApiErrorsException::class);
 
         $this->api->handle(
             $this->buildRequest('POST', '/users')->withParsedBody([

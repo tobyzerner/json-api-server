@@ -8,21 +8,18 @@ use InvalidArgumentException;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface;
-use RuntimeException;
-use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\ErrorProvider;
 use Tobyz\JsonApiServer\Exception\InternalServerErrorException;
+use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
 use Tobyz\JsonApiServer\Exception\NotAcceptableException;
 use Tobyz\JsonApiServer\Exception\NotFoundException;
+use Tobyz\JsonApiServer\Exception\Request\InvalidQueryParameterException;
 use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\Exception\UnsupportedMediaTypeException;
 use Tobyz\JsonApiServer\Extension\Extension;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Resource;
-use Tobyz\JsonApiServer\Translation\EnglishCatalogue;
-use Tobyz\JsonApiServer\Translation\Translator;
-use Tobyz\JsonApiServer\Translation\TranslatorInterface;
 
 class JsonApi implements RequestHandlerInterface
 {
@@ -44,7 +41,7 @@ class JsonApi implements RequestHandlerInterface
      */
     public array $collections = [];
 
-    public TranslatorInterface $translator;
+    public array $errors = [];
 
     /**
      * @var array<string, Collection[]>
@@ -54,7 +51,6 @@ class JsonApi implements RequestHandlerInterface
     public function __construct(public string $basePath = '')
     {
         $this->basePath = rtrim($this->basePath, '/');
-        $this->translator = new Translator(EnglishCatalogue::messages());
     }
 
     /**
@@ -97,10 +93,7 @@ class JsonApi implements RequestHandlerInterface
     public function getCollection(string $type): Collection
     {
         if (!isset($this->collections[$type])) {
-            throw new ResourceNotFoundException(
-                $type,
-                detail: $this->translator->translate('resource.not_found', ['identifier' => $type]),
-            );
+            throw new ResourceNotFoundException($type);
         }
 
         return $this->collections[$type];
@@ -124,31 +117,15 @@ class JsonApi implements RequestHandlerInterface
     public function getResource(string $type): Resource
     {
         if (!isset($this->resources[$type])) {
-            throw new ResourceNotFoundException(
-                $type,
-                detail: $this->translator->translate('resource.not_found', ['identifier' => $type]),
-            );
+            throw new ResourceNotFoundException($type);
         }
 
         return $this->resources[$type];
     }
 
-    public function messages(array $messages): static
+    public function errors(array $errors): static
     {
-        if (!$this->translator instanceof Translator) {
-            throw new RuntimeException(
-                sprintf('Translator must be instance of %s to use messages()', Translator::class),
-            );
-        }
-
-        $this->translator->merge($messages);
-
-        return $this;
-    }
-
-    public function setTranslator(TranslatorInterface $translator): static
-    {
-        $this->translator = $translator;
+        $this->errors = array_replace_recursive($this->errors, $errors);
 
         return $this;
     }
@@ -224,11 +201,9 @@ class JsonApi implements RequestHandlerInterface
                 !preg_match('/[^a-z]/', $key) &&
                 !in_array($key, ['include', 'fields', 'filter', 'page', 'sort'])
             ) {
-                throw (new BadRequestException(
-                    $this->translator->translate('request.query_parameter_invalid', [
-                        'parameter' => $key,
-                    ]),
-                ))->setSource(['parameter' => $key]);
+                throw (new InvalidQueryParameterException($key))->source([
+                    'parameter' => $key,
+                ]);
             }
         }
     }
@@ -295,20 +270,45 @@ class JsonApi implements RequestHandlerInterface
 
     /**
      * Convert an exception into a JSON:API error document response.
-     *
-     * If the exception is not an instance of ErrorProviderInterface, an
-     * Internal Server Error response will be produced.
      */
     public function error($e): Response
     {
-        if (!$e instanceof ErrorProvider) {
-            $e = new InternalServerErrorException();
+        if ($e instanceof JsonApiErrorsException) {
+            $errors = $e->errors;
+        } else {
+            if (!$e instanceof ErrorProvider) {
+                $e = new InternalServerErrorException();
+            }
+            $errors = [$e];
         }
-
-        $errors = $e->getJsonApiErrors();
         $status = $e->getJsonApiStatus();
 
-        return json_api_response(['errors' => $errors], $status);
+        return json_api_response(
+            ['errors' => array_map($this->formatError(...), $errors)],
+            $status,
+        );
+    }
+
+    private function formatError(ErrorProvider $exception): array
+    {
+        $error = $exception->getJsonApiError();
+        $class = get_class($exception);
+
+        if (isset($this->errors[$class])) {
+            $error = array_replace_recursive($error, $this->errors[$class]);
+        }
+
+        if (isset($error['detail']) && isset($error['meta'])) {
+            $replacements = [];
+
+            foreach ($error['meta'] as $key => $value) {
+                $replacements[':' . $key] = (string) $value;
+            }
+
+            $error['detail'] = strtr($error['detail'], $replacements);
+        }
+
+        return $error;
     }
 
     /**

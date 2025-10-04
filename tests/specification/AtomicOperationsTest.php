@@ -6,7 +6,7 @@ use Tobyz\JsonApiServer\Endpoint\Create;
 use Tobyz\JsonApiServer\Endpoint\Delete;
 use Tobyz\JsonApiServer\Endpoint\Update;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
-use Tobyz\JsonApiServer\Extension\Atomic;
+use Tobyz\JsonApiServer\Extension\Atomic\Atomic;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Field\Attribute;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
@@ -122,7 +122,7 @@ class AtomicOperationsTest extends AbstractTestCase
         } catch (BadRequestException $e) {
             $this->assertStringStartsWith(
                 '/atomic:operations/0/data',
-                $e->getJsonApiErrors()[0]['source']['pointer'],
+                $e->getJsonApiError()['source']['pointer'],
             );
         }
     }

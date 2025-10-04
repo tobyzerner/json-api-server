@@ -69,7 +69,7 @@ and activate the specified extensions on each request.
 ## Atomic Operations
 
 An implementation of the [Atomic Operations](https://jsonapi.org/ext/atomic/)
-extension is available at `Tobyz\JsonApi\Extension\Atomic`.
+extension is available at `Tobyz\JsonApi\Extension\Atomic\Atomic`.
 
 When using this extension, you are responsible for wrapping the `$api->handle`
 call in a transaction to ensure any database (or other) operations performed are
@@ -77,7 +77,7 @@ actually atomic in nature. For example, in Laravel:
 
 ```php
 use Illuminate\Support\Facades\DB;
-use Tobyz\JsonApiServer\Extension\Atomic;
+use Tobyz\JsonApiServer\Extension\Atomic\Atomic;
 use Tobyz\JsonApiServer\JsonApi;
 
 $api = new JsonApi();

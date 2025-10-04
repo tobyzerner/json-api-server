@@ -4,7 +4,7 @@ namespace Tobyz\JsonApiServer\Pagination;
 
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Exception\Pagination\InvalidPageCursorException;
 use Tobyz\JsonApiServer\Exception\Sourceable;
 use Tobyz\JsonApiServer\Pagination\Concerns\HasSizeParameter;
 use Tobyz\JsonApiServer\Resource\CursorPaginatable;
@@ -74,9 +74,7 @@ class CursorPagination implements Pagination
         $cursor = $context->queryParam('page')[$key] ?? null;
 
         if ($cursor && !is_string($cursor)) {
-            throw (new BadRequestException(
-                $context->translate('pagination.cursor_invalid'),
-            ))->setSource(['parameter' => "page[$key]"]);
+            throw (new InvalidPageCursorException())->source(['parameter' => "page[$key]"]);
         }
 
         return $cursor;

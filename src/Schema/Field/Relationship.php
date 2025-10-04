@@ -6,7 +6,10 @@ use Closure;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Concerns\FindsResources;
 use Tobyz\JsonApiServer\Endpoint\RelationshipEndpoint;
-use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Exception\Data\InvalidIdException;
+use Tobyz\JsonApiServer\Exception\Data\InvalidTypeException;
+use Tobyz\JsonApiServer\Exception\Data\UnsupportedTypeException;
+use Tobyz\JsonApiServer\Exception\Relationship\InvalidRelationshipException;
 use Tobyz\JsonApiServer\Exception\Sourceable;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Concerns\HasMeta;
@@ -166,7 +169,7 @@ abstract class Relationship extends Field
     public function deserializeValue(mixed $value, Context $context): mixed
     {
         if (!is_array($value) || !array_key_exists('data', $value)) {
-            throw new BadRequestException($context->translate('relationship.invalid'));
+            throw new InvalidRelationshipException();
         }
 
         try {
@@ -212,13 +215,13 @@ abstract class Relationship extends Field
     protected function resourceForIdentifier(array $identifier, Context $context): mixed
     {
         if (!is_string($identifier['type'] ?? null)) {
-            throw (new BadRequestException($context->translate('data.type_invalid')))->setSource([
+            throw (new InvalidTypeException())->source([
                 'pointer' => array_key_exists('type', $identifier) ? '/type' : '',
             ]);
         }
 
         if (!is_string($identifier['id'] ?? null)) {
-            throw (new BadRequestException($context->translate('data.id_invalid')))->setSource([
+            throw (new InvalidIdException())->source([
                 'pointer' => array_key_exists('id', $identifier) ? '/id' : '',
             ]);
         }
@@ -232,9 +235,7 @@ abstract class Relationship extends Field
             );
         }
 
-        throw (new BadRequestException(
-            $context->translate('data.type_unsupported', ['type' => $identifier['type']]),
-        ))->setSource(['pointer' => '/type']);
+        throw (new UnsupportedTypeException($identifier['type']))->source(['pointer' => '/type']);
     }
 
     protected function getRelatedResources(JsonApi $api): array

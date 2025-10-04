@@ -3,7 +3,7 @@
 namespace Tobyz\JsonApiServer\Laravel\Filter;
 
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Exception\Filter\InvalidFilterValueException;
 use Tobyz\JsonApiServer\Schema\Filter;
 
 class WhereCount extends Filter
@@ -31,9 +31,7 @@ class WhereCount extends Filter
     {
         foreach ($this->resolveOperators($value) as $operator => $val) {
             if (!is_scalar($val)) {
-                throw new BadRequestException(
-                    $context->translate('laravel.filter.count_single_value'),
-                );
+                throw new InvalidFilterValueException();
             }
 
             $query->whereHas(

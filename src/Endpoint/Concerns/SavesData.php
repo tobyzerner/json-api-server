@@ -3,11 +3,21 @@
 namespace Tobyz\JsonApiServer\Endpoint\Concerns;
 
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Exception\BadRequestException;
-use Tobyz\JsonApiServer\Exception\ConflictException;
+use Tobyz\JsonApiServer\Exception\Data\IdConflictException;
+use Tobyz\JsonApiServer\Exception\Data\InvalidAttributesException;
+use Tobyz\JsonApiServer\Exception\Data\InvalidDataException;
+use Tobyz\JsonApiServer\Exception\Data\InvalidIdException;
+use Tobyz\JsonApiServer\Exception\Data\InvalidTypeException;
+use Tobyz\JsonApiServer\Exception\Data\UnsupportedTypeException;
+use Tobyz\JsonApiServer\Exception\ErrorProvider;
+use Tobyz\JsonApiServer\Exception\Field\InvalidFieldValueException;
+use Tobyz\JsonApiServer\Exception\Field\ReadOnlyFieldException;
+use Tobyz\JsonApiServer\Exception\Field\RequiredFieldException;
+use Tobyz\JsonApiServer\Exception\Field\UnknownFieldException;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
+use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
+use Tobyz\JsonApiServer\Exception\Relationship\InvalidRelationshipsException;
 use Tobyz\JsonApiServer\Exception\Sourceable;
-use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
 use Tobyz\JsonApiServer\Schema\Field\Field;
 use Tobyz\JsonApiServer\Schema\Id;
 
@@ -22,41 +32,33 @@ trait SavesData
 
     /**
      * Parse and validate a JSON:API document's `data` member.
-     *
-     * @throws BadRequestException if the `data` member is invalid.
      */
     private function parseData(Context $context): array
     {
         $body = (array) $context->body();
 
         if (!is_array($body['data'] ?? null)) {
-            throw (new BadRequestException($context->translate('data.invalid')))->setSource([
+            throw (new InvalidDataException())->source([
                 'pointer' => array_key_exists('data', $body) ? '/data' : '',
             ]);
         }
 
         if (!is_string($body['data']['type'] ?? null)) {
-            throw (new BadRequestException($context->translate('data.type_invalid')))->setSource([
-                'pointer' => '/data/type',
-            ]);
+            throw (new InvalidTypeException())->source(['pointer' => '/data/type']);
         }
 
         if (isset($context->model)) {
             if (!is_string($body['data']['id'] ?? null)) {
-                throw (new BadRequestException($context->translate('data.id_invalid')))->setSource([
-                    'pointer' => '/data/id',
-                ]);
+                throw (new InvalidIdException())->source(['pointer' => '/data/id']);
             }
 
             if ($body['data']['id'] !== $context->id($context->resource, $context->model)) {
-                throw (new ConflictException($context->translate('data.id_conflict')))->setSource([
-                    'pointer' => '/data/id',
-                ]);
+                throw (new IdConflictException())->source(['pointer' => '/data/id']);
             }
         }
 
         if (!in_array($body['data']['type'], $context->collection->resources())) {
-            throw (new ConflictException($context->translate('data.type_unsupported')))->setSource([
+            throw (new UnsupportedTypeException($body['data']['type']))->source([
                 'pointer' => '/data/type',
             ]);
         }
@@ -65,18 +67,16 @@ trait SavesData
             array_key_exists('attributes', $body['data']) &&
             !is_array($body['data']['attributes'])
         ) {
-            throw (new BadRequestException(
-                $context->translate('data.attributes_invalid'),
-            ))->setSource(['pointer' => '/data/attributes']);
+            throw (new InvalidAttributesException())->source(['pointer' => '/data/attributes']);
         }
 
         if (
             array_key_exists('relationships', $body['data']) &&
             !is_array($body['data']['relationships'])
         ) {
-            throw (new BadRequestException(
-                $context->translate('data.relationships_invalid'),
-            ))->setSource(['pointer' => '/data/relationships']);
+            throw (new InvalidRelationshipsException())->source([
+                'pointer' => '/data/relationships',
+            ]);
         }
 
         return array_merge(['attributes' => [], 'relationships' => []], $body['data']);
@@ -104,8 +104,6 @@ trait SavesData
 
     /**
      * Assert that the fields contained within a data object exist in the schema.
-     *
-     * @throws BadRequestException if a field is unknown.
      */
     private function assertFieldsExist(Context $context, array $data): void
     {
@@ -114,9 +112,7 @@ trait SavesData
         foreach (['attributes', 'relationships'] as $location) {
             foreach ($data[$location] as $name => $value) {
                 if (!isset($fields[$name]) || $location !== $fields[$name]->location()) {
-                    throw (new BadRequestException(
-                        $context->translate('data.field_unknown', ['field' => $name]),
-                    ))->setSource([
+                    throw (new UnknownFieldException($name))->source([
                         'pointer' => '/data/' . implode('/', array_filter([$location, $name])),
                     ]);
                 }
@@ -157,9 +153,7 @@ trait SavesData
         $writable = $creating ? $field->isWritableOnCreate($context) : $field->isWritable($context);
 
         if (!$writable) {
-            throw new ForbiddenException(
-                $context->translate('data.field_readonly', ['field' => $field->name]),
-            );
+            throw new ReadOnlyFieldException();
         }
     }
 
@@ -186,7 +180,7 @@ trait SavesData
     /**
      * Assert that the field values within a data object pass validation.
      *
-     * @throws UnprocessableEntityException if any fields do not pass validation.
+     * @throws JsonApiErrorsException if any fields do not pass validation.
      */
     private function assertDataValid(Context $context, array $data, bool $validateAll): void
     {
@@ -200,24 +194,19 @@ trait SavesData
             }
 
             if (!$present && $field->required) {
-                $fieldErrors = [['detail' => $context->translate('data.field_required')]];
+                $errors[] = (new RequiredFieldException())->source([
+                    'pointer' => '/data' . field_path($field),
+                ]);
             } else {
-                $fieldErrors = $this->validateField($context, $field, get_value($data, $field));
+                array_push(
+                    $errors,
+                    ...$this->validateField($context, $field, get_value($data, $field)),
+                );
             }
-
-            $errors = array_merge(
-                $errors,
-                array_map(
-                    fn($error) => $error + [
-                        'source' => ['pointer' => '/data' . field_path($field)],
-                    ],
-                    $fieldErrors,
-                ),
-            );
         }
 
-        if (count($errors)) {
-            throw new UnprocessableEntityException($errors);
+        if ($errors) {
+            throw new JsonApiErrorsException($errors);
         }
     }
 
@@ -225,8 +214,14 @@ trait SavesData
     {
         $errors = [];
 
-        $fail = function ($detail = null) use (&$errors, $field) {
-            $errors[] = ['detail' => $detail];
+        $fail = function ($error = []) use (&$errors, $field) {
+            if (!$error instanceof ErrorProvider) {
+                $error = new InvalidFieldValueException(
+                    is_scalar($error) ? ['detail' => (string) $error] : $error,
+                );
+            }
+
+            $errors[] = $error->source(['pointer' => '/data' . field_path($field)]);
         };
 
         $field->validateValue($value, $fail, $context->withField($field));

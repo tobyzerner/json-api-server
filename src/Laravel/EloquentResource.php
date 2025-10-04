@@ -2,6 +2,7 @@
 
 namespace Tobyz\JsonApiServer\Laravel;
 
+use Exception;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -12,8 +13,9 @@ use Illuminate\Pagination\Cursor;
 use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Support\Str;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Exception\Pagination\InvalidPageCursorException;
+use Tobyz\JsonApiServer\Exception\Pagination\RangePaginationNotSupportedException;
 use Tobyz\JsonApiServer\Laravel\Field\ToMany as LaravelToMany;
-use Tobyz\JsonApiServer\Pagination\Exception\RangePaginationNotSupportedException;
 use Tobyz\JsonApiServer\Pagination\Page;
 use Tobyz\JsonApiServer\Resource\AbstractResource;
 use Tobyz\JsonApiServer\Resource\Countable;
@@ -168,16 +170,19 @@ abstract class EloquentResource extends AbstractResource implements
         Context $context,
     ): Page {
         if ($after && $before) {
-            throw new RangePaginationNotSupportedException(
-                $context->translate('pagination.range_not_supported'),
-            );
+            throw new RangePaginationNotSupportedException();
         }
 
-        if ($cursor = Cursor::fromEncoded($after ?: $before)) {
-            $cursor = new Cursor($cursor->toArray(), (bool) $after);
-        }
+        try {
+            if ($cursor = Cursor::fromEncoded($after ?: $before)) {
+                $cursor = new Cursor($cursor->toArray(), (bool) $after);
+            }
 
-        $paginator = $query->cursorPaginate(perPage: $size, cursor: $cursor);
+            $paginator = $query->cursorPaginate(perPage: $size, cursor: $cursor);
+        } catch (Exception) {
+            $key = $after ? 'after' : 'before';
+            throw (new InvalidPageCursorException())->source(['parameter' => "page[$key]"]);
+        }
 
         return new Page($paginator->items(), $paginator->onFirstPage(), $paginator->onLastPage());
     }

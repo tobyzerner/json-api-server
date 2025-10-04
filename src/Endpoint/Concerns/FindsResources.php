@@ -25,13 +25,7 @@ trait FindsResources
         }
 
         if (!($model = $collection->find($id, $context))) {
-            throw new ResourceNotFoundException(
-                $collection->name(),
-                $id,
-                $context->translate('resource.not_found', [
-                    'identifier' => $collection->name() . '.' . $id,
-                ]),
-            );
+            throw new ResourceNotFoundException($collection->name(), $id);
         }
 
         return $model;

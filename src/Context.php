@@ -6,7 +6,7 @@ use ArrayObject;
 use Psr\Http\Message\ServerRequestInterface;
 use RuntimeException;
 use Tobyz\JsonApiServer\Endpoint\Endpoint;
-use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Exception\Request\InvalidSparseFieldsetsException;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Resource;
 use Tobyz\JsonApiServer\Schema\Field\Field;
@@ -47,11 +47,6 @@ class Context
         $this->documentLinks = new ArrayObject();
 
         $this->resourceMeta = new WeakMap();
-    }
-
-    public function translate(string $key, array $replacements = []): string
-    {
-        return $this->api->translator->translate($key, $replacements);
     }
 
     /**
@@ -177,9 +172,9 @@ class Context
             $requested = $fieldsParam[$type];
 
             if (!is_string($requested)) {
-                throw (new BadRequestException(
-                    $this->translate('request.fields_invalid'),
-                ))->setSource(['parameter' => "fields[$type]"]);
+                throw (new InvalidSparseFieldsetsException())->source([
+                    'parameter' => "fields[$type]",
+                ]);
             }
 
             $fields = array_intersect_key($fields, array_flip(explode(',', $requested)));

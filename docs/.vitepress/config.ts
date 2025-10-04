@@ -51,7 +51,6 @@ export default defineConfig({
                         text: 'Heterogeneous Collections',
                         link: '/collections',
                     },
-                    { text: 'Localization', link: '/localization' },
                     { text: 'OpenAPI Definitions', link: '/openapi' },
                 ],
             },

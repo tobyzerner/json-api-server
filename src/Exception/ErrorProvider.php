@@ -5,9 +5,9 @@ namespace Tobyz\JsonApiServer\Exception;
 interface ErrorProvider
 {
     /**
-     * Get JSON:API error objects that represent this error.
+     * Get a JSON:API error object that represents this error.
      */
-    public function getJsonApiErrors(): array;
+    public function getJsonApiError(): array;
 
     /**
      * Get the most generally applicable HTTP error code for this error.

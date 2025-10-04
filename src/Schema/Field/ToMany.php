@@ -3,7 +3,7 @@
 namespace Tobyz\JsonApiServer\Schema\Field;
 
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Exception\Relationship\InvalidRelationshipDataException;
 use Tobyz\JsonApiServer\Exception\Sourceable;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Pagination\Pagination;
@@ -61,7 +61,7 @@ class ToMany extends Relationship
     public function deserializeData(mixed $data, Context $context): array
     {
         if (!is_array($data) || !array_is_list($data)) {
-            throw new BadRequestException($context->translate('relationship.data_invalid'));
+            throw new InvalidRelationshipDataException();
         }
 
         $models = [];

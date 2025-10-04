@@ -3,7 +3,7 @@
 namespace Tobyz\JsonApiServer\Endpoint\Concerns;
 
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Exception\Request\InvalidIncludeException;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
 
@@ -87,9 +87,7 @@ trait IncludesData
                 continue 2;
             }
 
-            throw (new BadRequestException(
-                $context->translate('request.include_invalid', ['include' => $path . $name]),
-            ))->setSource(['parameter' => 'include']);
+            throw (new InvalidIncludeException($path . $name))->source(['parameter' => 'include']);
         }
     }
 

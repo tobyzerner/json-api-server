@@ -3,7 +3,8 @@
 namespace Tobyz\JsonApiServer\Endpoint\Concerns;
 
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Exception\Filter\InvalidFilterParameterException;
+use Tobyz\JsonApiServer\Exception\Request\InvalidSortException;
 use Tobyz\JsonApiServer\Exception\Sourceable;
 use Tobyz\JsonApiServer\Pagination\Pagination;
 use Tobyz\JsonApiServer\Resource\Collection;
@@ -67,9 +68,7 @@ trait ListsResources
                 }
             }
 
-            throw (new BadRequestException(
-                $context->translate('request.sort_invalid', ['sort' => $name]),
-            ))->setSource(['parameter' => 'sort']);
+            throw (new InvalidSortException($name))->source(['parameter' => 'sort']);
         }
     }
 
@@ -83,11 +82,7 @@ trait ListsResources
         }
 
         if (!is_array($filters)) {
-            throw (new BadRequestException(
-                $context->translate('request.filter_invalid'),
-            ))->setSource([
-                'parameter' => 'filter',
-            ]);
+            throw (new InvalidFilterParameterException())->source(['parameter' => 'filter']);
         }
 
         try {

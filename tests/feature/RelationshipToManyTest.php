@@ -4,7 +4,8 @@ namespace Tobyz\Tests\JsonApiServer\feature;
 
 use Tobyz\JsonApiServer\Endpoint\Create;
 use Tobyz\JsonApiServer\Endpoint\Show;
-use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Exception\Data\UnsupportedTypeException;
+use Tobyz\JsonApiServer\Exception\Request\InvalidIncludeException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Field\ToMany;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
@@ -123,7 +124,7 @@ class RelationshipToManyTest extends AbstractTestCase
             ),
         );
 
-        $this->expectException(BadRequestException::class);
+        $this->expectException(InvalidIncludeException::class);
 
         $this->api->handle($this->buildRequest('GET', '/users/1?include=friend'));
     }
@@ -235,7 +236,7 @@ class RelationshipToManyTest extends AbstractTestCase
             ),
         );
 
-        $this->expectException(BadRequestException::class);
+        $this->expectException(UnsupportedTypeException::class);
 
         $this->api->handle(
             $this->buildRequest('POST', '/users')->withParsedBody([

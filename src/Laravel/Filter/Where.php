@@ -3,7 +3,7 @@
 namespace Tobyz\JsonApiServer\Laravel\Filter;
 
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Exception\Filter\UnsupportedFilterOperatorException;
 
 class Where extends ColumnFilter
 {
@@ -91,11 +91,7 @@ class Where extends ColumnFilter
                     break;
 
                 default:
-                    throw new BadRequestException(
-                        $context->translate('laravel.filter.unsupported_operator', [
-                            'operator' => $operator,
-                        ]),
-                    );
+                    throw new UnsupportedFilterOperatorException($operator);
             }
         }
     }

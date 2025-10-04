@@ -4,7 +4,7 @@ namespace Tobyz\JsonApiServer\Pagination;
 
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Exception\Pagination\InvalidPageOffsetException;
 use Tobyz\JsonApiServer\Pagination\Concerns\HasSizeParameter;
 use Tobyz\JsonApiServer\Resource\Paginatable;
 
@@ -67,9 +67,7 @@ class OffsetPagination implements Pagination
     {
         if ($offset = $context->queryParam('page')['offset'] ?? null) {
             if (preg_match('/\D+/', $offset) || $offset < 0) {
-                throw (new BadRequestException(
-                    $context->translate('pagination.offset_invalid'),
-                ))->setSource(['parameter' => 'page[offset]']);
+                throw (new InvalidPageOffsetException())->source(['parameter' => 'page[offset]']);
             }
 
             return $offset;

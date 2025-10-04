@@ -2,7 +2,8 @@
 
 namespace Tobyz\JsonApiServer;
 
-use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Exception\Filter\InvalidFilterStructureException;
+use Tobyz\JsonApiServer\Exception\Filter\UnknownFilterException;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Resource\SupportsBooleanFilters;
@@ -34,10 +35,7 @@ class Filterer
                 in_array($key, ['and', 'or', 'not'])
             ) {
                 if (!is_array($value)) {
-                    throw $this->badRequest(
-                        $this->context->translate('filter.structure_invalid'),
-                        $keyPath,
-                    );
+                    throw $this->badRequest(new InvalidFilterStructureException(), $keyPath);
                 }
 
                 $clauses[] = fn($query) => $this->applyGroup($query, $value, $key, $keyPath);
@@ -47,10 +45,7 @@ class Filterer
 
             if (is_int($key)) {
                 if (!is_array($value)) {
-                    throw $this->badRequest(
-                        $this->context->translate('filter.structure_invalid'),
-                        $keyPath,
-                    );
+                    throw $this->badRequest(new InvalidFilterStructureException(), $keyPath);
                 }
 
                 $clauses[] = fn($query) => $this->applyGroup($query, $value, 'and', $keyPath);
@@ -59,10 +54,7 @@ class Filterer
             }
 
             if (!($filter = $availableFilters[$key] ?? null)) {
-                throw $this->badRequest(
-                    $this->context->translate('filter.invalid', ['filter' => $key]),
-                    $keyPath,
-                );
+                throw $this->badRequest(new UnknownFilterException($key), $keyPath);
             }
 
             $clauses[] = fn($query) => $filter->apply($query, $value, $this->context);
@@ -104,9 +96,11 @@ class Filterer
         return $filters;
     }
 
-    private function badRequest(string $message, array $path): BadRequestException
-    {
-        return (new BadRequestException($message))->setSource([
+    private function badRequest(
+        InvalidFilterStructureException|UnknownFilterException $exception,
+        array $path,
+    ): InvalidFilterStructureException|UnknownFilterException {
+        return $exception->source([
             'parameter' =>
                 '[' . implode('][', array_map(fn($segment) => (string) $segment, $path)) . ']',
         ]);

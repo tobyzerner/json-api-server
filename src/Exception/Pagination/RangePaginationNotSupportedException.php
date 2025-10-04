@@ -1,16 +1,16 @@
 <?php
 
-namespace Tobyz\JsonApiServer\Pagination\Exception;
+namespace Tobyz\JsonApiServer\Exception\Pagination;
 
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 
 class RangePaginationNotSupportedException extends BadRequestException
 {
-    public function __construct(string $message = 'Range pagination is not supported')
+    public function __construct()
     {
-        parent::__construct($message);
+        parent::__construct('Range pagination is not supported');
 
-        $this->setLinks([
+        $this->links([
             'type' => [
                 'https://jsonapi.org/profiles/ethanresnick/cursor-pagination/range-pagination-not-supported',
             ],

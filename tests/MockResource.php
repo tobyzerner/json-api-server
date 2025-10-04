@@ -3,8 +3,8 @@
 namespace Tobyz\Tests\JsonApiServer;
 
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Exception\BadRequestException;
-use Tobyz\JsonApiServer\Pagination\Exception\RangePaginationNotSupportedException;
+use Tobyz\JsonApiServer\Exception\Pagination\InvalidPageCursorException;
+use Tobyz\JsonApiServer\Exception\Pagination\RangePaginationNotSupportedException;
 use Tobyz\JsonApiServer\Pagination\Page;
 use Tobyz\JsonApiServer\Pagination\Pagination;
 use Tobyz\JsonApiServer\Resource\AbstractResource;
@@ -189,9 +189,7 @@ class MockResource extends AbstractResource implements
             }
         }
 
-        throw (new BadRequestException(sprintf('Unknown cursor "%s"', $cursor)))->setSource([
-            'parameter' => $parameter,
-        ]);
+        throw (new InvalidPageCursorException())->source(['parameter' => $parameter]);
     }
 
     public function results(object $query, Context $context): array

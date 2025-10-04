@@ -11,10 +11,12 @@ use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsResourceDocument;
 use Tobyz\JsonApiServer\Endpoint\Concerns\FindsResources;
 use Tobyz\JsonApiServer\Endpoint\Concerns\SavesData;
 use Tobyz\JsonApiServer\Endpoint\Concerns\ShowsResources;
+use Tobyz\JsonApiServer\Exception\ErrorProvider;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
+use Tobyz\JsonApiServer\Exception\Field\InvalidFieldValueException;
+use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
 use Tobyz\JsonApiServer\Exception\NotFoundException;
-use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\OpenApi\OpenApiPathsProvider;
 use Tobyz\JsonApiServer\Resource\Attachable;
@@ -288,7 +290,7 @@ class Update implements Endpoint, OpenApiPathsProvider
         Context $context,
     ): ResponseInterface {
         if ($errors = $this->validateField($context, $field, $value)) {
-            throw new UnprocessableEntityException($errors);
+            throw new JsonApiErrorsException($errors);
         }
 
         $field->setValue($context->model, $value, $context);
@@ -365,11 +367,15 @@ class Update implements Endpoint, OpenApiPathsProvider
 
         foreach ($validators as $validator) {
             $validator(
-                function ($detail = null, ?int $index = null) use (&$errors) {
-                    $error = is_array($detail) ? $detail : ['detail' => $detail];
+                function ($error = [], ?int $index = null) use (&$errors) {
+                    if (!$error instanceof ErrorProvider) {
+                        $error = new InvalidFieldValueException(
+                            is_scalar($error) ? ['detail' => (string) $error] : $error,
+                        );
+                    }
 
                     if ($index !== null) {
-                        $error['source'] ??= ['pointer' => "/data/$index"];
+                        $error->source(['pointer' => "/data/$index"]);
                     }
 
                     $errors[] = $error;
@@ -381,7 +387,7 @@ class Update implements Endpoint, OpenApiPathsProvider
         }
 
         if ($errors) {
-            throw new UnprocessableEntityException($errors);
+            throw new JsonApiErrorsException($errors);
         }
     }
 }

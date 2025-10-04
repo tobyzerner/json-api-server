@@ -4,7 +4,7 @@ namespace Tobyz\Tests\JsonApiServer\feature;
 
 use Tobyz\JsonApiServer\Endpoint\Create;
 use Tobyz\JsonApiServer\Endpoint\Show;
-use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
+use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Id;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
@@ -46,7 +46,7 @@ class IdTest extends AbstractTestCase
             ),
         );
 
-        $this->expectException(UnprocessableEntityException::class);
+        $this->expectException(JsonApiErrorsException::class);
 
         try {
             $this->api->handle(

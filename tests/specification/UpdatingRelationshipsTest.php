@@ -3,7 +3,7 @@
 namespace Tobyz\Tests\JsonApiServer\specification;
 
 use Tobyz\JsonApiServer\Endpoint\Update;
-use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
+use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Field\ToMany;
 use Tobyz\JsonApiServer\Schema\Field\ToOne;
@@ -188,10 +188,14 @@ class UpdatingRelationshipsTest extends AbstractTestCase
                 ]),
             );
 
-            $this->fail('Expected UnprocessableEntityException to be thrown.');
-        } catch (UnprocessableEntityException $e) {
-            $this->assertEquals('cannot attach second pet', $e->errors[0]['detail'] ?? null);
-            $this->assertEquals('/data/0', $e->errors[0]['source']['pointer'] ?? null);
+            $this->fail('Expected JsonApiErrorsException to be thrown.');
+        } catch (JsonApiErrorsException $e) {
+            $this->assertCount(1, $e->errors);
+            $this->assertEquals(
+                'cannot attach second pet',
+                $e->errors[0]->getJsonApiError()['detail'],
+            );
+            $this->assertEquals('/data/0', $e->errors[0]->getJsonApiError()['source']['pointer']);
         }
     }
 

@@ -3,11 +3,11 @@
 namespace Tobyz\JsonApiServer\Exception;
 
 use DomainException;
-use Tobyz\JsonApiServer\Exception\Concerns\SingleError;
+use Tobyz\JsonApiServer\Exception\Concerns\JsonApiError;
 
 class BadRequestException extends DomainException implements ErrorProvider, Sourceable
 {
-    use SingleError;
+    use JsonApiError;
 
     public function getJsonApiStatus(): string
     {

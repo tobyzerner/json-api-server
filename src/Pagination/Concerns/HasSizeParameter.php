@@ -4,8 +4,8 @@ namespace Tobyz\JsonApiServer\Pagination\Concerns;
 
 use InvalidArgumentException;
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Exception\BadRequestException;
-use Tobyz\JsonApiServer\Pagination\Exception\MaxPageSizeExceededException;
+use Tobyz\JsonApiServer\Exception\Pagination\InvalidPageSizeException;
+use Tobyz\JsonApiServer\Exception\Pagination\MaxPageSizeExceededException;
 
 trait HasSizeParameter
 {
@@ -36,16 +36,13 @@ trait HasSizeParameter
 
         if ($size !== null) {
             if (preg_match('/\D+/', $size) || $size < 1) {
-                throw (new BadRequestException(
-                    $context->translate('pagination.size_invalid'),
-                ))->setSource(['parameter' => "page[$parameter]"]);
+                throw (new InvalidPageSizeException())->source(['parameter' => "page[$parameter]"]);
             }
 
             if ($this->maxSize && $size > $this->maxSize) {
-                throw (new MaxPageSizeExceededException(
-                    $this->maxSize,
-                    $context->translate('pagination.size_exceeded'),
-                ))->setSource(['parameter' => "page[$parameter]"]);
+                throw (new MaxPageSizeExceededException($this->maxSize))->source([
+                    'parameter' => "page[$parameter]",
+                ]);
             }
 
             return $size;

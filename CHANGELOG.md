@@ -13,39 +13,47 @@ and this project adheres to
 - Replace `Resource::getId(object $model, Context $context): string` method with
   `Resource::id(): Id` method, which returns an `Id` field instance to define ID
   schema, validation, and writability
+- Change `ErrorProvider::getJsonApiErrors(): array` to
+  `ErrorProvider::getJsonApiError(): array` (singular) - exceptions now
+  represent a single error rather than potentially multiple errors. Wrap
+  `ErrorProviders` in `JsonApiErrorsException` to represent multiple errors.
+- Rename `Exception\Concerns\SingleError` trait to
+  `Exception\Concerns\JsonApiError` and change its API:
+    - `setSource(?array $source): static` → `source(array $source): static`
+    - `setMeta(?array $meta): static` → `meta(array $meta): static`
+    - `setLinks(?array $links): static` → `links(array $links): static`
 - Custom deserializers on `ToOne` relationships now receive the resolved model
   rather than the raw relationship object, for consistency with `ToMany`
+- Remove `Pagination\Concerns\BuildsUrls` trait (replaced by
+  `Context::currentUrl()`)
+- Move `Extension\Atomic` to `Extension\Atomic\Atomic`
 
 ### Added
 
-- Add localization system for customizable error messages
-    - Add `JsonApi::messages()` method for merging custom error messages with
-      defaults
-    - Add `JsonApi::setTranslator()` method for providing custom translator
-      implementations
-    - Add `Context::translate()` method for accessing the translation system
-- Add `Context::currentUrl()` method for building the current URL with query
-  parameter overrides
+- Add ability to override error objects by caught exception
+    - Add specific exception classes for all errors
+    - Add `JsonApi::errors(array $overrides)` method to register error object
+      overrides, keyed by exception class name. `detail` values accept
+      replacements using the `:key` syntax.
+    - Add `Exception\JsonApiErrorsException` for representing multiple errors
+- Add `Context::currentUrl(array $params = []): string` method for building URLs
+  with query parameter overrides
 - Add `self` link to `Index` endpoint document
-- Add `Id` field class for customizing resource ID behavior, including type
-  constraints, client-generated IDs via `writableOnCreate()`, and validation
+- Add `Id` field class for customizing resource ID behavior, including:
+    - Type constraints (string, integer, etc.)
+    - Client-generated IDs via `writableOnCreate()`
+    - Custom validation rules
+    - Getter/setter callbacks
 - Add `linkageMeta()` method to relationship fields for adding meta to resource
   identifier objects in linkage
-- Add static `location()` method to field classes to determine where they appear
-  in the JSON:API document (`attributes`, `relationships`, or root level for
-  `id`)
+- Add static `Field::location(): string` method to determine where fields appear
+  in JSON:API documents (`attributes`, `relationships`, or root level for `id`)
 
 ### Changed
 
-- Error messages now use the localization system
 - Various performance optimizations to improve serialization speed
 - Improve OpenAPI schema generation to properly handle ID field constraints and
   avoid redundant properties
-
-### Removed
-
-- Remove `Pagination\Concerns\BuildsUrls` trait (replaced by
-  `Context::currentUrl()`)
 
 ## [1.0.0-beta.6] - 2025-10-02
 

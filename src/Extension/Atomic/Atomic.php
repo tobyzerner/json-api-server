@@ -1,13 +1,17 @@
 <?php
 
-namespace Tobyz\JsonApiServer\Extension;
+namespace Tobyz\JsonApiServer\Extension\Atomic;
 
 use Nyholm\Psr7\Uri;
 use Psr\Http\Message\ResponseInterface as Response;
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
 use Tobyz\JsonApiServer\Exception\Sourceable;
+use Tobyz\JsonApiServer\Extension\Atomic\Exception\AtomicHrefRefExclusiveException;
+use Tobyz\JsonApiServer\Extension\Atomic\Exception\AtomicRefUnsupportedException;
+use Tobyz\JsonApiServer\Extension\Atomic\Exception\InvalidAtomicOperationException;
+use Tobyz\JsonApiServer\Extension\Atomic\Exception\InvalidAtomicOperationsException;
+use Tobyz\JsonApiServer\Extension\Extension;
 
 use function Tobyz\JsonApiServer\json_api_response;
 
@@ -38,9 +42,9 @@ class Atomic extends Extension
         $operations = $body['atomic:operations'] ?? null;
 
         if (!is_array($operations)) {
-            throw (new BadRequestException(
-                $context->translate('atomic.operations_invalid'),
-            ))->setSource(['pointer' => '/atomic:operations']);
+            throw (new InvalidAtomicOperationsException())->source([
+                'pointer' => '/atomic:operations',
+            ]);
         }
 
         $results = [];
@@ -49,18 +53,14 @@ class Atomic extends Extension
         foreach ($operations as $i => $operation) {
             try {
                 if (isset($operation['ref']) && isset($operation['href'])) {
-                    throw new BadRequestException($context->translate('atomic.href_ref_exclusive'));
+                    throw new AtomicHrefRefExclusiveException();
                 }
 
                 $response = match ($operation['op'] ?? null) {
                     'add' => $this->add($context, $operation, $lids),
                     'update' => $this->update($context, $operation, $lids),
                     'remove' => $this->remove($context, $operation, $lids),
-                    default => throw new BadRequestException(
-                        $context->translate('atomic.operation_invalid', [
-                            'operation' => $operation['op'] ?? null,
-                        ]),
-                    ),
+                    default => throw new InvalidAtomicOperationException($operation['op'] ?? null),
                 };
             } catch (Sourceable $e) {
                 throw $e->prependSource(['pointer' => "/atomic:operations/$i"]);
@@ -75,9 +75,7 @@ class Atomic extends Extension
     private function add(Context $context, array $operation, array &$lids): Response
     {
         if (isset($operation['ref'])) {
-            throw (new BadRequestException(
-                $context->translate('atomic.ref_unsupported'),
-            ))->setSource(['pointer' => '/ref']);
+            throw (new AtomicRefUnsupportedException())->source(['pointer' => '/ref']);
         }
 
         $request = $context->request
