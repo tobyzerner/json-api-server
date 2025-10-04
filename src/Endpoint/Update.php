@@ -30,7 +30,6 @@ use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
 use Tobyz\JsonApiServer\Schema\Field\ToMany;
 
-use function Tobyz\JsonApiServer\json_api_response;
 use function Tobyz\JsonApiServer\resolve_value;
 
 class Update implements Endpoint, OpenApiPathsProvider
@@ -274,7 +273,7 @@ class Update implements Endpoint, OpenApiPathsProvider
 
         $this->saveFields($context, $data);
 
-        $response = json_api_response($this->buildResourceDocument($model, $context));
+        $response = $context->createResponse($this->buildResourceDocument($model, $context));
 
         return $this->applyResponseHooks($response, $context);
     }
@@ -285,7 +284,7 @@ class Update implements Endpoint, OpenApiPathsProvider
         Relationship $field,
         Context $context,
     ): ResponseInterface {
-        return json_api_response(
+        return $context->createResponse(
             $this->buildRelationshipDocument(
                 $field,
                 resolve_value($resource->getValue($model, $field, $context)),

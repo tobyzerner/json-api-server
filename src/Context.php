@@ -4,6 +4,9 @@ namespace Tobyz\JsonApiServer;
 
 use ArrayObject;
 use HttpAccept\AcceptParser;
+use Nyholm\Psr7\Response;
+use Nyholm\Psr7\Stream;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use RuntimeException;
 use Tobyz\JsonApiServer\Endpoint\Endpoint;
@@ -411,5 +414,46 @@ class Context
         throw new RuntimeException(
             'No resource type defined to represent model ' . get_class($model),
         );
+    }
+
+    /**
+     * Create a JSON:API response.
+     */
+    public function createResponse(array $document = []): ResponseInterface
+    {
+        $response = (new Response())->withHeader('Content-Type', $this->api::MEDIA_TYPE);
+
+        if ($document) {
+            $jsonapi = ['version' => $this->api::VERSION];
+
+            if ($meta = $this->api->serializeMeta($this)) {
+                $jsonapi['meta'] = $meta;
+            }
+
+            $document += ['jsonapi' => $jsonapi];
+
+            if ($meta = $this->documentMeta->getArrayCopy()) {
+                $document['meta'] = array_merge($document['meta'] ?? [], $meta);
+            }
+
+            if ($links = $this->documentLinks->getArrayCopy()) {
+                $document['links'] = array_merge($document['links'] ?? [], $links);
+            }
+
+            $response = $response->withBody(
+                Stream::create(
+                    json_encode(
+                        $document,
+                        JSON_HEX_TAG |
+                            JSON_HEX_APOS |
+                            JSON_HEX_AMP |
+                            JSON_HEX_QUOT |
+                            JSON_UNESCAPED_SLASHES,
+                    ),
+                ),
+            );
+        }
+
+        return $response;
     }
 }

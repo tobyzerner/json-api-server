@@ -94,5 +94,8 @@ class Context
 
     // Activate a JSON:API profile for the current response
     public function activateProfile(string $uri): static;
+
+    // Create a JSON:API response with document data
+    public function createResponse(array $document): Response;
 }
 ```

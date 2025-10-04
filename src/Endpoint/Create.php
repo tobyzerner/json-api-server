@@ -22,7 +22,6 @@ use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
 use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 
 use function Tobyz\JsonApiServer\has_value;
-use function Tobyz\JsonApiServer\json_api_response;
 use function Tobyz\JsonApiServer\set_value;
 
 class Create implements Endpoint, OpenApiPathsProvider
@@ -83,14 +82,14 @@ class Create implements Endpoint, OpenApiPathsProvider
 
             if ($asyncResult !== null) {
                 if (is_string($asyncResult)) {
-                    $response = json_api_response($this->buildDocument($context))->withHeader(
+                    $response = $context->createResponse($this->buildDocument($context))->withHeader(
                         'Location',
                         $context->api->basePath . '/' . ltrim($asyncResult, '/'),
                     );
                 } else {
                     $context = $context->forModel([$this->asyncCollection], $asyncResult);
 
-                    $response = json_api_response(
+                    $response = $context->createResponse(
                         $this->buildResourceDocument($asyncResult, $context),
                     )->withHeader(
                         'Content-Location',
@@ -110,9 +109,9 @@ class Create implements Endpoint, OpenApiPathsProvider
 
         $this->saveFields($context, $data, true);
 
-        $response = json_api_response(
-            $document = $this->buildResourceDocument($model, $context),
-        )->withStatus(201);
+        $response = $context
+            ->createResponse($document = $this->buildResourceDocument($model, $context))
+            ->withStatus(201);
 
         if ($location = $document['data']['links']['self'] ?? null) {
             $response = $response->withHeader('Location', $location);

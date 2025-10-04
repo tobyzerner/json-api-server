@@ -21,8 +21,6 @@ use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\Context\Context;
 use Tobyz\JsonApiServer\Extension\Extension;
 
-use function Tobyz\JsonApiServer\json_api_response;
-
 class MyExtension extends Extension
 {
     public function uri(): string
@@ -33,7 +31,7 @@ class MyExtension extends Extension
     public function handle(Context $context): ?ResponseInterface
     {
         if ($context->path() === 'my-extension') {
-            return json_api_response([
+            return $context->createResponse([
                 'my-extension:greeting' => 'Hello world!',
             ]);
         }

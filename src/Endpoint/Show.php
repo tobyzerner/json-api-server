@@ -28,7 +28,6 @@ use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
 use Tobyz\JsonApiServer\Schema\Field\ToMany;
 
-use function Tobyz\JsonApiServer\json_api_response;
 use function Tobyz\JsonApiServer\resolve_value;
 
 class Show implements Endpoint, ResourceEndpoint, RelationshipEndpoint, OpenApiPathsProvider
@@ -73,7 +72,7 @@ class Show implements Endpoint, ResourceEndpoint, RelationshipEndpoint, OpenApiP
         }
 
         if ($count === 2) {
-            $response = json_api_response($this->buildResourceDocument($model, $context));
+            $response = $context->createResponse($this->buildResourceDocument($model, $context));
 
             return $this->applyResponseHooks($response, $context);
         }
@@ -123,10 +122,10 @@ class Show implements Endpoint, ResourceEndpoint, RelationshipEndpoint, OpenApiP
 
             $document['links']['self'] ??= $this->relatedLink($model, $relationshipField, $context);
 
-            return json_api_response($document);
+            return $context->createResponse($document);
         }
 
-        return json_api_response(
+        return $context->createResponse(
             $this->buildRelationshipDocument($relationshipField, $relatedData, $context),
         );
     }
@@ -158,7 +157,7 @@ class Show implements Endpoint, ResourceEndpoint, RelationshipEndpoint, OpenApiP
 
                 $location = $context->api->basePath . '/' . ltrim($result, '/');
 
-                return json_api_response(status: 303)->withHeader('Location', $location);
+                return $context->createResponse([])->withStatus(303)->withHeader('Location', $location);
             }
 
             return $response;

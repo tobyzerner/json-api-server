@@ -18,8 +18,6 @@ use Tobyz\JsonApiServer\Resource\Deletable;
 use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
 use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 
-use function Tobyz\JsonApiServer\json_api_response;
-
 class Delete implements Endpoint, OpenApiPathsProvider
 {
     use HasDescription;
@@ -64,7 +62,7 @@ class Delete implements Endpoint, OpenApiPathsProvider
 
         $resource->delete($model, $context);
 
-        $response = json_api_response($this->buildDocument($context), status: 204);
+        $response = $context->createResponse($this->buildDocument($context))->withStatus(204);
 
         return $this->applyResponseHooks($response, $context);
     }

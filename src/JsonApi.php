@@ -4,8 +4,10 @@ namespace Tobyz\JsonApiServer;
 
 use HttpAccept\ContentTypeParser;
 use InvalidArgumentException;
-use Psr\Http\Message\ResponseInterface as Response;
-use Psr\Http\Message\ServerRequestInterface as Request;
+use Nyholm\Psr7\ServerRequest;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\ServerServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Tobyz\JsonApiServer\Exception\ErrorProvider;
 use Tobyz\JsonApiServer\Exception\InternalServerErrorException;
@@ -18,9 +20,12 @@ use Tobyz\JsonApiServer\Exception\UnsupportedMediaTypeException;
 use Tobyz\JsonApiServer\Extension\Extension;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Resource;
+use Tobyz\JsonApiServer\Schema\Concerns\HasMeta;
 
 class JsonApi implements RequestHandlerInterface
 {
+    use HasMeta;
+
     public const MEDIA_TYPE = 'application/vnd.api+json';
     public const VERSION = '1.1';
 
@@ -131,7 +136,7 @@ class JsonApi implements RequestHandlerInterface
     /**
      * Handle a request.
      */
-    public function handle(Request $request): Response
+    public function handle(ServerRequestInterface $request): ResponseInterface
     {
         $this->validateQueryParameters($request);
 
@@ -172,7 +177,7 @@ class JsonApi implements RequestHandlerInterface
         return $response->withAddedHeader('Vary', 'Accept');
     }
 
-    private function runExtensions(Context $context): ?Response
+    private function runExtensions(Context $context): ?ResponseInterface
     {
         $contentTypeExtensionUris = $this->getContentTypeExtensionUris($context->request);
         $acceptExtensionUris = $context->requestedExtensions();
@@ -195,7 +200,7 @@ class JsonApi implements RequestHandlerInterface
         return null;
     }
 
-    private function validateQueryParameters(Request $request): void
+    private function validateQueryParameters(ServerRequestInterface $request): void
     {
         foreach ($request->getQueryParams() as $key => $value) {
             if (
@@ -209,7 +214,7 @@ class JsonApi implements RequestHandlerInterface
         }
     }
 
-    private function getContentTypeExtensionUris(Request $request): array
+    private function getContentTypeExtensionUris(ServerRequestInterface $request): array
     {
         if (!($contentType = $request->getHeaderLine('Content-Type'))) {
             return [];
@@ -241,7 +246,7 @@ class JsonApi implements RequestHandlerInterface
     /**
      * Convert an exception into a JSON:API error document response.
      */
-    public function error($e): Response
+    public function error($e): ResponseInterface
     {
         if ($e instanceof JsonApiErrorsException) {
             $errors = $e->errors;
@@ -251,12 +256,13 @@ class JsonApi implements RequestHandlerInterface
             }
             $errors = [$e];
         }
-        $status = $e->getJsonApiStatus();
 
-        return json_api_response(
-            ['errors' => array_map($this->formatError(...), $errors)],
-            $status,
-        );
+        $status = $e->getJsonApiStatus();
+        $context = new Context($this, new ServerRequest('GET', '/'));
+
+        return $context
+            ->createResponse(['errors' => array_map($this->formatError(...), $errors)])
+            ->withStatus($status);
     }
 
     private function formatError(ErrorProvider $exception): array

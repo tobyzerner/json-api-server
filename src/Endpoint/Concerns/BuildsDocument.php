@@ -13,16 +13,8 @@ trait BuildsDocument
     {
         $document = [];
 
-        if ($meta = $context->documentMeta->getArrayCopy()) {
-            $document['meta'] = $meta;
-        }
-
         foreach ($this->serializeMeta($context) as $key => $value) {
             $document['meta'][$key] = $value;
-        }
-
-        if ($links = $context->documentLinks->getArrayCopy()) {
-            $document['links'] = $links;
         }
 
         return $document;

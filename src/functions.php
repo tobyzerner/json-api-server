@@ -3,33 +3,9 @@
 namespace Tobyz\JsonApiServer;
 
 use Closure;
-use Nyholm\Psr7\Response;
-use Nyholm\Psr7\Stream;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Schema\Field\Field;
-
-function json_api_response(array $document = [], int $status = 200): Response
-{
-    $response = (new Response($status))->withHeader('Content-Type', JsonApi::MEDIA_TYPE);
-
-    if ($document) {
-        $response = $response->withBody(
-            Stream::create(
-                json_encode(
-                    $document + ['jsonapi' => ['version' => JsonApi::VERSION]],
-                    JSON_HEX_TAG |
-                        JSON_HEX_APOS |
-                        JSON_HEX_AMP |
-                        JSON_HEX_QUOT |
-                        JSON_UNESCAPED_SLASHES,
-                ),
-            ),
-        );
-    }
-
-    return $response;
-}
 
 function negate(bool|Closure $condition): bool|Closure
 {

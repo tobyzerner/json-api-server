@@ -30,6 +30,10 @@ and this project adheres to
 
 ### Added
 
+- Add `Context::createResponse()` method for building JSON:API responses with
+  automatic `jsonapi` object inclusion
+- Add `JsonApi::meta()` method for including meta information in the `jsonapi`
+  object
 - Add full support for JSON:API profiles:
     - Parse profile URIs from `Accept` header
     - `Context::profileRequested(string $uri): bool` - check if a profile was

@@ -18,8 +18,6 @@ use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
 use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 
-use function Tobyz\JsonApiServer\json_api_response;
-
 class ResourceAction implements Endpoint, OpenApiPathsProvider
 {
     use HasVisibility;
@@ -72,7 +70,7 @@ class ResourceAction implements Endpoint, OpenApiPathsProvider
 
         ($this->handler)($model, $context);
 
-        $response = json_api_response($this->buildResourceDocument($model, $context));
+        $response = $context->createResponse($this->buildResourceDocument($model, $context));
 
         return $this->applyResponseHooks($response, $context);
     }

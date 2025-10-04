@@ -13,8 +13,6 @@ use Tobyz\JsonApiServer\Extension\Atomic\Exception\InvalidAtomicOperationExcepti
 use Tobyz\JsonApiServer\Extension\Atomic\Exception\InvalidAtomicOperationsException;
 use Tobyz\JsonApiServer\Extension\Extension;
 
-use function Tobyz\JsonApiServer\json_api_response;
-
 class Atomic extends Extension
 {
     public const URI = 'https://jsonapi.org/ext/atomic';
@@ -69,7 +67,7 @@ class Atomic extends Extension
             $results[] = json_decode($response->getBody(), true);
         }
 
-        return json_api_response(['atomic:results' => $results]);
+        return $context->createResponse(['atomic:results' => $results]);
     }
 
     private function add(Context $context, array $operation, array &$lids): Response

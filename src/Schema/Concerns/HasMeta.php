@@ -22,7 +22,7 @@ trait HasMeta
         return $this;
     }
 
-    protected function serializeMeta(Context $context): array
+    public function serializeMeta(Context $context): array
     {
         $meta = [];
 

@@ -22,8 +22,6 @@ use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
 use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 
-use function Tobyz\JsonApiServer\json_api_response;
-
 class Index implements Endpoint, OpenApiPathsProvider
 {
     use HasDescription;
@@ -99,7 +97,7 @@ class Index implements Endpoint, OpenApiPathsProvider
 
         $document['links']['self'] ??= $context->currentUrl();
 
-        $response = json_api_response($document);
+        $response = $context->createResponse($document);
 
         return $this->applyResponseHooks($response, $context);
     }
