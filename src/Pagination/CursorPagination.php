@@ -70,6 +70,10 @@ class CursorPagination implements Pagination
             ]);
         }
 
+        if ($page->rangeTruncated !== null) {
+            $context->documentMeta['page']['rangeTruncated'] = $page->rangeTruncated;
+        }
+
         return $page->results;
     }
 

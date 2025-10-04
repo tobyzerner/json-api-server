@@ -163,4 +163,19 @@ class CursorPaginationTest extends AbstractTestCase
             $this->assertStringContainsString('after', $error['source']['parameter'] ?? '');
         }
     }
+
+    public function test_range_truncation_meta_is_included_when_results_truncated(): void
+    {
+        $response = $this->api->handle(
+            $this->buildRequest('GET', '/articles')->withQueryParams([
+                'page' => ['before' => '5', 'size' => '2'],
+            ]),
+        );
+
+        $data = json_decode($response->getBody(), true);
+
+        $this->assertArrayHasKey('meta', $data);
+        $this->assertArrayHasKey('page', $data['meta']);
+        $this->assertTrue($data['meta']['page']['rangeTruncated']);
+    }
 }

@@ -118,7 +118,11 @@ class PostsResource extends AbstractResource implements
     ): Page {
         // ...
 
-        return new Page($results, $isFirstPage, $isLastPage);
+        return new Page(
+            results: $results,
+            isFirstPage: $isFirstPage,
+            isLastPage: $isLastPage,
+        );
     }
 
     public function itemCursor($model, object $query, Context $context): string
@@ -127,6 +131,24 @@ class PostsResource extends AbstractResource implements
     }
 }
 ```
+
+### Range Pagination
+
+When both `after` and `before` cursors are provided, implementations can support
+range-based pagination. If the results were truncated to fit within the
+specified range, set the `rangeTruncated` parameter:
+
+```php
+return new Page(
+    results: $results,
+    isFirstPage: false,
+    isLastPage: false,
+    rangeTruncated: true,
+);
+```
+
+This will add `{"page": {"rangeTruncated": true}}` to the document's `meta`
+object to inform clients that not all items in the range were returned.
 
 ## Countability
 

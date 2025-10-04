@@ -8,6 +8,7 @@ class Page
         public array $results,
         public ?bool $isFirstPage = null,
         public ?bool $isLastPage = null,
+        public ?bool $rangeTruncated = null,
     ) {
     }
 }
