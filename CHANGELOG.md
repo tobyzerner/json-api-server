@@ -30,7 +30,22 @@ and this project adheres to
 
 ### Added
 
-- Add ability to override error objects by caught exception
+- Add support for JSON:API profile URIs in `Content-Type` headers via
+  `Context::activateProfile(string $uri)` method
+    - Cursor pagination automatically activates the
+      `https://jsonapi.org/profiles/ethanresnick/cursor-pagination` profile
+- Add support for asynchronous processing following the
+  [JSON:API Asynchronous Processing](https://jsonapi.org/recommendations/#asynchronous-processing)
+  recommendation
+    - Add `Create::async()` method for responding with `202 Accepted`
+    - Add `Show::seeOther()` method for responding with `303 See Other`
+      redirects
+- Add endpoint hooks for customizing responses and schema:
+    - Add `Endpoint::headers()` method for defining custom response headers with
+      `Header` schema class
+    - Add `Endpoint::response()` method for defining custom response callbacks
+    - Add `Endpoint::schema()` method for defining custom schema
+- Add ability to customize error objects
     - Add specific exception classes for all errors
     - Add `JsonApi::errors(array $overrides)` method to register error object
       overrides, keyed by exception class name. `detail` values accept
