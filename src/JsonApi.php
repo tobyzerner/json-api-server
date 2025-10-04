@@ -2,7 +2,6 @@
 
 namespace Tobyz\JsonApiServer;
 
-use HttpAccept\AcceptParser;
 use HttpAccept\ContentTypeParser;
 use InvalidArgumentException;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -12,7 +11,6 @@ use Tobyz\JsonApiServer\Exception\ErrorProvider;
 use Tobyz\JsonApiServer\Exception\InternalServerErrorException;
 use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
-use Tobyz\JsonApiServer\Exception\NotAcceptableException;
 use Tobyz\JsonApiServer\Exception\NotFoundException;
 use Tobyz\JsonApiServer\Exception\Request\InvalidQueryParameterException;
 use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
@@ -132,11 +130,6 @@ class JsonApi implements RequestHandlerInterface
 
     /**
      * Handle a request.
-     *
-     * @throws UnsupportedMediaTypeException if the request Content-Type header is invalid
-     * @throws NotAcceptableException if the request Accept header is invalid
-     * @throws MethodNotAllowedException if the request method is invalid
-     * @throws BadRequestException if the request URI is invalid
      */
     public function handle(Request $request): Response
     {
@@ -181,15 +174,13 @@ class JsonApi implements RequestHandlerInterface
 
     private function runExtensions(Context $context): ?Response
     {
-        $request = $context->request;
-
-        $contentTypeExtensionUris = $this->getContentTypeExtensionUris($request);
-        $acceptableExtensionUris = $this->getAcceptableExtensionUris($request);
+        $contentTypeExtensionUris = $this->getContentTypeExtensionUris($context->request);
+        $acceptExtensionUris = $context->requestedExtensions();
 
         $activeExtensions = array_intersect_key(
             $this->extensions,
             array_flip($contentTypeExtensionUris),
-            array_flip($acceptableExtensionUris),
+            array_flip($acceptExtensionUris),
         );
 
         foreach ($activeExtensions as $extension) {
@@ -226,7 +217,7 @@ class JsonApi implements RequestHandlerInterface
 
         try {
             $type = (new ContentTypeParser())->parse($contentType);
-        } catch (InvalidArgumentException $e) {
+        } catch (InvalidArgumentException) {
             throw new UnsupportedMediaTypeException();
         }
 
@@ -245,37 +236,6 @@ class JsonApi implements RequestHandlerInterface
         }
 
         return $extensionUris;
-    }
-
-    private function getAcceptableExtensionUris(Request $request): array
-    {
-        if (!($accept = $request->getHeaderLine('Accept'))) {
-            return [];
-        }
-
-        $list = (new AcceptParser())->parse($accept);
-
-        foreach ($list as $mediaType) {
-            if (!in_array($mediaType->name(), [JsonApi::MEDIA_TYPE, '*/*'])) {
-                continue;
-            }
-
-            if (!empty(array_diff(array_keys($mediaType->parameters()), ['ext', 'profile']))) {
-                continue;
-            }
-
-            $extensionUris = $mediaType->hasParamater('ext')
-                ? explode(' ', $mediaType->getParameter('ext'))
-                : [];
-
-            if (!empty(array_diff($extensionUris, array_keys($this->extensions)))) {
-                continue;
-            }
-
-            return $extensionUris;
-        }
-
-        throw new NotAcceptableException();
     }
 
     /**

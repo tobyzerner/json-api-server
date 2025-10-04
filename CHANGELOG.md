@@ -30,8 +30,13 @@ and this project adheres to
 
 ### Added
 
-- Add support for JSON:API profile URIs in `Content-Type` headers via
-  `Context::activateProfile(string $uri)` method
+- Add full support for JSON:API profiles:
+    - Parse profile URIs from `Accept` header
+    - `Context::profileRequested(string $uri): bool` - check if a profile was
+      requested
+    - `Context::requestedProfiles(): array` - get all requested profile URIs
+    - `Context::activateProfile(string $uri)` - activate a profile for the
+      response `Content-Type` header
     - Cursor pagination automatically activates the
       `https://jsonapi.org/profiles/ethanresnick/cursor-pagination` profile
 - Add support for asynchronous processing following the

@@ -107,4 +107,77 @@ class ContentNegotiationTest extends AbstractTestCase
 
         $this->assertEquals('Accept', $response->getHeaderLine('vary'));
     }
+
+    public function test_requested_profiles_can_be_read()
+    {
+        $this->api = new JsonApi();
+
+        $capturedProfiles = null;
+
+        $resource = new MockResource('users', models: [(object) ['id' => '1']], endpoints: [
+            Show::make()->response(function ($response, $model, $context) use (&$capturedProfiles) {
+                $capturedProfiles = $context->requestedProfiles();
+            }),
+        ]);
+
+        $this->api->resource($resource);
+
+        $request = $this->buildRequest('GET', '/users/1')->withHeader(
+            'Accept',
+            'application/vnd.api+json; profile="https://example.com/profile1 https://example.com/profile2"',
+        );
+
+        $this->api->handle($request);
+
+        $this->assertEquals(
+            ['https://example.com/profile1', 'https://example.com/profile2'],
+            $capturedProfiles,
+        );
+    }
+
+    public function test_activated_profiles_appear_in_content_type()
+    {
+        $this->api = new JsonApi();
+
+        $resource = new MockResource('users', models: [(object) ['id' => '1']], endpoints: [
+            Show::make()->response(function ($response, $model, $context) {
+                $context->activateProfile('https://example.com/profile1');
+                $context->activateProfile('https://example.com/profile2');
+            }),
+        ]);
+
+        $this->api->resource($resource);
+
+        $response = $this->api->handle($this->buildRequest('GET', '/users/1'));
+
+        $this->assertEquals(
+            'application/vnd.api+json; profile="https://example.com/profile1 https://example.com/profile2"',
+            $response->getHeaderLine('Content-Type'),
+        );
+    }
+
+    public function test_profiles_from_lines_with_unsupported_extensions_are_ignored()
+    {
+        $this->api = new JsonApi();
+
+        $capturedProfiles = null;
+
+        $resource = new MockResource('users', models: [(object) ['id' => '1']], endpoints: [
+            Show::make()->response(function ($response, $model, $context) use (&$capturedProfiles) {
+                $capturedProfiles = $context->requestedProfiles();
+            }),
+        ]);
+
+        $this->api->resource($resource);
+
+        $request = $this->buildRequest('GET', '/users/1')->withHeader(
+            'Accept',
+            'application/vnd.api+json; ext="https://unsupported.com/ext"; profile="https://example.com/should-be-ignored", application/vnd.api+json; profile="https://example.com/valid-profile"',
+        );
+
+        $this->api->handle($request);
+
+        // Should only get the profile from the second (valid) Accept line
+        $this->assertEquals(['https://example.com/valid-profile'], $capturedProfiles);
+    }
 }

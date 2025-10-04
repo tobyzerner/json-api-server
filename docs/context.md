@@ -83,6 +83,15 @@ class Context
     // Determine whether a sort field has been requested
     public function sortRequested(string $field): bool;
 
+    // Determine whether a profile has been requested in the Accept header
+    public function profileRequested(string $uri): bool;
+
+    // Get all requested profile URIs from the Accept header
+    public function requestedProfiles(): array;
+
+    // Get all requested extension URIs from the Accept header
+    public function requestedExtensions(): array;
+
     // Activate a JSON:API profile for the current response
     public function activateProfile(string $uri): static;
 }

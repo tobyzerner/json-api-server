@@ -3,9 +3,11 @@
 namespace Tobyz\JsonApiServer;
 
 use ArrayObject;
+use HttpAccept\AcceptParser;
 use Psr\Http\Message\ServerRequestInterface;
 use RuntimeException;
 use Tobyz\JsonApiServer\Endpoint\Endpoint;
+use Tobyz\JsonApiServer\Exception\NotAcceptableException;
 use Tobyz\JsonApiServer\Exception\Request\InvalidSparseFieldsetsException;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Resource;
@@ -29,6 +31,8 @@ class Context
 
     private ?array $body;
     private ?string $path;
+    private ?array $requestedExtensions = null;
+    private ?array $requestedProfiles = null;
 
     private WeakMap $endpoints;
     private WeakMap $resourceIds;
@@ -38,6 +42,8 @@ class Context
 
     public function __construct(public JsonApi $api, public ServerRequestInterface $request)
     {
+        $this->parseAcceptHeader();
+
         $this->endpoints = new WeakMap();
         $this->resourceIds = new WeakMap();
         $this->modelIds = new WeakMap();
@@ -211,6 +217,83 @@ class Context
         return false;
     }
 
+    /**
+     * Determine whether a profile has been requested.
+     */
+    public function profileRequested(string $uri): bool
+    {
+        return in_array($uri, $this->requestedProfiles());
+    }
+
+    /**
+     * Get all requested profile URIs.
+     *
+     * @return array
+     */
+    public function requestedProfiles(): array
+    {
+        if ($this->requestedProfiles === null) {
+            $this->parseAcceptHeader();
+        }
+
+        return $this->requestedProfiles;
+    }
+
+    /**
+     * Get all requested extension URIs from Accept header.
+     *
+     * @return array
+     */
+    public function requestedExtensions(): array
+    {
+        if ($this->requestedExtensions === null) {
+            $this->parseAcceptHeader();
+        }
+
+        return $this->requestedExtensions;
+    }
+
+    private function parseAcceptHeader(): void
+    {
+        $accept = $this->request->getHeaderLine('Accept');
+
+        if (!$accept) {
+            $this->requestedProfiles = [];
+            $this->requestedExtensions = [];
+            return;
+        }
+
+        $list = (new AcceptParser())->parse($accept);
+
+        foreach ($list as $mediaType) {
+            if (!in_array($mediaType->name(), [$this->api::MEDIA_TYPE, '*/*'])) {
+                continue;
+            }
+
+            if (array_diff(array_keys($mediaType->parameters()), ['ext', 'profile'])) {
+                continue;
+            }
+
+            $extensionUris = $mediaType->hasParamater('ext')
+                ? explode(' ', $mediaType->getParameter('ext'))
+                : [];
+
+            if (array_diff($extensionUris, array_keys($this->api->extensions))) {
+                continue;
+            }
+
+            $profileUris = $mediaType->hasParamater('profile')
+                ? explode(' ', $mediaType->getParameter('profile'))
+                : [];
+
+            $this->requestedProfiles = $profileUris;
+            $this->requestedExtensions = $extensionUris;
+            return;
+        }
+
+        throw new NotAcceptableException();
+    }
+
     public function withRequest(ServerRequestInterface $request): static
     {
         $new = clone $this;
@@ -218,6 +301,9 @@ class Context
         $new->sparseFields = new WeakMap();
         $new->body = null;
         $new->path = null;
+        $new->requestedProfiles = null;
+        $new->requestedExtensions = null;
+        $new->parseAcceptHeader();
         return $new;
     }
 
