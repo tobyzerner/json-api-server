@@ -2,11 +2,13 @@
 
 namespace Tobyz\JsonApiServer\Endpoint;
 
-use Nyholm\Psr7\Response;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsDocument;
 use Tobyz\JsonApiServer\Endpoint\Concerns\FindsResources;
+use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
+use Tobyz\JsonApiServer\Endpoint\Concerns\HasSchema;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
 use Tobyz\JsonApiServer\JsonApi;
@@ -14,17 +16,18 @@ use Tobyz\JsonApiServer\OpenApi\OpenApiPathsProvider;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Deletable;
 use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
-use Tobyz\JsonApiServer\Schema\Concerns\HasMeta;
 use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 
 use function Tobyz\JsonApiServer\json_api_response;
 
 class Delete implements Endpoint, OpenApiPathsProvider
 {
-    use HasMeta;
-    use HasVisibility;
-    use FindsResources;
     use HasDescription;
+    use HasVisibility;
+    use HasResponse;
+    use HasSchema;
+    use FindsResources;
+    use BuildsDocument;
 
     public static function make(): static
     {
@@ -61,16 +64,20 @@ class Delete implements Endpoint, OpenApiPathsProvider
 
         $resource->delete($model, $context);
 
-        if ($meta = $this->serializeMeta($context)) {
-            return json_api_response(['meta' => $meta]);
-        }
+        $response = json_api_response($this->buildDocument($context), status: 204);
 
-        return new Response(204);
+        return $this->applyResponseHooks($response, $context);
     }
 
     public function getOpenApiPaths(Collection $collection, JsonApi $api): array
     {
-        return [
+        $response = [];
+
+        if ($headers = $this->getHeadersSchema($api)) {
+            $response['headers'] = $headers;
+        }
+
+        $paths = [
             "/{$collection->name()}/{id}" => [
                 'delete' => [
                     'description' => $this->getDescription(),
@@ -84,10 +91,12 @@ class Delete implements Endpoint, OpenApiPathsProvider
                         ],
                     ],
                     'responses' => [
-                        '204' => [],
+                        '204' => $response,
                     ],
                 ],
             ],
         ];
+
+        return $this->mergeSchema($paths);
     }
 }

@@ -9,11 +9,13 @@ use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
 use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsRelationshipDocument;
 use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsResourceDocument;
 use Tobyz\JsonApiServer\Endpoint\Concerns\FindsResources;
+use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
+use Tobyz\JsonApiServer\Endpoint\Concerns\HasSchema;
 use Tobyz\JsonApiServer\Endpoint\Concerns\SavesData;
 use Tobyz\JsonApiServer\Endpoint\Concerns\ShowsResources;
 use Tobyz\JsonApiServer\Exception\ErrorProvider;
-use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\Field\InvalidFieldValueException;
+use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
 use Tobyz\JsonApiServer\Exception\NotFoundException;
@@ -35,6 +37,8 @@ class Update implements Endpoint, OpenApiPathsProvider
 {
     use HasVisibility;
     use HasDescription;
+    use HasResponse;
+    use HasSchema;
     use FindsResources;
     use SavesData;
     use ShowsResources;
@@ -125,6 +129,19 @@ class Update implements Endpoint, OpenApiPathsProvider
             ],
         ];
 
+        $response = [
+            'content' => $this->buildOpenApiContent(
+                array_map(
+                    fn($resource) => ['$ref' => "#/components/schemas/$resource"],
+                    $collection->resources(),
+                ),
+            ),
+        ];
+
+        if ($headers = $this->getHeadersSchema($api)) {
+            $response['headers'] = $headers;
+        }
+
         $paths = [
             "/$type/{id}" => [
                 'patch' => [
@@ -143,14 +160,7 @@ class Update implements Endpoint, OpenApiPathsProvider
                         ),
                     ],
                     'responses' => [
-                        '200' => [
-                            'content' => $this->buildOpenApiContent(
-                                array_map(
-                                    fn($resource) => ['$ref' => "#/components/schemas/$resource"],
-                                    $collection->resources(),
-                                ),
-                            ),
-                        ],
+                        '200' => $response,
                     ],
                 ],
             ],
@@ -245,7 +255,7 @@ class Update implements Endpoint, OpenApiPathsProvider
             }
         }
 
-        return $paths;
+        return $this->mergeSchema($paths);
     }
 
     private function updateResource(
@@ -264,7 +274,9 @@ class Update implements Endpoint, OpenApiPathsProvider
 
         $this->saveFields($context, $data);
 
-        return json_api_response($this->buildResourceDocument($model, $context));
+        $response = json_api_response($this->buildResourceDocument($model, $context));
+
+        return $this->applyResponseHooks($response, $context);
     }
 
     private function showRelationship(

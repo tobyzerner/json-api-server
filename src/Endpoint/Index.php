@@ -7,6 +7,8 @@ use RuntimeException;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
 use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsResourceDocument;
+use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
+use Tobyz\JsonApiServer\Endpoint\Concerns\HasSchema;
 use Tobyz\JsonApiServer\Endpoint\Concerns\ListsResources;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
@@ -26,6 +28,8 @@ class Index implements Endpoint, OpenApiPathsProvider
 {
     use HasDescription;
     use HasVisibility;
+    use HasResponse;
+    use HasSchema;
     use ListsResources;
     use BuildsResourceDocument;
     use BuildsOpenApiPaths;
@@ -95,29 +99,39 @@ class Index implements Endpoint, OpenApiPathsProvider
 
         $document['links']['self'] ??= $context->currentUrl();
 
-        return json_api_response($document);
+        $response = json_api_response($document);
+
+        return $this->applyResponseHooks($response, $context);
     }
 
     public function getOpenApiPaths(Collection $collection, JsonApi $api): array
     {
-        return [
+        $response = [
+            'content' => $this->buildOpenApiContent(
+                array_map(
+                    fn($resource) => ['$ref' => "#/components/schemas/$resource"],
+                    $collection->resources(),
+                ),
+                multiple: true,
+            ),
+        ];
+
+        if ($headers = $this->getHeadersSchema($api)) {
+            $response['headers'] = $headers;
+        }
+
+        $paths = [
             "/{$collection->name()}" => [
                 'get' => [
                     'description' => $this->getDescription(),
                     'tags' => [$collection->name()],
                     'responses' => [
-                        '200' => [
-                            'content' => $this->buildOpenApiContent(
-                                array_map(
-                                    fn($resource) => ['$ref' => "#/components/schemas/$resource"],
-                                    $collection->resources(),
-                                ),
-                                multiple: true,
-                            ),
-                        ],
+                        '200' => $response,
                     ],
                 ],
             ],
         ];
+
+        return $this->mergeSchema($paths);
     }
 }

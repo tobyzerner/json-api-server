@@ -9,11 +9,12 @@ use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Schema\Field\Field;
 
-function json_api_response($document, int $status = 200): Response
+function json_api_response(array $document = [], int $status = 200): Response
 {
-    return (new Response($status))
-        ->withHeader('Content-Type', JsonApi::MEDIA_TYPE)
-        ->withBody(
+    $response = (new Response($status))->withHeader('Content-Type', JsonApi::MEDIA_TYPE);
+
+    if ($document) {
+        $response = $response->withBody(
             Stream::create(
                 json_encode(
                     $document + ['jsonapi' => ['version' => JsonApi::VERSION]],
@@ -25,6 +26,9 @@ function json_api_response($document, int $status = 200): Response
                 ),
             ),
         );
+    }
+
+    return $response;
 }
 
 function negate(bool|Closure $condition): bool|Closure

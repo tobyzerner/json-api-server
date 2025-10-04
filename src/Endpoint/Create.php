@@ -2,11 +2,14 @@
 
 namespace Tobyz\JsonApiServer\Endpoint;
 
+use Closure;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
 use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsResourceDocument;
+use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
+use Tobyz\JsonApiServer\Endpoint\Concerns\HasSchema;
 use Tobyz\JsonApiServer\Endpoint\Concerns\SavesData;
 use Tobyz\JsonApiServer\Endpoint\Concerns\ShowsResources;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
@@ -26,12 +29,15 @@ class Create implements Endpoint, OpenApiPathsProvider
 {
     use HasVisibility;
     use HasDescription;
+    use HasResponse;
+    use HasSchema;
     use SavesData;
     use ShowsResources;
     use BuildsResourceDocument;
     use BuildsOpenApiPaths;
 
-    private array $afterCallbacks = [];
+    private ?string $asyncCollection = null;
+    private ?Closure $asyncCallback = null;
 
     public static function make(): static
     {
@@ -72,13 +78,37 @@ class Create implements Endpoint, OpenApiPathsProvider
         $this->assertDataValid($context, $data, true);
         $this->setValues($context, $data, true);
 
+        if ($this->asyncCallback) {
+            $asyncResult = ($this->asyncCallback)($model, $context);
+
+            if ($asyncResult !== null) {
+                if (is_string($asyncResult)) {
+                    $response = json_api_response($this->buildDocument($context))->withHeader(
+                        'Location',
+                        $context->api->basePath . '/' . ltrim($asyncResult, '/'),
+                    );
+                } else {
+                    $context = $context->forModel([$this->asyncCollection], $asyncResult);
+
+                    $response = json_api_response(
+                        $this->buildResourceDocument($asyncResult, $context),
+                    )->withHeader(
+                        'Content-Location',
+                        implode('/', [
+                            $context->api->basePath,
+                            $context->collection->name(),
+                            $context->id($context->resource, $asyncResult),
+                        ]),
+                    );
+                }
+
+                return $response->withStatus(202);
+            }
+        }
+
         $context = $context->withModel($model = $resource->create($model, $context));
 
         $this->saveFields($context, $data, true);
-
-        foreach ($this->afterCallbacks as $callback) {
-            $callback($model, $context);
-        }
 
         $response = json_api_response(
             $document = $this->buildResourceDocument($model, $context),
@@ -88,12 +118,13 @@ class Create implements Endpoint, OpenApiPathsProvider
             $response = $response->withHeader('Location', $location);
         }
 
-        return $response;
+        return $this->applyResponseHooks($response, $context);
     }
 
-    public function after(callable $callback): static
+    public function async(string $collection, Closure $callback): static
     {
-        $this->afterCallbacks[] = $callback;
+        $this->asyncCollection = $collection;
+        $this->asyncCallback = $callback;
 
         return $this;
     }
@@ -111,7 +142,38 @@ class Create implements Endpoint, OpenApiPathsProvider
     {
         $type = $collection->name();
 
-        return [
+        $responses = [
+            '201' => [
+                'content' => $this->buildOpenApiContent(
+                    array_map(
+                        fn($resource) => ['$ref' => "#/components/schemas/$resource"],
+                        $collection->resources(),
+                    ),
+                ),
+            ],
+        ];
+
+        if ($headers = $this->getHeadersSchema($api)) {
+            $responses['201']['headers'] = $headers;
+        }
+
+        if ($this->asyncCollection) {
+            $asyncCollection = $api->getCollection($this->asyncCollection);
+
+            $responses['202'] = [
+                'headers' => [
+                    'Content-Location' => ['schema' => ['type' => 'string']],
+                ],
+                'content' => $this->buildOpenApiContent(
+                    array_map(
+                        fn($resource) => ['$ref' => "#/components/schemas/$resource"],
+                        $asyncCollection->resources(),
+                    ),
+                ),
+            ];
+        }
+
+        $paths = [
             "/$type" => [
                 'post' => [
                     'description' => $this->getDescription() ?: "Create $type resource",
@@ -127,18 +189,11 @@ class Create implements Endpoint, OpenApiPathsProvider
                             ),
                         ),
                     ],
-                    'responses' => [
-                        '201' => [
-                            'content' => $this->buildOpenApiContent(
-                                array_map(
-                                    fn($resource) => ['$ref' => "#/components/schemas/$resource"],
-                                    $collection->resources(),
-                                ),
-                            ),
-                        ],
-                    ],
+                    'responses' => $responses,
                 ],
             ],
         ];
+
+        return $this->mergeSchema($paths);
     }
 }

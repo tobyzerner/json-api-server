@@ -208,3 +208,37 @@ The `POST` method is used by default, but you can customize this using the
 ```php
 Endpoint\CollectionAction::make(...)->method('PUT');
 ```
+
+### Custom Headers
+
+Use the `headers()` method to define custom headers for endpoint responses.
+Headers can be static or dynamic based on the model data:
+
+```php
+use Tobyz\JsonApiServer\Schema\Header;
+use Tobyz\JsonApiServer\Schema\Type;
+
+Endpoint\Show::make()->headers([
+    Header::make('X-Rate-Limit')
+        ->type(Type\Integer::make())
+        ->get(fn($model) => $model->rate_limit),
+
+    Header::make('Cache-Control')->get(fn() => 'max-age=3600'),
+]);
+```
+
+### Response Callbacks
+
+Use the `response()` method to register callbacks that can modify or replace the
+response. Callbacks receive the response object and, when available, the model
+and context:
+
+```php
+Endpoint\Show::make()->response(function ($response, $model, Context $context) {
+    if ($model->is_archived) {
+        return $response->withStatus(410); // Gone
+    }
+
+    return $response->withHeader('X-Version', $model->version);
+});
+```

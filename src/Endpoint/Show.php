@@ -4,11 +4,14 @@ namespace Tobyz\JsonApiServer\Endpoint;
 
 use Nyholm\Psr7\ServerRequest;
 use Psr\Http\Message\ResponseInterface;
+use RuntimeException;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
 use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsRelationshipDocument;
 use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsResourceDocument;
 use Tobyz\JsonApiServer\Endpoint\Concerns\FindsResources;
+use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
+use Tobyz\JsonApiServer\Endpoint\Concerns\HasSchema;
 use Tobyz\JsonApiServer\Endpoint\Concerns\ListsResources;
 use Tobyz\JsonApiServer\Endpoint\Concerns\ShowsResources;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
@@ -32,6 +35,8 @@ class Show implements Endpoint, ResourceEndpoint, RelationshipEndpoint, OpenApiP
 {
     use HasVisibility;
     use HasDescription;
+    use HasResponse;
+    use HasSchema;
     use FindsResources;
     use ListsResources;
     use ShowsResources;
@@ -42,21 +47,6 @@ class Show implements Endpoint, ResourceEndpoint, RelationshipEndpoint, OpenApiP
     public static function make(): static
     {
         return new static();
-    }
-
-    public function relationshipLinks($model, Relationship $field, Context $context): array
-    {
-        $links = [];
-
-        if ($this->hasRelationshipLink($field, $context)) {
-            $links['self'] = $this->selfLink($model, $context) . '/relationships/' . $field->name;
-        }
-
-        if ($this->hasRelatedLink($field, $context)) {
-            $links['related'] = $this->relatedLink($model, $field, $context);
-        }
-
-        return $links;
     }
 
     public function handle(Context $context): ?ResponseInterface
@@ -83,7 +73,9 @@ class Show implements Endpoint, ResourceEndpoint, RelationshipEndpoint, OpenApiP
         }
 
         if ($count === 2) {
-            return json_api_response($this->buildResourceDocument($model, $context));
+            $response = json_api_response($this->buildResourceDocument($model, $context));
+
+            return $this->applyResponseHooks($response, $context);
         }
 
         $isRelatedEndpoint = $count === 3;
@@ -139,6 +131,52 @@ class Show implements Endpoint, ResourceEndpoint, RelationshipEndpoint, OpenApiP
         );
     }
 
+    public function relationshipLinks($model, Relationship $field, Context $context): array
+    {
+        $links = [];
+
+        if ($this->hasRelationshipLink($field, $context)) {
+            $links['self'] = $this->selfLink($model, $context) . '/relationships/' . $field->name;
+        }
+
+        if ($this->hasRelatedLink($field, $context)) {
+            $links['related'] = $this->relatedLink($model, $field, $context);
+        }
+
+        return $links;
+    }
+
+    public function seeOther(callable $callback): static
+    {
+        $this->response(function ($response, $model, $context) use ($callback) {
+            $result = $callback($model, $context);
+
+            if ($result !== null) {
+                if (!is_string($result)) {
+                    throw new RuntimeException('seeOther() callback must return a string');
+                }
+
+                $location = $context->api->basePath . '/' . ltrim($result, '/');
+
+                return json_api_response(status: 303)->withHeader('Location', $location);
+            }
+
+            return $response;
+        });
+
+        $this->schema([
+            'responses' => [
+                '303' => [
+                    'headers' => [
+                        'Location' => ['schema' => ['type' => 'string']],
+                    ],
+                ],
+            ],
+        ]);
+
+        return $this;
+    }
+
     public function getOpenApiPaths(Collection $collection, JsonApi $api): array
     {
         $type = $collection->name();
@@ -152,6 +190,19 @@ class Show implements Endpoint, ResourceEndpoint, RelationshipEndpoint, OpenApiP
             ],
         ];
 
+        $response = [
+            'content' => $this->buildOpenApiContent(
+                array_map(
+                    fn($resource) => ['$ref' => "#/components/schemas/$resource"],
+                    $collection->resources(),
+                ),
+            ),
+        ];
+
+        if ($headers = $this->getHeadersSchema($api)) {
+            $response['headers'] = $headers;
+        }
+
         $paths = [
             "/$type/{id}" => [
                 'get' => [
@@ -159,14 +210,7 @@ class Show implements Endpoint, ResourceEndpoint, RelationshipEndpoint, OpenApiP
                     'tags' => [$type],
                     'parameters' => $idParameter,
                     'responses' => [
-                        '200' => [
-                            'content' => $this->buildOpenApiContent(
-                                array_map(
-                                    fn($resource) => ['$ref' => "#/components/schemas/$resource"],
-                                    $collection->resources(),
-                                ),
-                            ),
-                        ],
+                        '200' => $response,
                     ],
                 ],
             ],
@@ -235,7 +279,7 @@ class Show implements Endpoint, ResourceEndpoint, RelationshipEndpoint, OpenApiP
             }
         }
 
-        return $paths;
+        return $this->mergeSchema($paths);
     }
 
     private function hasRelatedLink(Relationship $field, Context $context): bool
