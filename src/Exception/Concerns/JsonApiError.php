@@ -8,6 +8,16 @@ trait JsonApiError
 {
     public array $error = [];
 
+    public function __construct(array|string $message = '')
+    {
+        if (is_array($message)) {
+            $this->error = $message;
+            $message = $this->error['detail'] ?? '';
+        }
+
+        parent::__construct($message);
+    }
+
     public function source(array $source): static
     {
         $this->error['source'] = $source;
