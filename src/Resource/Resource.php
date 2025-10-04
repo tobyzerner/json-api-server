@@ -6,6 +6,7 @@ use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Schema\Field\Attribute;
 use Tobyz\JsonApiServer\Schema\Field\Field;
 use Tobyz\JsonApiServer\Schema\Id;
+use Tobyz\JsonApiServer\Schema\Link;
 
 interface Resource
 {
@@ -27,6 +28,13 @@ interface Resource
      * @return Attribute[]
      */
     public function meta(): array;
+
+    /**
+     * Get the links for this resource.
+     *
+     * @return Link[]
+     */
+    public function links(): array;
 
     /**
      * Get the ID schema for this resource.

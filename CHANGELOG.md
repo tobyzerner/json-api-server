@@ -34,6 +34,9 @@ and this project adheres to
   automatic `jsonapi` object inclusion
 - Add `JsonApi::meta()` method for including meta information in the `jsonapi`
   object
+- Add `Resource::links()` method for defining custom resource-level links
+  (including `describedby`)
+- Add `Schema\Link` class for defining rich link objects with metadata
 - Add full support for JSON:API profiles:
     - Parse profile URIs from `Accept` header
     - `Context::profileRequested(string $uri): bool` - check if a profile was

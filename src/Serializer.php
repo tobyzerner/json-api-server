@@ -108,6 +108,22 @@ class Serializer
             $this->map[$key]['meta'][$k] = $v;
         }
 
+        // TODO: cache
+        foreach ($resource->links() as $link) {
+            $linkContext = $context->withField($link);
+
+            if (
+                array_key_exists($link->name, $this->map[$key]['links'] ?? []) ||
+                !$link->isVisible($linkContext)
+            ) {
+                continue;
+            }
+
+            $value = $link->getValue($linkContext);
+
+            $this->resolveLinkValue($key, $link, $linkContext, $value);
+        }
+
         return $this->map[$key];
     }
 
@@ -142,6 +158,19 @@ class Serializer
             $this->deferred[] = fn() => $this->resolveMetaValue($key, $field, $context, $value());
         } else {
             $this->map[$key]['meta'][$field->name] = $field->serializeValue($value, $context);
+        }
+    }
+
+    private function resolveLinkValue(
+        string $key,
+        Field $field,
+        Context $context,
+        mixed $value,
+    ): void {
+        if ($value instanceof Closure) {
+            $this->deferred[] = fn() => $this->resolveLinkValue($key, $field, $context, $value());
+        } else {
+            $this->map[$key]['links'][$field->name] = $field->serializeValue($value, $context);
         }
     }
 

@@ -44,6 +44,7 @@ class MockResource extends AbstractResource implements
         private readonly ?Id $id = null,
         private readonly array $fields = [],
         private readonly array $meta = [],
+        private readonly array $links = [],
         private readonly array $filters = [],
         private readonly array $sorts = [],
         private readonly ?string $defaultSort = null,
@@ -74,6 +75,11 @@ class MockResource extends AbstractResource implements
     public function meta(): array
     {
         return $this->meta;
+    }
+
+    public function links(): array
+    {
+        return $this->links;
     }
 
     public function filters(): array
@@ -155,7 +161,12 @@ class MockResource extends AbstractResource implements
 
         $slice = array_values($slice);
 
-        return new Page($slice, $slice[0] === $models[0], !$rangeTruncated);
+        return new Page(
+            results: $slice,
+            isFirstPage: $slice[0] === $models[0],
+            isLastPage: !$rangeTruncated,
+            rangeTruncated: $rangeTruncated ? true : null,
+        );
     }
 
     public function itemCursor($model, object $query, Context $context): string

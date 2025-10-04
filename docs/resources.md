@@ -126,6 +126,37 @@ class PostsResource extends AbstractResource
 }
 ```
 
+## Links
+
+Define custom links for your resources using the `links()` method. Links can be
+static URLs or rich link objects with additional metadata:
+
+```php
+use Tobyz\JsonApiServer\Schema\Link;
+
+class PostsResource extends AbstractResource
+{
+    // ...
+
+    public function links(): array
+    {
+        return [
+            Link::make('describedby')->get(
+                fn() => 'https://api.example.com/schemas/posts',
+            ),
+
+            Link::make('canonical')->get(
+                fn($model) => [
+                    'href' => "https://example.com/posts/{$model->slug}",
+                    'title' => 'View on website',
+                    'type' => 'text/html',
+                ],
+            ),
+        ];
+    }
+}
+```
+
 ## Endpoints
 
 In order to expose endpoints for listing, creating, reading, updating, and

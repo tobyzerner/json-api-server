@@ -33,6 +33,11 @@ abstract class AbstractResource extends AbstractCollection implements Resource
         return [];
     }
 
+    public function links(): array
+    {
+        return [];
+    }
+
     public function id(): Id
     {
         return Id::make();
