@@ -96,21 +96,21 @@ trait SavesData
     /**
      * Assert that the fields contained within a data object are valid.
      */
-    private function assertFieldsValid(Context $context, array $data, bool $creating = false): void
+    private function assertFieldsValid(Context $context, bool $creating = false): void
     {
-        $this->assertFieldsExist($context, $data);
-        $this->assertFieldsWritable($context, $data, $creating);
+        $this->assertFieldsExist($context);
+        $this->assertFieldsWritable($context, $creating);
     }
 
     /**
      * Assert that the fields contained within a data object exist in the schema.
      */
-    private function assertFieldsExist(Context $context, array $data): void
+    private function assertFieldsExist(Context $context): void
     {
         $fields = $this->getFields($context);
 
         foreach (['attributes', 'relationships'] as $location) {
-            foreach ($data[$location] as $name => $value) {
+            foreach ($context->data[$location] as $name => $value) {
                 if (!isset($fields[$name]) || $location !== $fields[$name]->location()) {
                     throw (new UnknownFieldException($name))->source([
                         'pointer' => '/data/' . implode('/', array_filter([$location, $name])),
@@ -125,13 +125,10 @@ trait SavesData
      *
      * @throws ForbiddenException if a field is not writable.
      */
-    private function assertFieldsWritable(
-        Context $context,
-        array $data,
-        bool $creating = false,
-    ): void {
+    private function assertFieldsWritable(Context $context, bool $creating = false): void
+    {
         foreach ($this->getFields($context, $creating) as $field) {
-            if (!has_value($data, $field)) {
+            if (!has_value($context->data, $field)) {
                 continue;
             }
 
@@ -160,17 +157,17 @@ trait SavesData
     /**
      *
      */
-    private function deserializeValues(Context $context, array &$data, bool $creating = false): void
+    private function deserializeValues(Context $context, bool $creating = false): void
     {
         foreach ($this->getFields($context, $creating) as $field) {
-            if (!has_value($data, $field)) {
+            if (!has_value($context->data, $field)) {
                 continue;
             }
 
-            $value = get_value($data, $field);
+            $value = get_value($context->data, $field);
 
             try {
-                set_value($data, $field, $field->deserializeValue($value, $context));
+                set_value($context->data, $field, $field->deserializeValue($value, $context));
             } catch (Sourceable $e) {
                 throw $e->prependSource(['pointer' => '/data' . field_path($field)]);
             }
@@ -182,12 +179,12 @@ trait SavesData
      *
      * @throws JsonApiErrorsException if any fields do not pass validation.
      */
-    private function assertDataValid(Context $context, array $data, bool $validateAll): void
+    private function assertDataValid(Context $context, bool $validateAll): void
     {
         $errors = [];
 
         foreach ($this->getFields($context, $validateAll) as $field) {
-            $present = has_value($data, $field);
+            $present = has_value($context->data, $field);
 
             if (!$present && (!$field->required || !$validateAll)) {
                 continue;
@@ -200,7 +197,7 @@ trait SavesData
             } else {
                 array_push(
                     $errors,
-                    ...$this->validateField($context, $field, get_value($data, $field)),
+                    ...$this->validateField($context, $field, get_value($context->data, $field)),
                 );
             }
         }
@@ -232,14 +229,14 @@ trait SavesData
     /**
      * Set field values from a data object to the model instance.
      */
-    private function setValues(Context $context, array $data, bool $creating = false): void
+    private function setValues(Context $context, bool $creating = false): void
     {
         foreach ($this->getFields($context, $creating) as $field) {
-            if (!has_value($data, $field)) {
+            if (!has_value($context->data, $field)) {
                 continue;
             }
 
-            $value = get_value($data, $field);
+            $value = get_value($context->data, $field);
 
             $field->setValue($context->model, $value, $context);
         }
@@ -248,14 +245,14 @@ trait SavesData
     /**
      * Run any field save callbacks.
      */
-    private function saveFields(Context $context, array $data, bool $creating = false): void
+    private function saveFields(Context $context, bool $creating = false): void
     {
         foreach ($this->getFields($context, $creating) as $field) {
-            if (!has_value($data, $field)) {
+            if (!has_value($context->data, $field)) {
                 continue;
             }
 
-            $value = get_value($data, $field);
+            $value = get_value($context->data, $field);
 
             $field->saveValue($context->model, $value, $context);
         }

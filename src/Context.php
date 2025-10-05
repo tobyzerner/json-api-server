@@ -25,6 +25,7 @@ class Context
     public ?object $query = null;
     public ?Serializer $serializer = null;
     public ?object $model = null;
+    public ?array $data = null;
     public ?Field $field = null;
     public ?array $include = null;
     public ArrayObject $documentMeta;
@@ -314,6 +315,13 @@ class Context
     {
         $new = clone $this;
         $new->body = $body;
+        return $new;
+    }
+
+    public function withData(?array $data): static
+    {
+        $new = clone $this;
+        $new->data = $data;
         return $new;
     }
 

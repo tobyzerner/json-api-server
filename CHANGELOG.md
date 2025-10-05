@@ -83,6 +83,7 @@ and this project adheres to
   identifier objects in linkage
 - Add static `Field::location(): string` method to determine where fields appear
   in JSON:API documents (`attributes`, `relationships`, or root level for `id`)
+- Add `Context::$data` to access resolved create/update data in callbacks
 
 ### Changed
 

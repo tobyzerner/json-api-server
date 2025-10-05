@@ -34,6 +34,9 @@ class Context
     // The model that is currently being serialized, updated, or deleted
     public object $model = null;
 
+    // The resolved data that is being processed for update/delete
+    public ?array $data = null;
+
     // The field that is currently being processed
     public ?Field $field = null;
 

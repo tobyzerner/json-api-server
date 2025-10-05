@@ -69,13 +69,14 @@ class Create implements Endpoint, OpenApiPathsProvider
 
         $context = $context
             ->withResource($resource = $context->resource($data['type']))
-            ->withModel($model = $collection->newModel($context));
+            ->withModel($model = $collection->newModel($context))
+            ->withData($data);
 
-        $this->assertFieldsValid($context, $data, true);
-        $this->fillDefaultValues($context, $data);
-        $this->deserializeValues($context, $data, true);
-        $this->assertDataValid($context, $data, true);
-        $this->setValues($context, $data, true);
+        $this->assertFieldsValid($context, true);
+        $this->fillDefaultValues($context);
+        $this->deserializeValues($context, true);
+        $this->assertDataValid($context, true);
+        $this->setValues($context, true);
 
         if ($this->asyncCallback) {
             $asyncResult = ($this->asyncCallback)($model, $context);
@@ -109,7 +110,7 @@ class Create implements Endpoint, OpenApiPathsProvider
 
         $context = $context->withModel($model = $resource->create($model, $context));
 
-        $this->saveFields($context, $data, true);
+        $this->saveFields($context, true);
 
         $response = $context
             ->createResponse($document = $this->buildResourceDocument($model, $context))
@@ -130,11 +131,11 @@ class Create implements Endpoint, OpenApiPathsProvider
         return $this;
     }
 
-    private function fillDefaultValues(Context $context, array &$data): void
+    private function fillDefaultValues(Context $context): void
     {
         foreach ($this->getFields($context, true) as $field) {
-            if (!has_value($data, $field) && ($default = $field->default)) {
-                set_value($data, $field, $default($context->withField($field)));
+            if (!has_value($context->data, $field) && ($default = $field->default)) {
+                set_value($context->data, $field, $default($context->withField($field)));
             }
         }
     }

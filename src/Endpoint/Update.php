@@ -264,14 +264,16 @@ class Update implements Endpoint, OpenApiPathsProvider
     ): ResponseInterface {
         $data = $this->parseData($context);
 
-        $this->assertFieldsValid($context, $data);
-        $this->deserializeValues($context, $data);
-        $this->assertDataValid($context, $data, false);
-        $this->setValues($context, $data);
+        $context = $context->withData($data);
+
+        $this->assertFieldsValid($context);
+        $this->deserializeValues($context);
+        $this->assertDataValid($context, false);
+        $this->setValues($context);
 
         $context = $context->withModel($model = $resource->update($model, $context));
 
-        $this->saveFields($context, $data);
+        $this->saveFields($context);
 
         $response = $context->createResponse($this->buildResourceDocument($model, $context));
 
