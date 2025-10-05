@@ -3,9 +3,13 @@
 namespace Tobyz\JsonApiServer\Schema\Type;
 
 use BackedEnum;
+use Tobyz\JsonApiServer\Exception\Type\EnumViolationException;
+use Tobyz\JsonApiServer\Exception\Type\PatternViolationException;
+use Tobyz\JsonApiServer\Exception\Type\RangeViolationException;
+use Tobyz\JsonApiServer\Exception\Type\TypeMismatchException;
 use UnitEnum;
 
-class Str implements Type
+class Str extends AbstractType
 {
     public int $minLength = 0;
     public ?int $maxLength = null;
@@ -18,7 +22,7 @@ class Str implements Type
         return new static();
     }
 
-    public function serialize(mixed $value): string
+    protected function serializeValue(mixed $value): string
     {
         if ($value instanceof UnitEnum) {
             return $this->getEnumValue($value);
@@ -27,43 +31,42 @@ class Str implements Type
         return (string) $value;
     }
 
-    public function deserialize(mixed $value): mixed
+    protected function deserializeValue(mixed $value): mixed
     {
         return $value;
     }
 
-    public function validate(mixed $value, callable $fail): void
+    protected function validateValue(mixed $value, callable $fail): void
     {
         if (!is_string($value)) {
-            $fail('must be a string');
+            $fail(new TypeMismatchException('string', gettype($value)));
             return;
         }
 
         if ($this->enum !== null) {
             $enumValues = array_map($this->getEnumValue(...), $this->enum);
             if (!in_array($value, $enumValues, true)) {
-                $enum = array_map(fn($value) => '"' . $value . '"', $enumValues);
-                $fail(sprintf('must be one of %s', implode(', ', $enum)));
+                $fail(new EnumViolationException($enumValues, $value));
             }
         }
 
         if (strlen($value) < $this->minLength) {
-            $fail(sprintf('must be at least %d characters', $this->minLength));
+            $fail(new RangeViolationException('minLength', $this->minLength, strlen($value)));
         }
 
         if ($this->maxLength !== null && strlen($value) > $this->maxLength) {
-            $fail(sprintf('must be no more than %d characters', $this->maxLength));
+            $fail(new RangeViolationException('maxLength', $this->maxLength, strlen($value)));
         }
 
         if (
             $this->pattern &&
             !preg_match('/' . str_replace('/', '\/', $this->pattern) . '/', $value)
         ) {
-            $fail(sprintf('must match the pattern %s', $this->pattern));
+            $fail(new PatternViolationException($this->pattern));
         }
     }
 
-    public function schema(): array
+    protected function getSchema(): array
     {
         $schema = ['type' => 'string'];
 

@@ -12,7 +12,12 @@ class NumberTest extends AbstractTestCase
 {
     public static function serializationProvider(): array
     {
-        return [[Number::make(), 1, 1.0], [Number::make(), '1', 1.0], [Number::make(), null, 0.0]];
+        return [
+            [Number::make(), 1, 1.0],
+            [Number::make(), '1', 1.0],
+            [Number::make(), null, 0.0],
+            [Number::make()->nullable(), null, null],
+        ];
     }
 
     #[DataProvider('serializationProvider')]
@@ -30,6 +35,7 @@ class NumberTest extends AbstractTestCase
             [Number::make(), false, false],
             [Number::make(), '', false],
             [Number::make(), null, false],
+            [Number::make()->nullable(), null, true],
             [Number::make()->minimum(10), 10, true],
             [Number::make()->minimum(10), 9, false],
             [Number::make()->minimum(10, exclusive: true), 11, true],
@@ -71,5 +77,23 @@ class NumberTest extends AbstractTestCase
         $fail->expects($this->never())->method('__invoke');
 
         $number->validate(5, $fail);
+    }
+
+    public static function schemaProvider(): array
+    {
+        return [
+            [Number::make(), ['type' => 'number']],
+            [Number::make()->nullable(), ['type' => 'number', 'nullable' => true]],
+            [
+                Number::make()->minimum(10)->maximum(100),
+                ['type' => 'number', 'minimum' => 10.0, 'maximum' => 100.0],
+            ],
+        ];
+    }
+
+    #[DataProvider('schemaProvider')]
+    public function test_schema(Type $type, array $expected)
+    {
+        $this->assertEquals($expected, $type->schema());
     }
 }

@@ -2,7 +2,11 @@
 
 namespace Tobyz\JsonApiServer\Schema\Type;
 
-class Arr implements Type
+use Tobyz\JsonApiServer\Exception\Type\RangeViolationException;
+use Tobyz\JsonApiServer\Exception\Type\TypeMismatchException;
+use Tobyz\JsonApiServer\Exception\Type\UniqueViolationException;
+
+class Arr extends AbstractType
 {
     private int $minItems = 0;
     private ?int $maxItems = null;
@@ -14,43 +18,51 @@ class Arr implements Type
         return new static();
     }
 
-    public function serialize(mixed $value): mixed
+    protected function serializeValue(mixed $value): mixed
     {
         return $value;
     }
 
-    public function deserialize(mixed $value): mixed
+    protected function deserializeValue(mixed $value): mixed
     {
         return $value;
     }
 
-    public function validate(mixed $value, callable $fail): void
+    protected function validateValue(mixed $value, callable $fail): void
     {
         if (!is_array($value)) {
-            $fail('must be an array');
+            $fail(new TypeMismatchException('array', gettype($value)));
             return;
         }
 
         if (count($value) < $this->minItems) {
-            $fail(sprintf('must contain at least %d values', $this->minItems));
+            $fail(new RangeViolationException('minItems', $this->minItems, count($value)));
         }
 
         if ($this->maxItems !== null && count($value) > $this->maxItems) {
-            $fail(sprintf('must contain no more than %d values', $this->maxItems));
+            $fail(new RangeViolationException('maxItems', $this->maxItems, count($value)));
         }
 
         if ($this->uniqueItems && count($value) !== count(array_unique($value))) {
-            $fail('must contain unique values');
+            $fail(new UniqueViolationException());
         }
 
         if ($this->items) {
-            foreach ($value as $item) {
-                $this->items->validate($item, $fail);
+            foreach ($value as $i => $item) {
+                $itemErrors = [];
+
+                $this->items->validate($item, function ($error) use (&$itemErrors) {
+                    $itemErrors[] = $error;
+                });
+
+                foreach ($itemErrors as $itemError) {
+                    $fail($itemError->prependSource(['pointer' => "/$i"]));
+                }
             }
         }
     }
 
-    public function schema(): array
+    protected function getSchema(): array
     {
         return [
             'type' => 'array',

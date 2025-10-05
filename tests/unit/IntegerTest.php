@@ -12,7 +12,12 @@ class IntegerTest extends AbstractTestCase
 {
     public static function serializationProvider(): array
     {
-        return [[Integer::make(), 1, 1], [Integer::make(), '1', 1], [Integer::make(), null, 0]];
+        return [
+            [Integer::make(), 1, 1],
+            [Integer::make(), '1', 1],
+            [Integer::make(), null, 0],
+            [Integer::make()->nullable(), null, null],
+        ];
     }
 
     #[DataProvider('serializationProvider')]
@@ -31,6 +36,7 @@ class IntegerTest extends AbstractTestCase
             [Integer::make(), false, false],
             [Integer::make(), '', false],
             [Integer::make(), null, false],
+            [Integer::make()->nullable(), null, true],
             [Integer::make()->minimum(10), 10, true],
             [Integer::make()->minimum(10), 9, false],
             [Integer::make()->minimum(10, exclusive: true), 11, true],
@@ -56,5 +62,23 @@ class IntegerTest extends AbstractTestCase
         }
 
         $type->validate($value, $fail);
+    }
+
+    public static function schemaProvider(): array
+    {
+        return [
+            [Integer::make(), ['type' => 'integer']],
+            [Integer::make()->nullable(), ['type' => 'integer', 'nullable' => true]],
+            [
+                Integer::make()->minimum(10)->maximum(100),
+                ['type' => 'integer', 'minimum' => 10.0, 'maximum' => 100.0],
+            ],
+        ];
+    }
+
+    #[DataProvider('schemaProvider')]
+    public function test_schema(Type $type, array $expected)
+    {
+        $this->assertEquals($expected, $type->schema());
     }
 }

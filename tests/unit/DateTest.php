@@ -16,6 +16,7 @@ class DateTest extends AbstractTestCase
             [Date::make(), new \DateTime('1993-04-04'), '1993-04-04'],
             [Date::make(), '1993-04-04', '1993-04-04'],
             [Date::make(), null, null],
+            [Date::make()->nullable(), null, null],
         ];
     }
 
@@ -30,6 +31,7 @@ class DateTest extends AbstractTestCase
         return [
             [Date::make(), '1993-04-04', new \DateTime('1993-04-04')],
             [Date::make(), null, null],
+            [Date::make()->nullable(), null, null],
         ];
     }
 
@@ -45,6 +47,7 @@ class DateTest extends AbstractTestCase
             [Date::make(), new \DateTime(), true],
             [Date::make(), 'string', false],
             [Date::make(), null, false],
+            [Date::make()->nullable(), null, true],
         ];
     }
 
@@ -60,5 +63,19 @@ class DateTest extends AbstractTestCase
         }
 
         $type->validate($value, $fail);
+    }
+
+    public static function schemaProvider(): array
+    {
+        return [
+            [Date::make(), ['type' => 'string', 'format' => 'date']],
+            [Date::make()->nullable(), ['type' => 'string', 'format' => 'date', 'nullable' => true]],
+        ];
+    }
+
+    #[DataProvider('schemaProvider')]
+    public function test_schema(Type $type, array $expected)
+    {
+        $this->assertEquals($expected, $type->schema());
     }
 }

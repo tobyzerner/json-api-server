@@ -3,8 +3,9 @@
 namespace Tobyz\JsonApiServer\Schema\Type;
 
 use DateTimeInterface;
+use Tobyz\JsonApiServer\Exception\Type\TypeMismatchException;
 
-class Date implements Type
+class Date extends AbstractType
 {
     private const FORMAT = 'Y-m-d';
 
@@ -13,12 +14,12 @@ class Date implements Type
         return new static();
     }
 
-    public function serialize(mixed $value): mixed
+    protected function serializeValue(mixed $value): mixed
     {
         return $value instanceof DateTimeInterface ? $value->format(static::FORMAT) : $value;
     }
 
-    public function deserialize(mixed $value): mixed
+    protected function deserializeValue(mixed $value): mixed
     {
         if (is_string($value) && ($date = \DateTime::createFromFormat(static::FORMAT, $value))) {
             return $date->setTime(0, 0);
@@ -27,14 +28,14 @@ class Date implements Type
         return $value;
     }
 
-    public function validate(mixed $value, callable $fail): void
+    protected function validateValue(mixed $value, callable $fail): void
     {
         if (!$value instanceof \DateTime) {
-            $fail('must be a date');
+            $fail(new TypeMismatchException('date', gettype($value)));
         }
     }
 
-    public function schema(): array
+    protected function getSchema(): array
     {
         return ['type' => 'string', 'format' => 'date'];
     }

@@ -4,6 +4,7 @@ namespace Tobyz\JsonApiServer\Schema\Concerns;
 
 use Closure;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Exception\Type\NullViolationException;
 use Tobyz\JsonApiServer\Resource\Creatable;
 use Tobyz\JsonApiServer\Resource\Updatable;
 
@@ -143,7 +144,7 @@ trait SetsValue
     public function validateValue(mixed $value, callable $fail, Context $context): void
     {
         if ($value === null && !$this->nullable) {
-            $fail('must not be null');
+            $fail(new NullViolationException());
         }
 
         foreach ($this->validators as $validator) {

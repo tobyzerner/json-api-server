@@ -16,6 +16,7 @@ class StrTest extends AbstractTestCase
             [Str::make(), 'string', 'string'],
             [Str::make(), 1, '1'],
             [Str::make(), null, ''],
+            [Str::make()->nullable(), null, null],
             [Str::make(), StrTestEnum::A, 'a'],
         ];
     }
@@ -32,6 +33,7 @@ class StrTest extends AbstractTestCase
             [Str::make(), 'string', true],
             [Str::make(), 1, false],
             [Str::make(), null, false],
+            [Str::make()->nullable(), null, true],
             [Str::make()->minLength(2), 'a', false],
             [Str::make()->minLength(2), 'aa', true],
             [Str::make()->maxLength(1), 'a', true],
@@ -57,6 +59,24 @@ class StrTest extends AbstractTestCase
         }
 
         $type->validate($value, $fail);
+    }
+
+    public static function schemaProvider(): array
+    {
+        return [
+            [Str::make(), ['type' => 'string']],
+            [Str::make()->nullable(), ['type' => 'string', 'nullable' => true]],
+            [
+                Str::make()->minLength(2)->maxLength(10),
+                ['type' => 'string', 'minLength' => 2, 'maxLength' => 10],
+            ],
+        ];
+    }
+
+    #[DataProvider('schemaProvider')]
+    public function test_schema(Type $type, array $expected)
+    {
+        $this->assertEquals($expected, $type->schema());
     }
 }
 

@@ -16,6 +16,7 @@ class DateTimeTest extends AbstractTestCase
             [DateTime::make(), new \DateTime('1993-04-04T12:34:56Z'), '1993-04-04T12:34:56+00:00'],
             [DateTime::make(), '1993-04-04T12:34:56Z', '1993-04-04T12:34:56Z'],
             [DateTime::make(), null, null],
+            [DateTime::make()->nullable(), null, null],
         ];
     }
 
@@ -30,6 +31,7 @@ class DateTimeTest extends AbstractTestCase
         return [
             [DateTime::make(), '1993-04-04T12:34:56Z', new \DateTime('1993-04-04T12:34:56Z')],
             [DateTime::make(), null, null],
+            [DateTime::make()->nullable(), null, null],
         ];
     }
 
@@ -46,6 +48,7 @@ class DateTimeTest extends AbstractTestCase
             [DateTime::make(), '1993-04-04', false],
             [DateTime::make(), 'string', false],
             [DateTime::make(), null, false],
+            [DateTime::make()->nullable(), null, true],
         ];
     }
 
@@ -61,5 +64,19 @@ class DateTimeTest extends AbstractTestCase
         }
 
         $type->validate($value, $fail);
+    }
+
+    public static function schemaProvider(): array
+    {
+        return [
+            [DateTime::make(), ['type' => 'string', 'format' => 'date-time']],
+            [DateTime::make()->nullable(), ['type' => 'string', 'format' => 'date-time', 'nullable' => true]],
+        ];
+    }
+
+    #[DataProvider('schemaProvider')]
+    public function test_schema(Type $type, array $expected)
+    {
+        $this->assertEquals($expected, $type->schema());
     }
 }

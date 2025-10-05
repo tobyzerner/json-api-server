@@ -3,8 +3,11 @@
 namespace Tobyz\JsonApiServer\Schema\Type;
 
 use InvalidArgumentException;
+use Tobyz\JsonApiServer\Exception\Type\MultipleViolationException;
+use Tobyz\JsonApiServer\Exception\Type\RangeViolationException;
+use Tobyz\JsonApiServer\Exception\Type\TypeMismatchException;
 
-class Number implements Type
+class Number extends AbstractType
 {
     private ?float $minimum = null;
     private bool $exclusiveMinimum = false;
@@ -17,36 +20,40 @@ class Number implements Type
         return new static();
     }
 
-    public function serialize(mixed $value): mixed
+    protected function serializeValue(mixed $value): mixed
     {
         return (float) $value;
     }
 
-    public function deserialize(mixed $value): mixed
+    protected function deserializeValue(mixed $value): mixed
     {
         return $value;
     }
 
-    public function validate(mixed $value, callable $fail): void
+    protected function validateValue(mixed $value, callable $fail): void
     {
         if (!is_numeric($value)) {
-            $fail('must be numeric');
+            $fail(new TypeMismatchException('number', gettype($value)));
             return;
         }
 
         if ($this->minimum !== null) {
             if ($this->exclusiveMinimum && $value <= $this->minimum) {
-                $fail(sprintf('must be greater than %d', $this->minimum));
+                $fail(
+                    new RangeViolationException('minimum', $this->minimum, $value, exclusive: true),
+                );
             } elseif ($value < $this->minimum) {
-                $fail(sprintf('must be greater than or equal to %d', $this->minimum));
+                $fail(new RangeViolationException('minimum', $this->minimum, $value));
             }
         }
 
         if ($this->maximum !== null) {
             if ($this->exclusiveMaximum && $value >= $this->maximum) {
-                $fail(sprintf('must be less than %d', $this->maximum));
+                $fail(
+                    new RangeViolationException('maximum', $this->maximum, $value, exclusive: true),
+                );
             } elseif ($value > $this->maximum) {
-                $fail(sprintf('must be less than or equal to %d', $this->maximum));
+                $fail(new RangeViolationException('maximum', $this->maximum, $value));
             }
         }
 
@@ -59,11 +66,11 @@ class Number implements Type
             $this->multipleOf !== null &&
             (float) ($value / $this->multipleOf) !== round($value / $this->multipleOf)
         ) {
-            $fail(sprintf('must be a multiple of %s', $this->multipleOf));
+            $fail(new MultipleViolationException($this->multipleOf, $value));
         }
     }
 
-    public function schema(): array
+    protected function getSchema(): array
     {
         $schema = ['type' => 'number'];
 

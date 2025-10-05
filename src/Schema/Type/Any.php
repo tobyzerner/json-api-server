@@ -2,18 +2,16 @@
 
 namespace Tobyz\JsonApiServer\Schema\Type;
 
-use Tobyz\JsonApiServer\Exception\Type\TypeMismatchException;
-
-class Boolean extends AbstractType
+class Any extends AbstractType
 {
     public static function make(): static
     {
         return new static();
     }
 
-    protected function serializeValue(mixed $value): bool
+    protected function serializeValue(mixed $value): mixed
     {
-        return (bool) $value;
+        return $value;
     }
 
     protected function deserializeValue(mixed $value): mixed
@@ -21,15 +19,18 @@ class Boolean extends AbstractType
         return $value;
     }
 
+    public function validate(mixed $value, callable $fail): void
+    {
+        // No validation - accepts any value including null
+    }
+
     protected function validateValue(mixed $value, callable $fail): void
     {
-        if (!is_bool($value)) {
-            $fail(new TypeMismatchException('boolean', gettype($value)));
-        }
+        // No validation - accepts any value
     }
 
     protected function getSchema(): array
     {
-        return ['type' => 'boolean'];
+        return [];
     }
 }

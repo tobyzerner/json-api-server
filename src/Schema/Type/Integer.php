@@ -2,25 +2,32 @@
 
 namespace Tobyz\JsonApiServer\Schema\Type;
 
+use Tobyz\JsonApiServer\Exception\Type\TypeMismatchException;
+
 class Integer extends Number
 {
-    public function serialize(mixed $value): mixed
+    public static function make(): static
+    {
+        return new static();
+    }
+
+    protected function serializeValue(mixed $value): mixed
     {
         return (int) $value;
     }
 
-    public function validate(mixed $value, callable $fail): void
+    protected function validateValue(mixed $value, callable $fail): void
     {
         if (!is_int($value)) {
-            $fail('must be an integer');
+            $fail(new TypeMismatchException('integer', gettype($value)));
             return;
         }
 
-        parent::validate($value, $fail);
+        parent::validateValue($value, $fail);
     }
 
-    public function schema(): array
+    protected function getSchema(): array
     {
-        return ['type' => 'integer'] + parent::schema();
+        return ['type' => 'integer'] + parent::getSchema();
     }
 }

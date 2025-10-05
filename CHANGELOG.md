@@ -31,6 +31,11 @@ and this project adheres to
 
 ### Added
 
+- More comprehensive type schema support
+    - Add `nullable()` method to `Type` classes, allowing sub-types (e.g. array
+      items or object properties) to be nullable
+    - Add `Obj`, `Any`, `AnyOf`, `AllOf`, `OneOf`, and `Not` types
+    - Convert type validation errors to overridable exception classes
 - Add `Context::createResponse()` method for building JSON:API responses with
   automatic `jsonapi` object inclusion
 - Add `JsonApi::meta()` method for including meta information in the `jsonapi`

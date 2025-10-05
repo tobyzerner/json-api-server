@@ -3,23 +3,22 @@
 namespace Tobyz\Tests\JsonApiServer\unit;
 
 use PHPUnit\Framework\Attributes\DataProvider;
-use Tobyz\JsonApiServer\Schema\Type\Boolean;
+use Tobyz\JsonApiServer\Schema\Type\Any;
 use Tobyz\JsonApiServer\Schema\Type\Type;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockedCaller;
 
-class BooleanTest extends AbstractTestCase
+class AnyTest extends AbstractTestCase
 {
     public static function serializationProvider(): array
     {
         return [
-            [Boolean::make(), true, true],
-            [Boolean::make(), 'a', true],
-            [Boolean::make(), 1, true],
-            [Boolean::make(), false, false],
-            [Boolean::make(), 0, false],
-            [Boolean::make(), null, false],
-            [Boolean::make()->nullable(), null, null],
+            [Any::make(), 'string', 'string'],
+            [Any::make(), 123, 123],
+            [Any::make(), true, true],
+            [Any::make(), null, null],
+            [Any::make(), ['a', 'b'], ['a', 'b']],
+            [Any::make()->nullable(), null, null],
         ];
     }
 
@@ -32,13 +31,12 @@ class BooleanTest extends AbstractTestCase
     public static function validationProvider(): array
     {
         return [
-            [Boolean::make(), true, true],
-            [Boolean::make(), false, true],
-            [Boolean::make(), 1, false],
-            [Boolean::make(), 0, false],
-            [Boolean::make(), '', false],
-            [Boolean::make(), null, false],
-            [Boolean::make()->nullable(), null, true],
+            [Any::make(), 'string', true],
+            [Any::make(), 123, true],
+            [Any::make(), true, true],
+            [Any::make(), null, true],
+            [Any::make(), ['a', 'b'], true],
+            [Any::make()->nullable(), null, true],
         ];
     }
 
@@ -59,8 +57,8 @@ class BooleanTest extends AbstractTestCase
     public static function schemaProvider(): array
     {
         return [
-            [Boolean::make(), ['type' => 'boolean']],
-            [Boolean::make()->nullable(), ['type' => 'boolean', 'nullable' => true]],
+            [Any::make(), []],
+            [Any::make()->nullable(), ['nullable' => true]],
         ];
     }
 
