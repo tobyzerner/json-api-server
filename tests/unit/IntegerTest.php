@@ -70,7 +70,9 @@ class IntegerTest extends AbstractTestCase
             [Integer::make(), ['type' => 'integer']],
             [Integer::make()->nullable(), ['type' => 'integer', 'nullable' => true]],
             [
-                Integer::make()->minimum(10)->maximum(100),
+                Integer::make()
+                    ->minimum(10)
+                    ->maximum(100),
                 ['type' => 'integer', 'minimum' => 10.0, 'maximum' => 100.0],
             ],
         ];

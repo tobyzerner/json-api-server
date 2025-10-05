@@ -67,7 +67,9 @@ class StrTest extends AbstractTestCase
             [Str::make(), ['type' => 'string']],
             [Str::make()->nullable(), ['type' => 'string', 'nullable' => true]],
             [
-                Str::make()->minLength(2)->maxLength(10),
+                Str::make()
+                    ->minLength(2)
+                    ->maxLength(10),
                 ['type' => 'string', 'minLength' => 2, 'maxLength' => 10],
             ],
         ];

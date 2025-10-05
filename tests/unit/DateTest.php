@@ -69,7 +69,10 @@ class DateTest extends AbstractTestCase
     {
         return [
             [Date::make(), ['type' => 'string', 'format' => 'date']],
-            [Date::make()->nullable(), ['type' => 'string', 'format' => 'date', 'nullable' => true]],
+            [
+                Date::make()->nullable(),
+                ['type' => 'string', 'format' => 'date', 'nullable' => true],
+            ],
         ];
     }
 

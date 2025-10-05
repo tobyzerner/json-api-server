@@ -70,7 +70,10 @@ class DateTimeTest extends AbstractTestCase
     {
         return [
             [DateTime::make(), ['type' => 'string', 'format' => 'date-time']],
-            [DateTime::make()->nullable(), ['type' => 'string', 'format' => 'date-time', 'nullable' => true]],
+            [
+                DateTime::make()->nullable(),
+                ['type' => 'string', 'format' => 'date-time', 'nullable' => true],
+            ],
         ];
     }
 

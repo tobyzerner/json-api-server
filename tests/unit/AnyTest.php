@@ -56,10 +56,7 @@ class AnyTest extends AbstractTestCase
 
     public static function schemaProvider(): array
     {
-        return [
-            [Any::make(), []],
-            [Any::make()->nullable(), ['nullable' => true]],
-        ];
+        return [[Any::make(), []], [Any::make()->nullable(), ['nullable' => true]]];
     }
 
     #[DataProvider('schemaProvider')]

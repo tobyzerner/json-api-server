@@ -36,11 +36,7 @@ class OneOfTest extends AbstractTestCase
             [OneOf::make([Integer::make(), Str::make()]), true, false], // passes neither
             [OneOf::make([Str::make()->minLength(5), Str::make()->pattern('\d+')]), 'hello', true], // passes first only
             [OneOf::make([Str::make()->minLength(5), Str::make()->pattern('\d+')]), '123', true], // passes second only
-            [
-                OneOf::make([Str::make()->minLength(5), Str::make()->pattern('\d+')]),
-                '12345',
-                false,
-            ], // passes both - invalid for oneOf!
+            [OneOf::make([Str::make()->minLength(5), Str::make()->pattern('\d+')]), '12345', false], // passes both - invalid for oneOf!
             [OneOf::make([Str::make()->minLength(5), Str::make()->pattern('\d+')]), 'ab', false], // passes neither
             [OneOf::make([Integer::make()])->nullable(), null, true],
         ];
@@ -66,19 +62,13 @@ class OneOfTest extends AbstractTestCase
             [
                 OneOf::make([Integer::make(), Str::make()]),
                 [
-                    'oneOf' => [
-                        ['type' => 'integer'],
-                        ['type' => 'string'],
-                    ],
+                    'oneOf' => [['type' => 'integer'], ['type' => 'string']],
                 ],
             ],
             [
                 OneOf::make([Integer::make()])->nullable(),
                 [
-                    'oneOf' => [
-                        ['type' => 'integer'],
-                        ['type' => 'null'],
-                    ],
+                    'oneOf' => [['type' => 'integer'], ['type' => 'null']],
                 ],
             ],
         ];

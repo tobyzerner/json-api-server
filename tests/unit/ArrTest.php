@@ -86,7 +86,10 @@ class ArrTest extends AbstractTestCase
                 ],
             ],
             [
-                Arr::make()->minItems(1)->maxItems(10)->uniqueItems(),
+                Arr::make()
+                    ->minItems(1)
+                    ->maxItems(10)
+                    ->uniqueItems(),
                 [
                     'type' => 'array',
                     'minItems' => 1,

@@ -85,7 +85,9 @@ class NumberTest extends AbstractTestCase
             [Number::make(), ['type' => 'number']],
             [Number::make()->nullable(), ['type' => 'number', 'nullable' => true]],
             [
-                Number::make()->minimum(10)->maximum(100),
+                Number::make()
+                    ->minimum(10)
+                    ->maximum(100),
                 ['type' => 'number', 'minimum' => 10.0, 'maximum' => 100.0],
             ],
         ];

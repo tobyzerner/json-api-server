@@ -36,11 +36,7 @@ class AnyOfTest extends AbstractTestCase
             [AnyOf::make([Integer::make(), Str::make()]), true, false], // fails both
             [AnyOf::make([Str::make()->minLength(5), Str::make()->pattern('\d+')]), 'hello', true], // passes first
             [AnyOf::make([Str::make()->minLength(5), Str::make()->pattern('\d+')]), '123', true], // passes second
-            [
-                AnyOf::make([Str::make()->minLength(5), Str::make()->pattern('\d+')]),
-                '12345',
-                true,
-            ], // passes both (ok for anyOf)
+            [AnyOf::make([Str::make()->minLength(5), Str::make()->pattern('\d+')]), '12345', true], // passes both (ok for anyOf)
             [AnyOf::make([Str::make()->minLength(5), Str::make()->pattern('\d+')]), 'ab', false], // fails both
             [AnyOf::make([Integer::make()])->nullable(), null, true],
         ];
@@ -66,19 +62,13 @@ class AnyOfTest extends AbstractTestCase
             [
                 AnyOf::make([Integer::make(), Str::make()]),
                 [
-                    'anyOf' => [
-                        ['type' => 'integer'],
-                        ['type' => 'string'],
-                    ],
+                    'anyOf' => [['type' => 'integer'], ['type' => 'string']],
                 ],
             ],
             [
                 AnyOf::make([Integer::make()])->nullable(),
                 [
-                    'anyOf' => [
-                        ['type' => 'integer'],
-                        ['type' => 'null'],
-                    ],
+                    'anyOf' => [['type' => 'integer'], ['type' => 'null']],
                 ],
             ],
         ];

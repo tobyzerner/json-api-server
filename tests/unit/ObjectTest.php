@@ -16,7 +16,9 @@ class ObjectTest extends AbstractTestCase
     {
         return [
             [
-                Obj::make()->property('name', Str::make())->property('age', Integer::make()),
+                Obj::make()
+                    ->property('name', Str::make())
+                    ->property('age', Integer::make()),
                 ['name' => 'John', 'age' => 30],
                 ['name' => 'John', 'age' => 30],
             ],
@@ -25,11 +27,7 @@ class ObjectTest extends AbstractTestCase
                 ['name' => 'John', 'extra' => 'value'],
                 ['name' => 'John', 'extra' => 'value'],
             ],
-            [
-                Obj::make()->property('age', Integer::make()),
-                ['age' => '30'],
-                ['age' => 30],
-            ],
+            [Obj::make()->property('age', Integer::make()), ['age' => '30'], ['age' => 30]],
             [Obj::make()->nullable(), null, null],
         ];
     }
@@ -56,25 +54,21 @@ class ObjectTest extends AbstractTestCase
             [Obj::make()->additionalProperties(false), ['extra' => 'value'], false],
             [Obj::make()->additionalProperties(true), ['extra' => 'value'], true],
             [
-                Obj::make()->property('name', Str::make())->additionalProperties(false),
+                Obj::make()
+                    ->property('name', Str::make())
+                    ->additionalProperties(false),
                 ['name' => 'John'],
                 true,
             ],
             [
-                Obj::make()->property('name', Str::make())->additionalProperties(false),
+                Obj::make()
+                    ->property('name', Str::make())
+                    ->additionalProperties(false),
                 ['name' => 'John', 'extra' => 'value'],
                 false,
             ],
-            [
-                Obj::make()->additionalProperties(Str::make()),
-                ['key' => 'value'],
-                true,
-            ],
-            [
-                Obj::make()->additionalProperties(Str::make()),
-                ['key' => 123],
-                false,
-            ],
+            [Obj::make()->additionalProperties(Str::make()), ['key' => 'value'], true],
+            [Obj::make()->additionalProperties(Str::make()), ['key' => 123], false],
         ];
     }
 
@@ -95,14 +89,8 @@ class ObjectTest extends AbstractTestCase
     public static function schemaProvider(): array
     {
         return [
-            [
-                Obj::make(),
-                ['type' => 'object'],
-            ],
-            [
-                Obj::make()->nullable(),
-                ['type' => 'object', 'nullable' => true],
-            ],
+            [Obj::make(), ['type' => 'object']],
+            [Obj::make()->nullable(), ['type' => 'object', 'nullable' => true]],
             [
                 Obj::make()->property('name', Str::make()),
                 [
