@@ -359,12 +359,13 @@ class Context extends SchemaContext
 
         foreach ($parameters as $parameter) {
             $value = $this->extractParameterValue($parameter);
+            $paramContext = $context->withField($parameter);
 
             if ($value === null && $parameter->default) {
-                $value = ($parameter->default)();
+                $value = ($parameter->default)($paramContext);
             }
 
-            $value = $parameter->deserializeValue($value, $context);
+            $value = $parameter->deserializeValue($value, $paramContext);
 
             if ($value === null && !$parameter->required) {
                 continue;
@@ -380,7 +381,7 @@ class Context extends SchemaContext
                 $errors[] = $error->source(['parameter' => $parameter->name]);
             };
 
-            $parameter->validateValue($value, $fail, $context);
+            $parameter->validateValue($value, $fail, $paramContext);
 
             $context->parameters[$parameter->name] = $value;
         }
