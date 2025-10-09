@@ -6,7 +6,6 @@ use Tobyz\JsonApiServer\Endpoint\Endpoint;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Resource;
 use Tobyz\JsonApiServer\Schema\Field\Field;
-use Tobyz\JsonApiServer\Schema\Field\Relationship;
 use Tobyz\JsonApiServer\Schema\Link;
 use Tobyz\JsonApiServer\Schema\Meta;
 use WeakMap;
@@ -40,11 +39,6 @@ class SchemaContext
     }
 
     public function endpoints(Collection $collection): array
-    {
-        return $this->endpoints[$collection] ??= $collection->endpoints();
-    }
-
-    public function relationshipLinks(Relationship $relationship): array
     {
         return $this->endpoints[$collection] ??= $collection->endpoints();
     }
