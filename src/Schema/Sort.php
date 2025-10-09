@@ -3,12 +3,10 @@
 namespace Tobyz\JsonApiServer\Schema;
 
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Schema\Concerns\HasSchema;
 use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 
 abstract class Sort
 {
-    use HasSchema;
     use HasVisibility;
 
     public function __construct(public string $name)

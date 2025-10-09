@@ -2,6 +2,8 @@
 
 namespace Tobyz\JsonApiServer\Schema\Concerns;
 
+use Tobyz\JsonApiServer\SchemaContext;
+
 trait HasSchema
 {
     protected array $schema = [];
@@ -29,7 +31,7 @@ trait HasSchema
     /**
      * Get the custom schema.
      */
-    private function getSchema(): array
+    private function getSchema(SchemaContext $context): array
     {
         return $this->schema;
     }

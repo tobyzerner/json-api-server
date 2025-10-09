@@ -63,7 +63,7 @@ class Parameter extends Field
         $schema = [
             'name' => $this->name,
             'in' => $this->in,
-            'schema' => $this->type?->schema() ?: [],
+            'schema' => $this->type?->schema() ?: (object) [],
             ...parent::getSchema($context),
         ];
 

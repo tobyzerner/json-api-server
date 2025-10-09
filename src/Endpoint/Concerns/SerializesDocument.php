@@ -31,19 +31,19 @@ trait SerializesDocument
         foreach ($schemaProviders as $provider) {
             if ($provider instanceof ProvidesDocumentMeta) {
                 foreach ($provider->documentMeta() as $m) {
-                    $meta[$m->name] = $m->getSchema($context);
+                    $meta[$m->name] = (object) $m->getSchema($context);
                 }
             }
 
             if ($provider instanceof ProvidesDocumentLinks) {
                 foreach ($provider->documentLinks() as $link) {
-                    $links[$link->name] = $link->getSchema($context);
+                    $links[$link->name] = (object) $link->getSchema($context);
                 }
             }
         }
 
         foreach ($this->meta as $m) {
-            $meta[$m->name] = $m->getSchema($context);
+            $meta[$m->name] = (object) $m->getSchema($context);
         }
 
         return [

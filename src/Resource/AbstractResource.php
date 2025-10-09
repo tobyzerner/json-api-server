@@ -71,7 +71,7 @@ abstract class AbstractResource extends AbstractCollection implements Resource
 
         $updateSchema = array_merge_recursive($schema, [
             'required' => ['id'],
-            'properties' => ['id' => $id->getSchema($context)],
+            'properties' => ['id' => (object) $id->getSchema($context)],
         ]);
 
         foreach ([$id, ...$this->fields()] as $field) {
