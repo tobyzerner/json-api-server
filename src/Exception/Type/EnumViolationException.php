@@ -2,9 +2,9 @@
 
 namespace Tobyz\JsonApiServer\Exception\Type;
 
-use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
+use Tobyz\JsonApiServer\Exception\BadRequestException;
 
-class EnumViolationException extends UnprocessableEntityException
+class EnumViolationException extends BadRequestException
 {
     public function __construct(array $allowedValues, mixed $actual = null)
     {

@@ -2,12 +2,16 @@
 
 namespace Tobyz\Tests\JsonApiServer\feature;
 
+use Tobyz\JsonApiServer\Endpoint\Create;
+use Tobyz\JsonApiServer\Endpoint\Delete;
 use Tobyz\JsonApiServer\Endpoint\Index;
 use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\Endpoint\Update;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\OpenApi\OpenApiGenerator;
+use Tobyz\JsonApiServer\Pagination\OffsetPagination;
 use Tobyz\JsonApiServer\Schema\Field\Attribute;
+use Tobyz\JsonApiServer\Schema\Field\ToMany;
 use Tobyz\JsonApiServer\Schema\Field\ToOne;
 use Tobyz\JsonApiServer\Schema\Id;
 use Tobyz\JsonApiServer\Schema\Type;
@@ -20,12 +24,19 @@ class OpenApiTest extends AbstractTestCase
     {
         $api = new JsonApi();
 
-        $api->resource(new MockResource('pets'));
+        $api->resource(new MockResource('pets', pagination: new OffsetPagination()));
 
         $api->resource(
             new MockResource(
                 'users',
-                endpoints: [Index::make()->description('list users'), Show::make(), Update::make()],
+                endpoints: [
+                    Index::make()->description('list users'),
+                    Show::make(),
+                    Create::make(),
+                    Update::make(),
+                    Delete::make(),
+                ],
+
                 id: Id::make()
                     ->writableOnCreate()
                     ->required()
@@ -34,11 +45,13 @@ class OpenApiTest extends AbstractTestCase
                             ->pattern('^[a-z0-9-]+$')
                             ->minLength(3),
                     ),
+
                 fields: [
                     Attribute::make('name')->type(Type\Str::make()),
                     ToOne::make('pet')
                         ->nullable()
                         ->writable(),
+                    ToMany::make('pets')->includable(),
                 ],
             ),
         );
@@ -51,18 +64,44 @@ class OpenApiTest extends AbstractTestCase
             json_decode(
                 json_encode([
                     'openapi' => '3.1.0',
+                    'info' => [
+                        'title' => '',
+                        'version' => '',
+                    ],
                     'paths' => [
                         '/users' => [
                             'get' => [
-                                'description' => 'list users',
                                 'tags' => ['users'],
+                                'parameters' => [
+                                    [
+                                        'name' => 'include',
+                                        'in' => 'query',
+                                        'schema' => [
+                                            'type' => 'string',
+                                        ],
+                                        'description' =>
+                                            'Comma-separated list of relationship paths to include',
+                                    ],
+                                    [
+                                        'name' => 'fields',
+                                        'in' => 'query',
+                                        'schema' => [
+                                            'type' => 'object',
+                                            'additionalProperties' => [
+                                                'type' => 'string',
+                                            ],
+                                        ],
+                                        'description' =>
+                                            'Comma-separated sparse fieldsets keyed by type',
+                                    ],
+                                ],
                                 'responses' => [
-                                    200 => [
+                                    '200' => [
+                                        'description' => 'Successful list response.',
                                         'content' => [
                                             'application/vnd.api+json' => [
                                                 'schema' => [
                                                     'type' => 'object',
-                                                    'required' => ['data'],
                                                     'properties' => [
                                                         'data' => [
                                                             'type' => 'array',
@@ -71,7 +110,68 @@ class OpenApiTest extends AbstractTestCase
                                                                     '#/components/schemas/users',
                                                             ],
                                                         ],
+                                                        'included' => [
+                                                            'type' => 'array',
+                                                            'items' => [
+                                                                '$ref' =>
+                                                                    '#/components/schemas/jsonApiResource',
+                                                            ],
+                                                        ],
                                                     ],
+                                                    'required' => ['data'],
+                                                ],
+                                            ],
+                                        ],
+                                    ],
+                                ],
+                                'description' => 'list users',
+                            ],
+                            'post' => [
+                                'tags' => ['users'],
+                                'requestBody' => [
+                                    'required' => true,
+                                    'content' => [
+                                        'application/vnd.api+json' => [
+                                            'schema' => [
+                                                'type' => 'object',
+                                                'properties' => [
+                                                    'data' => [
+                                                        '$ref' =>
+                                                            '#/components/schemas/users_create',
+                                                    ],
+                                                    'included' => [
+                                                        'type' => 'array',
+                                                        'items' => [
+                                                            '$ref' =>
+                                                                '#/components/schemas/jsonApiResource',
+                                                        ],
+                                                    ],
+                                                ],
+                                                'required' => ['data'],
+                                            ],
+                                        ],
+                                    ],
+                                ],
+                                'responses' => [
+                                    '201' => [
+                                        'description' => 'Resource created successfully.',
+                                        'content' => [
+                                            'application/vnd.api+json' => [
+                                                'schema' => [
+                                                    'type' => 'object',
+                                                    'properties' => [
+                                                        'data' => [
+                                                            '$ref' => '#/components/schemas/users',
+                                                        ],
+                                                        'included' => [
+                                                            'type' => 'array',
+                                                            'items' => [
+                                                                '$ref' =>
+                                                                    '#/components/schemas/jsonApiResource',
+                                                            ],
+                                                        ],
+                                                    ],
+                                                    'required' => ['data'],
                                                 ],
                                             ],
                                         ],
@@ -81,7 +181,6 @@ class OpenApiTest extends AbstractTestCase
                         ],
                         '/users/{id}' => [
                             'get' => [
-                                'description' => 'Retrieve users resource',
                                 'tags' => ['users'],
                                 'parameters' => [
                                     [
@@ -92,19 +191,48 @@ class OpenApiTest extends AbstractTestCase
                                             'type' => 'string',
                                         ],
                                     ],
+                                    [
+                                        'name' => 'include',
+                                        'in' => 'query',
+                                        'schema' => [
+                                            'type' => 'string',
+                                        ],
+                                        'description' =>
+                                            'Comma-separated list of relationship paths to include',
+                                    ],
+                                    [
+                                        'name' => 'fields',
+                                        'in' => 'query',
+                                        'schema' => [
+                                            'type' => 'object',
+                                            'additionalProperties' => [
+                                                'type' => 'string',
+                                            ],
+                                        ],
+                                        'description' =>
+                                            'Comma-separated sparse fieldsets keyed by type',
+                                    ],
                                 ],
                                 'responses' => [
-                                    200 => [
+                                    '200' => [
+                                        'description' => 'Successful show response.',
                                         'content' => [
                                             'application/vnd.api+json' => [
                                                 'schema' => [
                                                     'type' => 'object',
-                                                    'required' => ['data'],
                                                     'properties' => [
                                                         'data' => [
                                                             '$ref' => '#/components/schemas/users',
                                                         ],
+                                                        'included' => [
+                                                            'type' => 'array',
+                                                            'items' => [
+                                                                '$ref' =>
+                                                                    '#/components/schemas/jsonApiResource',
+                                                            ],
+                                                        ],
                                                     ],
+                                                    'required' => ['data'],
                                                 ],
                                             ],
                                         ],
@@ -112,7 +240,6 @@ class OpenApiTest extends AbstractTestCase
                                 ],
                             ],
                             'patch' => [
-                                'description' => 'Update users resource',
                                 'tags' => ['users'],
                                 'parameters' => [
                                     [
@@ -122,6 +249,27 @@ class OpenApiTest extends AbstractTestCase
                                         'schema' => [
                                             'type' => 'string',
                                         ],
+                                    ],
+                                    [
+                                        'name' => 'include',
+                                        'in' => 'query',
+                                        'schema' => [
+                                            'type' => 'string',
+                                        ],
+                                        'description' =>
+                                            'Comma-separated list of relationship paths to include',
+                                    ],
+                                    [
+                                        'name' => 'fields',
+                                        'in' => 'query',
+                                        'schema' => [
+                                            'type' => 'object',
+                                            'additionalProperties' => [
+                                                'type' => 'string',
+                                            ],
+                                        ],
+                                        'description' =>
+                                            'Comma-separated sparse fieldsets keyed by type',
                                     ],
                                 ],
                                 'requestBody' => [
@@ -130,39 +278,51 @@ class OpenApiTest extends AbstractTestCase
                                         'application/vnd.api+json' => [
                                             'schema' => [
                                                 'type' => 'object',
-                                                'required' => ['data'],
                                                 'properties' => [
                                                     'data' => [
                                                         '$ref' =>
                                                             '#/components/schemas/users_update',
                                                     ],
+                                                    'included' => [
+                                                        'type' => 'array',
+                                                        'items' => [
+                                                            '$ref' =>
+                                                                '#/components/schemas/jsonApiResource',
+                                                        ],
+                                                    ],
                                                 ],
+                                                'required' => ['data'],
                                             ],
                                         ],
                                     ],
                                 ],
                                 'responses' => [
-                                    200 => [
+                                    '200' => [
+                                        'description' => 'Resource updated successfully.',
                                         'content' => [
                                             'application/vnd.api+json' => [
                                                 'schema' => [
                                                     'type' => 'object',
-                                                    'required' => ['data'],
                                                     'properties' => [
                                                         'data' => [
                                                             '$ref' => '#/components/schemas/users',
                                                         ],
+                                                        'included' => [
+                                                            'type' => 'array',
+                                                            'items' => [
+                                                                '$ref' =>
+                                                                    '#/components/schemas/jsonApiResource',
+                                                            ],
+                                                        ],
                                                     ],
+                                                    'required' => ['data'],
                                                 ],
                                             ],
                                         ],
                                     ],
                                 ],
                             ],
-                        ],
-                        '/users/{id}/pet' => [
-                            'get' => [
-                                'description' => 'Retrieve related pet',
+                            'delete' => [
                                 'tags' => ['users'],
                                 'parameters' => [
                                     [
@@ -175,12 +335,53 @@ class OpenApiTest extends AbstractTestCase
                                     ],
                                 ],
                                 'responses' => [
-                                    200 => [
+                                    '204' => [
+                                        'description' => 'Resource deleted successfully.',
+                                    ],
+                                ],
+                            ],
+                        ],
+                        '/users/{id}/pet' => [
+                            'get' => [
+                                'tags' => ['users'],
+                                'parameters' => [
+                                    [
+                                        'name' => 'id',
+                                        'in' => 'path',
+                                        'required' => true,
+                                        'schema' => [
+                                            'type' => 'string',
+                                        ],
+                                    ],
+                                    [
+                                        'name' => 'include',
+                                        'in' => 'query',
+                                        'schema' => [
+                                            'type' => 'string',
+                                        ],
+                                        'description' =>
+                                            'Comma-separated list of relationship paths to include',
+                                    ],
+                                    [
+                                        'name' => 'fields',
+                                        'in' => 'query',
+                                        'schema' => [
+                                            'type' => 'object',
+                                            'additionalProperties' => [
+                                                'type' => 'string',
+                                            ],
+                                        ],
+                                        'description' =>
+                                            'Comma-separated sparse fieldsets keyed by type',
+                                    ],
+                                ],
+                                'responses' => [
+                                    '200' => [
+                                        'description' => 'Successful show related response.',
                                         'content' => [
                                             'application/vnd.api+json' => [
                                                 'schema' => [
                                                     'type' => 'object',
-                                                    'required' => ['data'],
                                                     'properties' => [
                                                         'data' => [
                                                             'oneOf' => [
@@ -193,7 +394,131 @@ class OpenApiTest extends AbstractTestCase
                                                                 ],
                                                             ],
                                                         ],
+                                                        'included' => [
+                                                            'type' => 'array',
+                                                            'items' => [
+                                                                '$ref' =>
+                                                                    '#/components/schemas/jsonApiResource',
+                                                            ],
+                                                        ],
                                                     ],
+                                                    'required' => ['data'],
+                                                ],
+                                            ],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                        '/users/{id}/pets' => [
+                            'get' => [
+                                'tags' => ['users'],
+                                'parameters' => [
+                                    [
+                                        'name' => 'id',
+                                        'in' => 'path',
+                                        'required' => true,
+                                        'schema' => [
+                                            'type' => 'string',
+                                        ],
+                                    ],
+                                    [
+                                        'name' => 'include',
+                                        'in' => 'query',
+                                        'schema' => [
+                                            'type' => 'string',
+                                        ],
+                                        'description' =>
+                                            'Comma-separated list of relationship paths to include',
+                                    ],
+                                    [
+                                        'name' => 'fields',
+                                        'in' => 'query',
+                                        'schema' => [
+                                            'type' => 'object',
+                                            'additionalProperties' => [
+                                                'type' => 'string',
+                                            ],
+                                        ],
+                                        'description' =>
+                                            'Comma-separated sparse fieldsets keyed by type',
+                                    ],
+                                    [
+                                        'name' => 'page[offset]',
+                                        'in' => 'query',
+                                        'schema' => [
+                                            'type' => 'integer',
+                                            'minimum' => 0.0,
+                                        ],
+                                    ],
+                                    [
+                                        'name' => 'page[limit]',
+                                        'in' => 'query',
+                                        'schema' => [
+                                            'type' => 'integer',
+                                            'minimum' => 1.0,
+                                            'maximum' => 50.0,
+                                        ],
+                                    ],
+                                ],
+                                'responses' => [
+                                    '200' => [
+                                        'description' => 'Successful show related response.',
+                                        'content' => [
+                                            'application/vnd.api+json' => [
+                                                'schema' => [
+                                                    'type' => 'object',
+                                                    'properties' => [
+                                                        'meta' => [
+                                                            'type' => 'object',
+                                                            'properties' => [
+                                                                'page' => [
+                                                                    'type' => 'object',
+                                                                    'properties' => [
+                                                                        'total' => [
+                                                                            'type' => 'integer',
+                                                                        ],
+                                                                    ],
+                                                                ],
+                                                            ],
+                                                        ],
+                                                        'links' => [
+                                                            'type' => 'object',
+                                                            'properties' => [
+                                                                'first' => [
+                                                                    'type' => 'string',
+                                                                    'format' => 'uri',
+                                                                ],
+                                                                'prev' => [
+                                                                    'type' => 'string',
+                                                                    'format' => 'uri',
+                                                                ],
+                                                                'next' => [
+                                                                    'type' => 'string',
+                                                                    'format' => 'uri',
+                                                                ],
+                                                                'last' => [
+                                                                    'type' => 'string',
+                                                                    'format' => 'uri',
+                                                                ],
+                                                            ],
+                                                        ],
+                                                        'data' => [
+                                                            'type' => 'array',
+                                                            'items' => [
+                                                                '$ref' =>
+                                                                    '#/components/schemas/pets',
+                                                            ],
+                                                        ],
+                                                        'included' => [
+                                                            'type' => 'array',
+                                                            'items' => [
+                                                                '$ref' =>
+                                                                    '#/components/schemas/jsonApiResource',
+                                                            ],
+                                                        ],
+                                                    ],
+                                                    'required' => ['data'],
                                                 ],
                                             ],
                                         ],
@@ -203,7 +528,6 @@ class OpenApiTest extends AbstractTestCase
                         ],
                         '/users/{id}/relationships/pet' => [
                             'get' => [
-                                'description' => 'Retrieve pet relationship',
                                 'tags' => ['users'],
                                 'parameters' => [
                                     [
@@ -216,11 +540,19 @@ class OpenApiTest extends AbstractTestCase
                                     ],
                                 ],
                                 'responses' => [
-                                    200 => [
+                                    '200' => [
+                                        'description' => 'Successful show relationship response.',
                                         'content' => [
                                             'application/vnd.api+json' => [
                                                 'schema' => [
-                                                    '$ref' => '#/components/schemas/users_pet',
+                                                    'type' => 'object',
+                                                    'properties' => [
+                                                        'data' => [
+                                                            '$ref' =>
+                                                                '#/components/schemas/users_relationship_pet',
+                                                        ],
+                                                    ],
+                                                    'required' => ['data'],
                                                 ],
                                             ],
                                         ],
@@ -249,7 +581,7 @@ class OpenApiTest extends AbstractTestCase
                                                 'properties' => [
                                                     'data' => [
                                                         '$ref' =>
-                                                            '#/components/schemas/users_pet/properties/data',
+                                                            '#/components/schemas/users_relationship_pet',
                                                     ],
                                                 ],
                                                 'required' => ['data'],
@@ -258,11 +590,70 @@ class OpenApiTest extends AbstractTestCase
                                     ],
                                 ],
                                 'responses' => [
-                                    200 => [
+                                    '200' => [
+                                        'description' => 'Relationship updated successfully.',
                                         'content' => [
                                             'application/vnd.api+json' => [
                                                 'schema' => [
-                                                    '$ref' => '#/components/schemas/users_pet',
+                                                    'type' => 'object',
+                                                    'properties' => [
+                                                        'data' => [
+                                                            '$ref' =>
+                                                                '#/components/schemas/users_relationship_pet',
+                                                        ],
+                                                    ],
+                                                    'required' => ['data'],
+                                                ],
+                                            ],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                        '/users/{id}/relationships/pets' => [
+                            'get' => [
+                                'tags' => ['users'],
+                                'parameters' => [
+                                    [
+                                        'name' => 'id',
+                                        'in' => 'path',
+                                        'required' => true,
+                                        'schema' => [
+                                            'type' => 'string',
+                                        ],
+                                    ],
+                                    [
+                                        'name' => 'page[offset]',
+                                        'in' => 'query',
+                                        'schema' => [
+                                            'type' => 'integer',
+                                            'minimum' => 0.0,
+                                        ],
+                                    ],
+                                    [
+                                        'name' => 'page[limit]',
+                                        'in' => 'query',
+                                        'schema' => [
+                                            'type' => 'integer',
+                                            'minimum' => 1.0,
+                                            'maximum' => 50.0,
+                                        ],
+                                    ],
+                                ],
+                                'responses' => [
+                                    '200' => [
+                                        'description' => 'Successful show relationship response.',
+                                        'content' => [
+                                            'application/vnd.api+json' => [
+                                                'schema' => [
+                                                    'type' => 'object',
+                                                    'properties' => [
+                                                        'data' => [
+                                                            '$ref' =>
+                                                                '#/components/schemas/users_relationship_pets',
+                                                        ],
+                                                    ],
+                                                    'required' => ['data'],
                                                 ],
                                             ],
                                         ],
@@ -277,8 +668,72 @@ class OpenApiTest extends AbstractTestCase
                                 'type' => 'object',
                                 'required' => ['type', 'id'],
                                 'properties' => [
-                                    'type' => ['type' => 'string'],
-                                    'id' => ['type' => 'string'],
+                                    'type' => [
+                                        'type' => 'string',
+                                    ],
+                                    'id' => [
+                                        'type' => 'string',
+                                    ],
+                                ],
+                            ],
+                            'jsonApiResource' => [
+                                'type' => 'object',
+                                'required' => ['type', 'id'],
+                                'properties' => [
+                                    'type' => [
+                                        'type' => 'string',
+                                    ],
+                                    'id' => [
+                                        'type' => 'string',
+                                    ],
+                                    'attributes' => [
+                                        'type' => 'object',
+                                    ],
+                                    'relationships' => [
+                                        'type' => 'object',
+                                    ],
+                                    'meta' => [
+                                        'type' => 'object',
+                                    ],
+                                    'links' => [
+                                        'type' => 'object',
+                                    ],
+                                ],
+                            ],
+                            'jsonApiLinkObject' => [
+                                'type' => 'object',
+                                'required' => ['href'],
+                                'properties' => [
+                                    'href' => [
+                                        'type' => 'string',
+                                        'format' => 'uri',
+                                    ],
+                                    'rel' => [
+                                        'type' => 'string',
+                                    ],
+                                    'describedby' => [
+                                        'oneOf' => [
+                                            [
+                                                'type' => 'string',
+                                                'format' => 'uri',
+                                            ],
+                                            [
+                                                '$ref' => '#/components/schemas/jsonApiLinkObject',
+                                            ],
+                                        ],
+                                    ],
+                                    'title' => [
+                                        'type' => 'string',
+                                    ],
+                                    'type' => [
+                                        'type' => 'string',
+                                    ],
+                                    'hreflang' => [
+                                        'type' => 'string',
+                                    ],
+                                    'meta' => [
+                                        'type' => 'object',
+                                    ],
                                 ],
                             ],
                             'pets' => [
@@ -289,14 +744,14 @@ class OpenApiTest extends AbstractTestCase
                                         'type' => 'string',
                                         'const' => 'pets',
                                     ],
-                                    'id' => [
-                                        'type' => 'string',
-                                    ],
                                     'attributes' => [
                                         'type' => 'object',
                                     ],
                                     'relationships' => [
                                         'type' => 'object',
+                                    ],
+                                    'id' => (object) [
+                                        'type' => 'string',
                                     ],
                                 ],
                             ],
@@ -324,18 +779,18 @@ class OpenApiTest extends AbstractTestCase
                                         'type' => 'string',
                                         'const' => 'pets',
                                     ],
-                                    'id' => [
-                                        'type' => 'string',
-                                    ],
                                     'attributes' => [
                                         'type' => 'object',
                                     ],
                                     'relationships' => [
                                         'type' => 'object',
                                     ],
+                                    'id' => [
+                                        'type' => 'string',
+                                    ],
                                 ],
                             ],
-                            'users_pet' => [
+                            'users_relationship_pet' => (object) [
                                 'type' => 'object',
                                 'properties' => [
                                     'data' => [
@@ -350,13 +805,65 @@ class OpenApiTest extends AbstractTestCase
                                                         'properties' => [
                                                             'type' => [
                                                                 'type' => 'string',
-                                                                'enum' => ['pets'],
+                                                                'const' => 'pets',
                                                             ],
                                                         ],
                                                     ],
                                                 ],
                                             ],
-                                            ['type' => 'null'],
+                                            [
+                                                'type' => 'null',
+                                            ],
+                                        ],
+                                    ],
+                                    'links' => [
+                                        'type' => 'object',
+                                        'properties' => [
+                                            'related' => [
+                                                'type' => 'string',
+                                                'format' => 'uri',
+                                            ],
+                                            'self' => [
+                                                'type' => 'string',
+                                                'format' => 'uri',
+                                            ],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                            'users_relationship_pets' => (object) [
+                                'type' => 'object',
+                                'properties' => [
+                                    'data' => [
+                                        'type' => 'array',
+                                        'items' => [
+                                            'allOf' => [
+                                                [
+                                                    '$ref' =>
+                                                        '#/components/schemas/jsonApiResourceIdentifier',
+                                                ],
+                                                [
+                                                    'properties' => [
+                                                        'type' => [
+                                                            'type' => 'string',
+                                                            'const' => 'pets',
+                                                        ],
+                                                    ],
+                                                ],
+                                            ],
+                                        ],
+                                    ],
+                                    'links' => [
+                                        'type' => 'object',
+                                        'properties' => [
+                                            'related' => [
+                                                'type' => 'string',
+                                                'format' => 'uri',
+                                            ],
+                                            'self' => [
+                                                'type' => 'string',
+                                                'format' => 'uri',
+                                            ],
                                         ],
                                     ],
                                 ],
@@ -369,24 +876,42 @@ class OpenApiTest extends AbstractTestCase
                                         'type' => 'string',
                                         'const' => 'users',
                                     ],
-                                    'id' => [
-                                        'type' => 'string',
-                                        'minLength' => 3,
-                                        'pattern' => '^[a-z0-9-]+$',
-                                    ],
                                     'attributes' => [
                                         'type' => 'object',
                                         'properties' => [
-                                            'name' => ['type' => 'string'],
+                                            'name' => (object) [
+                                                'type' => 'string',
+                                            ],
                                         ],
                                         'required' => ['name'],
                                     ],
                                     'relationships' => [
                                         'type' => 'object',
                                         'properties' => [
-                                            'pet' => ['$ref' => '#/components/schemas/users_pet'],
+                                            'pet' => [
+                                                '$ref' =>
+                                                    '#/components/schemas/users_relationship_pet',
+                                            ],
+                                            'pets' => [
+                                                '$ref' =>
+                                                    '#/components/schemas/users_relationship_pets',
+                                            ],
                                         ],
-                                        'required' => ['pet'],
+                                        'required' => ['pet', 'pets'],
+                                    ],
+                                    'id' => (object) [
+                                        'type' => 'string',
+                                        'minLength' => 3,
+                                        'pattern' => '^[a-z0-9-]+$',
+                                    ],
+                                    'links' => [
+                                        'type' => 'object',
+                                        'properties' => [
+                                            'self' => [
+                                                'type' => 'string',
+                                                'format' => 'uri',
+                                            ],
+                                        ],
                                     ],
                                 ],
                             ],
@@ -398,16 +923,16 @@ class OpenApiTest extends AbstractTestCase
                                         'type' => 'string',
                                         'const' => 'users',
                                     ],
-                                    'id' => [
-                                        'type' => 'string',
-                                        'minLength' => 3,
-                                        'pattern' => '^[a-z0-9-]+$',
-                                    ],
                                     'attributes' => [
                                         'type' => 'object',
                                     ],
                                     'relationships' => [
                                         'type' => 'object',
+                                    ],
+                                    'id' => (object) [
+                                        'type' => 'string',
+                                        'minLength' => 3,
+                                        'pattern' => '^[a-z0-9-]+$',
                                     ],
                                 ],
                             ],
@@ -419,11 +944,6 @@ class OpenApiTest extends AbstractTestCase
                                         'type' => 'string',
                                         'const' => 'users',
                                     ],
-                                    'id' => [
-                                        'type' => 'string',
-                                        'minLength' => 3,
-                                        'pattern' => '^[a-z0-9-]+$',
-                                    ],
                                     'attributes' => [
                                         'type' => 'object',
                                     ],
@@ -431,9 +951,15 @@ class OpenApiTest extends AbstractTestCase
                                         'type' => 'object',
                                         'properties' => [
                                             'pet' => [
-                                                '$ref' => '#/components/schemas/users_pet',
+                                                '$ref' =>
+                                                    '#/components/schemas/users_relationship_pet',
                                             ],
                                         ],
+                                    ],
+                                    'id' => [
+                                        'type' => 'string',
+                                        'minLength' => 3,
+                                        'pattern' => '^[a-z0-9-]+$',
                                     ],
                                 ],
                             ],

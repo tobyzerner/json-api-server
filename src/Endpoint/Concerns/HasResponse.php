@@ -2,18 +2,20 @@
 
 namespace Tobyz\JsonApiServer\Endpoint\Concerns;
 
+use Closure;
 use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Header;
+use Tobyz\JsonApiServer\SchemaContext;
 
 trait HasResponse
 {
     /** @var Header[] */
-    private array $headers = [];
+    protected array $headers = [];
 
-    /** @var callable[] */
-    private array $responseCallbacks = [];
+    /** @var Closure[] */
+    protected array $responseCallbacks = [];
 
     /**
      * Set custom headers for the response.
@@ -32,7 +34,7 @@ trait HasResponse
      *
      * The callback receives the response and can return a modified or new response.
      */
-    public function response(callable $callback): static
+    public function response(Closure $callback): static
     {
         $this->responseCallbacks[] = $callback;
 
@@ -90,20 +92,41 @@ trait HasResponse
         return $response;
     }
 
+    private function createResponse(array $document, Context $context): ResponseInterface
+    {
+        return $this->applyResponseHooks($context->createResponse($document), $context);
+    }
+
     /**
      * Get OpenAPI headers schema for custom headers.
      */
-    private function getHeadersSchema(JsonApi $api): array
+    private function headersSchema(SchemaContext $context): array
     {
         $headers = [];
 
         foreach ($this->headers as $header) {
-            $headers[$header->name] = [
-                'description' => $header->description,
-                'schema' => $header->getSchema($api),
-            ];
+            $headers[$header->name] = ['schema' => $header->getSchema($context)];
         }
 
         return $headers;
+    }
+
+    private function responseSchema($content, SchemaContext $context): array
+    {
+        $response = [];
+
+        if ($headers = $this->headersSchema($context)) {
+            $response['headers'] = $headers;
+        }
+
+        if ($content) {
+            $response['content'] = [
+                JsonApi::MEDIA_TYPE => [
+                    'schema' => $content,
+                ],
+            ];
+        }
+
+        return $response;
     }
 }

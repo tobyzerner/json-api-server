@@ -4,7 +4,7 @@ namespace Tobyz\JsonApiServer;
 
 use Closure;
 use RuntimeException;
-use Tobyz\JsonApiServer\Endpoint\ResourceEndpoint;
+use Tobyz\JsonApiServer\Endpoint\ProvidesResourceLinks;
 use Tobyz\JsonApiServer\Schema\Field\Field;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
 
@@ -54,17 +54,30 @@ class Serializer
                 'id' => $id,
             ];
 
-            foreach ($context->api->getResourceCollections($resource->type()) as $collection) {
-                $collectionContext = $context->withCollection($collection);
+            static $linkFieldsCache = [];
 
-                foreach ($context->endpoints($collection) as $endpoint) {
-                    if ($endpoint instanceof ResourceEndpoint) {
-                        if ($links = $endpoint->resourceLinks($model, $collectionContext)) {
-                            $this->map[$key]['links'] ??= [];
-                            $this->map[$key]['links'] += $links;
+            if (!isset($linkFieldsCache[$type])) {
+                foreach ($context->api->getResourceCollections($type) as $collection) {
+                    $collectionContext = $context->withCollection($collection);
+
+                    foreach ($context->endpoints($collection) as $endpoint) {
+                        if ($endpoint instanceof ProvidesResourceLinks) {
+                            foreach ($endpoint->resourceLinks($collectionContext) as $field) {
+                                $linkFieldsCache[$type][$field->name] ??= $field;
+                            }
                         }
                     }
                 }
+            }
+
+            foreach ($linkFieldsCache[$type] ?? [] as $field) {
+                if (!$field->isVisible($linkContext = $context->withField($field))) {
+                    continue;
+                }
+
+                $value = $field->getValue($linkContext);
+
+                $this->resolveLinkValue($key, $field, $linkContext, $value);
             }
         }
 
@@ -88,13 +101,10 @@ class Serializer
             $this->resolveFieldValue($key, $field, $fieldContext, $value);
         }
 
-        // TODO: cache
-        foreach ($resource->meta() as $field) {
-            $metaContext = $context->withField($field);
-
+        foreach ($context->meta($resource) as $field) {
             if (
                 array_key_exists($field->name, $this->map[$key]['meta'] ?? []) ||
-                !$field->isVisible($metaContext)
+                !$field->isVisible($metaContext = $context->withField($field))
             ) {
                 continue;
             }
@@ -108,13 +118,10 @@ class Serializer
             $this->map[$key]['meta'][$k] = $v;
         }
 
-        // TODO: cache
-        foreach ($resource->links() as $link) {
-            $linkContext = $context->withField($link);
-
+        foreach ($context->links($resource) as $link) {
             if (
                 array_key_exists($link->name, $this->map[$key]['links'] ?? []) ||
-                !$link->isVisible($linkContext)
+                !$link->isVisible($linkContext = $context->withField($link))
             ) {
                 continue;
             }

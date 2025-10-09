@@ -202,16 +202,7 @@ class ArrTest extends AbstractTestCase
 
     public function test_schema()
     {
-        $this->assertEquals(
-            [
-                'type' => 'array',
-                'minItems' => 0,
-                'maxItems' => null,
-                'uniqueItems' => false,
-                'items' => null,
-            ],
-            Arr::make()->schema(),
-        );
+        $this->assertEquals(['type' => 'array'], Arr::make()->schema());
 
         $this->assertEquals(
             [

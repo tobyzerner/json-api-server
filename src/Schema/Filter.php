@@ -3,12 +3,12 @@
 namespace Tobyz\JsonApiServer\Schema;
 
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
+use Tobyz\JsonApiServer\Schema\Concerns\HasSchema;
 use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
 
 abstract class Filter
 {
-    use HasDescription;
+    use HasSchema;
     use HasVisibility;
 
     public function __construct(public string $name)

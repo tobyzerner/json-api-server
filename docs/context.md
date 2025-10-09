@@ -59,8 +59,11 @@ class Context
     // Get the request path relative to the API base path
     public function path(): string;
 
-    // Get the value of a query param
-    public function queryParam(string $name, $default = null): mixed;
+    // Get the request path segments
+    public function pathSegments(): array;
+
+    // Get the value of a validated query parameter or header
+    public function parameter(string $name): mixed;
 
     // Get the URL of the current request, optionally with query parameter overrides
     public function currentUrl(array $queryParams = []): string;

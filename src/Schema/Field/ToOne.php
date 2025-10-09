@@ -4,7 +4,7 @@ namespace Tobyz\JsonApiServer\Schema\Field;
 
 use Doctrine\Inflector\InflectorFactory;
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\SchemaContext;
 
 class ToOne extends Relationship
 {
@@ -39,21 +39,9 @@ class ToOne extends Relationship
         return $this->resourceForIdentifier($data, $context);
     }
 
-    protected function getDataSchema(JsonApi $api): array
+    protected function getDataSchema(SchemaContext $context): array
     {
-        $linkage = [
-            'allOf' => [
-                ['$ref' => '#/components/schemas/jsonApiResourceIdentifier'],
-                [
-                    'properties' => [
-                        'type' => [
-                            'type' => 'string',
-                            'enum' => $this->getRelatedResources($api),
-                        ],
-                    ],
-                ],
-            ],
-        ];
+        $linkage = $this->getLinkageSchema($context);
 
         return $this->nullable ? ['oneOf' => [$linkage, ['type' => 'null']]] : $linkage;
     }

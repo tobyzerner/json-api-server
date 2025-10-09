@@ -20,9 +20,7 @@ trait IncludesData
 
     private function getInclude(Context $context, array $collections = null): array
     {
-        if (
-            $includeString = $context->request->getQueryParams()['include'] ?? $this->defaultInclude
-        ) {
+        if ($includeString = $context->parameter('include')) {
             $include = $this->parseInclude($includeString);
 
             $this->validateInclude(

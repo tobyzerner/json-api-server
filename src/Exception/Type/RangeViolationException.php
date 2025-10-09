@@ -2,9 +2,9 @@
 
 namespace Tobyz\JsonApiServer\Exception\Type;
 
-use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
+use Tobyz\JsonApiServer\Exception\BadRequestException;
 
-class RangeViolationException extends UnprocessableEntityException
+class RangeViolationException extends BadRequestException
 {
     public function __construct(
         string $constraint,

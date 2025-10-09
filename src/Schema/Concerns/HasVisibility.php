@@ -9,7 +9,7 @@ use function Tobyz\JsonApiServer\negate;
 
 trait HasVisibility
 {
-    private bool|Closure $visible = true;
+    protected bool|Closure $visible = true;
 
     /**
      * Allow this field to be seen.

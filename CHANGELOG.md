@@ -28,9 +28,21 @@ and this project adheres to
   `Context::currentUrl()`)
 - Move `Extension\Atomic` to `Extension\Atomic\Atomic`
 - Remove `json_api_response()` helper (use `Context::createResponse()` instead)
+- Remove `Context::queryParam()` (use `Context::parameter()` for defined
+  parameters, or `Context::$request->getQueryParameters()`)
 
 ### Added
 
+- Major refactor of endpoints, query parameter validation, and OpenAPI schema
+  generation
+    - Allow endpoints and pagination implementations to define query parameters
+      for validation and schema generation
+    - Allow endpoints to define resource and relationship links
+    - Introduce `SchemaContext` to store relevant context during schema
+      generation
+    - Make `Show` and `Update` aggregate separate `*Resource` and
+      `*Relationship` endpoints
+    - Refactor endpoint handlers and traits
 - More comprehensive type schema support
     - Add `nullable()` method to `Type` classes, allowing sub-types (e.g. array
       items or object properties) to be nullable
@@ -124,8 +136,9 @@ and this project adheres to
 - Implement the `Resource\Attachable` contract and add `ToMany::attachable()`,
   `validateAttach()`, and `validateDetach()` helpers for controlling
   relationship mutation endpoints with attach/detach hooks
-- Introduce `Endpoint\ResourceEndpoint` and `Endpoint\RelationshipEndpoint` so
-  endpoints can contribute relationship and resource links during serialization
+- Introduce `Endpoint\ProvidesResourceLinks` and
+  `Endpoint\ProvidesRelationshipLinks` so endpoints can contribute relationship
+  and resource links during serialization
 
 ## [1.0.0-beta.5] - 2025-09-27
 

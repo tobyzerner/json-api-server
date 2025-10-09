@@ -78,6 +78,9 @@ class WhereHas extends Filter
                     $relatedCollection->scope($query, $context);
                 }
 
+                // TODO: apply relationship scope
+                // TODO: allow applying custom scope
+
                 if (in_array($operator, ['null', 'notnull'])) {
                     return;
                 }

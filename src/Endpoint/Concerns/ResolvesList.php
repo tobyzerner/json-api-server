@@ -3,6 +3,7 @@
 namespace Tobyz\JsonApiServer\Endpoint\Concerns;
 
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\ProvidesParameters;
 use Tobyz\JsonApiServer\Exception\Filter\InvalidFilterParameterException;
 use Tobyz\JsonApiServer\Exception\Request\InvalidSortException;
 use Tobyz\JsonApiServer\Exception\Sourceable;
@@ -10,27 +11,54 @@ use Tobyz\JsonApiServer\Pagination\Pagination;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Countable;
 use Tobyz\JsonApiServer\Resource\Listable;
+use Tobyz\JsonApiServer\Schema\Parameter;
+use Tobyz\JsonApiServer\Schema\Type;
 
 use function Tobyz\JsonApiServer\apply_filters;
 use function Tobyz\JsonApiServer\parse_sort_string;
 
-trait ListsResources
+trait ResolvesList
 {
-    private function listResources(
+    protected function listParameters(
+        Collection $collection,
+        ?string $defaultSort = null,
+        ?Pagination $pagination = null,
+    ): array {
+        $params = [];
+
+        if ($filters = $collection->filters()) {
+            $params[] = Parameter::make('filter')->type(Type\Obj::make());
+
+            // TODO: properties of above?
+            foreach ($filters as $filter) {
+                $params[] = Parameter::make("filter[{$filter->name}]")->type(Type\Any::make());
+            }
+        }
+
+        if ($sorts = $collection->sorts()) {
+            $params[] = Parameter::make('sort')
+                ->type(Type\Str::make())
+                ->default($defaultSort ?? $collection->defaultSort());
+        }
+
+        $pagination ??= $collection->pagination();
+
+        if ($pagination instanceof ProvidesParameters) {
+            $params = array_merge($params, $pagination->parameters());
+        }
+
+        return $params;
+    }
+
+    private function resolveList(
         object $query,
         Collection&Listable $collection,
         Context $context,
-        ?string $defaultSort = null,
         ?Pagination $pagination = null,
     ): array {
         $context = $context->withCollection($collection)->withQuery($query);
 
-        $this->applyListSorts(
-            $query,
-            $collection,
-            $context,
-            $defaultSort ?? $collection->defaultSort(),
-        );
+        $this->applyListSorts($query, $collection, $context);
 
         $this->applyListFilters($query, $collection, $context);
 
@@ -52,9 +80,8 @@ trait ListsResources
         object $query,
         Collection&Listable $collection,
         Context $context,
-        ?string $defaultSort,
     ): void {
-        if (!($sortString = $context->queryParam('sort', $defaultSort))) {
+        if (!($sortString = $context->parameter('sort'))) {
             return;
         }
 
@@ -77,7 +104,7 @@ trait ListsResources
         Collection&Listable $collection,
         Context $context,
     ): void {
-        if (!($filters = $context->queryParam('filter'))) {
+        if (!($filters = $context->parameter('filter'))) {
             return;
         }
 

@@ -2,9 +2,9 @@
 
 namespace Tobyz\JsonApiServer\Exception\Type;
 
-use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
+use Tobyz\JsonApiServer\Exception\BadRequestException;
 
-class AdditionalPropertyException extends UnprocessableEntityException
+class AdditionalPropertyException extends BadRequestException
 {
     public function __construct(string $property)
     {

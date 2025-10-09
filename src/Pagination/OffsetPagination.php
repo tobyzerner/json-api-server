@@ -4,11 +4,21 @@ namespace Tobyz\JsonApiServer\Pagination;
 
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Exception\Pagination\InvalidPageOffsetException;
+use Tobyz\JsonApiServer\Endpoint\ProvidesDocumentLinks;
+use Tobyz\JsonApiServer\Endpoint\ProvidesDocumentMeta;
+use Tobyz\JsonApiServer\Endpoint\ProvidesParameters;
 use Tobyz\JsonApiServer\Pagination\Concerns\HasSizeParameter;
 use Tobyz\JsonApiServer\Resource\Paginatable;
+use Tobyz\JsonApiServer\Schema\Link;
+use Tobyz\JsonApiServer\Schema\Meta;
+use Tobyz\JsonApiServer\Schema\Parameter;
+use Tobyz\JsonApiServer\Schema\Type;
 
-class OffsetPagination implements Pagination
+class OffsetPagination implements
+    Pagination,
+    ProvidesParameters,
+    ProvidesDocumentMeta,
+    ProvidesDocumentLinks
 {
     use HasSizeParameter;
 
@@ -17,11 +27,25 @@ class OffsetPagination implements Pagination
         $this->configureSizeParameter($defaultLimit, $maxLimit);
     }
 
+    public function parameters(): array
+    {
+        return [
+            Parameter::make('page[offset]')
+                ->type(Type\Integer::make()->minimum(0))
+                ->default(fn() => 0),
+
+            Parameter::make('page[limit]')
+                ->type(
+                    Type\Integer::make()
+                        ->minimum(1)
+                        ->maximum($this->maxSize),
+                )
+                ->default(fn() => $this->defaultSize),
+        ];
+    }
+
     public function paginate(object $query, Context $context): array
     {
-        $offset = $this->getOffset($context);
-        $limit = $this->getSize($context, 'limit');
-
         $collection = $context->collection;
 
         if (!$collection instanceof Paginatable) {
@@ -29,6 +53,9 @@ class OffsetPagination implements Pagination
                 sprintf('%s must implement %s', get_class($collection), Paginatable::class),
             );
         }
+
+        $offset = $context->parameter('page[offset]');
+        $limit = $context->parameter('page[limit]');
 
         $page = $collection->paginate($query, $offset, $limit, $context);
 
@@ -63,16 +90,15 @@ class OffsetPagination implements Pagination
         return $page->results;
     }
 
-    private function getOffset(Context $context): int
+    public function documentMeta(): array
     {
-        if ($offset = $context->queryParam('page')['offset'] ?? null) {
-            if (preg_match('/\D+/', $offset) || $offset < 0) {
-                throw (new InvalidPageOffsetException())->source(['parameter' => 'page[offset]']);
-            }
+        return [
+            Meta::make('page')->type(Type\Obj::make()->property('total', Type\Integer::make())),
+        ];
+    }
 
-            return $offset;
-        }
-
-        return 0;
+    public function documentLinks(): array
+    {
+        return [Link::make('first'), Link::make('prev'), Link::make('next'), Link::make('last')];
     }
 }

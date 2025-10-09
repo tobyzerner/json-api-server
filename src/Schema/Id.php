@@ -5,9 +5,9 @@ namespace Tobyz\JsonApiServer\Schema;
 use Closure;
 use DomainException;
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Field\Field;
 use Tobyz\JsonApiServer\Schema\Type\Str;
+use Tobyz\JsonApiServer\SchemaContext;
 
 class Id extends Field
 {
@@ -54,9 +54,9 @@ class Id extends Field
         parent::validateValue($value, $fail, $context);
     }
 
-    public function getSchema(JsonApi $api): array
+    public function getSchema(SchemaContext $context): array
     {
-        return parent::getSchema($api) + ($this->type->schema() ?: []);
+        return parent::getSchema($context) + ($this->type->schema() ?: []);
     }
 
     public function writable(?Closure $condition = null): static

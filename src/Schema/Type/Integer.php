@@ -18,7 +18,7 @@ class Integer extends Number
 
     protected function validateValue(mixed $value, callable $fail): void
     {
-        if (!is_int($value)) {
+        if (filter_var($value, FILTER_VALIDATE_INT) === false) {
             $fail(new TypeMismatchException('integer', gettype($value)));
             return;
         }

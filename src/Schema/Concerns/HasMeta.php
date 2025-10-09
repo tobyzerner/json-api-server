@@ -3,12 +3,12 @@
 namespace Tobyz\JsonApiServer\Schema\Concerns;
 
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Schema\Field\Attribute;
+use Tobyz\JsonApiServer\Schema\Meta;
 
 trait HasMeta
 {
     /**
-     * @var Attribute[]
+     * @var Meta[]
      */
     public array $meta = [];
 

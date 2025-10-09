@@ -2,9 +2,9 @@
 
 namespace Tobyz\JsonApiServer\Exception\Type;
 
-use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
+use Tobyz\JsonApiServer\Exception\BadRequestException;
 
-class InvalidSchemaException extends UnprocessableEntityException
+class InvalidSchemaException extends BadRequestException
 {
     public function __construct(string $constraint, ?int $matched = null)
     {

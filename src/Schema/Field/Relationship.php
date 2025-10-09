@@ -5,14 +5,14 @@ namespace Tobyz\JsonApiServer\Schema\Field;
 use Closure;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Concerns\FindsResources;
-use Tobyz\JsonApiServer\Endpoint\RelationshipEndpoint;
+use Tobyz\JsonApiServer\Endpoint\ProvidesRelationshipLinks;
 use Tobyz\JsonApiServer\Exception\Data\InvalidIdException;
 use Tobyz\JsonApiServer\Exception\Data\InvalidTypeException;
 use Tobyz\JsonApiServer\Exception\Data\UnsupportedTypeException;
 use Tobyz\JsonApiServer\Exception\Relationship\InvalidRelationshipException;
 use Tobyz\JsonApiServer\Exception\Sourceable;
-use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Concerns\HasMeta;
+use Tobyz\JsonApiServer\SchemaContext;
 
 abstract class Relationship extends Field
 {
@@ -109,7 +109,7 @@ abstract class Relationship extends Field
         return parent::getValue($context);
     }
 
-    public function serializeValue($value, Context $context): mixed
+    public function serializeValue($value, Context $context): array
     {
         $relationship =
             $context->include !== null || $this->hasLinkage($context)
@@ -120,18 +120,41 @@ abstract class Relationship extends Field
             $relationship['meta'] = $meta;
         }
 
-        $links = [];
-        foreach ($context->collection->endpoints() as $endpoint) {
-            if ($endpoint instanceof RelationshipEndpoint) {
-                $links += $endpoint->relationshipLinks($context->model, $this, $context);
+        static $linkFieldsCache = [];
+        $cacheKey = $context->resource->type() . '-' . $this->name;
+
+        if (!isset($linkFieldsCache[$cacheKey])) {
+            foreach ($context->endpoints($context->collection) as $endpoint) {
+                if ($endpoint instanceof ProvidesRelationshipLinks) {
+                    foreach ($endpoint->relationshipLinks($this, $context) as $field) {
+                        $linkFieldsCache[$cacheKey][$field->name] ??= $field;
+                    }
+                }
             }
         }
 
-        if ($links) {
+        if ($links = $this->serializeLinks($linkFieldsCache[$cacheKey] ?? [], $context)) {
             $relationship['links'] = $links;
         }
 
         return $relationship;
+    }
+
+    public function serializeLinks(array $linkFields, Context $context): array
+    {
+        $links = [];
+
+        foreach ($linkFields as $field) {
+            if (!$field->isVisible($context)) {
+                continue;
+            }
+
+            $value = $field->getValue($context);
+
+            $links[$field->name] = $field->serializeValue($value, $context);
+        }
+
+        return $links;
     }
 
     abstract protected function serializeData($value, Context $context): array;
@@ -196,9 +219,9 @@ abstract class Relationship extends Field
         return $this->linkage;
     }
 
-    public function getSchema(JsonApi $api): array
+    public function getSchema(SchemaContext $context): array
     {
-        $schema = parent::getSchema($api);
+        $schema = parent::getSchema($context);
 
         unset($schema['nullable']);
 
@@ -206,9 +229,31 @@ abstract class Relationship extends Field
             $schema['required'] = ['data'];
         }
 
+        $meta = [];
+
+        foreach ($this->meta as $m) {
+            $meta[$m->name] = $m->getSchema($context);
+        }
+
+        $links = [];
+
+        foreach ($context->api->getResourceCollections($context->resource->type()) as $collection) {
+            foreach ($collection->endpoints() as $endpoint) {
+                if ($endpoint instanceof ProvidesRelationshipLinks) {
+                    foreach ($endpoint->relationshipLinks($this, $context) as $link) {
+                        $links[$link->name] = $link->getSchema($context);
+                    }
+                }
+            }
+        }
+
         return $schema + [
             'type' => 'object',
-            'properties' => ['data' => $this->getDataSchema($api)],
+            'properties' => [
+                'data' => $this->getDataSchema($context),
+                ...$links ? ['links' => ['type' => 'object', 'properties' => $links]] : [],
+                ...$meta ? ['meta' => ['type' => 'object', 'properties' => $meta]] : [],
+            ],
         ];
     }
 
@@ -226,7 +271,7 @@ abstract class Relationship extends Field
             ]);
         }
 
-        $resources = $this->getRelatedResources($context->api);
+        $resources = $this->getRelatedResources($context);
 
         if (in_array($identifier['type'], $resources)) {
             return $this->findResource(
@@ -238,15 +283,43 @@ abstract class Relationship extends Field
         throw (new UnsupportedTypeException($identifier['type']))->source(['pointer' => '/type']);
     }
 
-    protected function getRelatedResources(JsonApi $api): array
+    protected function getRelatedResources(SchemaContext $context): array
     {
         return array_merge(
             ...array_map(
-                fn($collection) => $api->getCollection($collection)->resources(),
+                fn($collection) => $context->api->getCollection($collection)->resources(),
                 $this->collections,
             ),
         );
     }
 
-    abstract protected function getDataSchema(JsonApi $api): array;
+    abstract protected function getDataSchema(SchemaContext $context): array;
+
+    protected function getLinkageSchema(SchemaContext $context): array
+    {
+        $resources = $this->getRelatedResources($context);
+
+        $meta = [];
+
+        foreach ($this->linkageMeta as $field) {
+            $meta[$field->name] = $field->getSchema($context);
+        }
+
+        return [
+            'allOf' => [
+                ['$ref' => '#/components/schemas/jsonApiResourceIdentifier'],
+                [
+                    'properties' => [
+                        'type' => [
+                            'type' => 'string',
+                            ...count($resources) === 1
+                                ? ['const' => $resources[0]]
+                                : ['enum' => $resources],
+                        ],
+                        ...$meta ? ['meta' => ['type' => 'object', 'properties' => $meta]] : [],
+                    ],
+                ],
+            ],
+        ];
+    }
 }

@@ -4,33 +4,54 @@ namespace Tobyz\JsonApiServer\Pagination;
 
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Exception\Pagination\InvalidPageCursorException;
+use Tobyz\JsonApiServer\Endpoint\ProvidesDocumentLinks;
+use Tobyz\JsonApiServer\Endpoint\ProvidesDocumentMeta;
+use Tobyz\JsonApiServer\Endpoint\ProvidesParameters;
+use Tobyz\JsonApiServer\Endpoint\ProvidesResourceMeta;
 use Tobyz\JsonApiServer\Exception\Sourceable;
 use Tobyz\JsonApiServer\Pagination\Concerns\HasSizeParameter;
 use Tobyz\JsonApiServer\Resource\CursorPaginatable;
+use Tobyz\JsonApiServer\Schema\Link;
+use Tobyz\JsonApiServer\Schema\Meta;
+use Tobyz\JsonApiServer\Schema\Parameter;
+use Tobyz\JsonApiServer\Schema\Type;
 
-class CursorPagination implements Pagination
+class CursorPagination implements
+    Pagination,
+    ProvidesParameters,
+    ProvidesDocumentMeta,
+    ProvidesDocumentLinks,
+    ProvidesResourceMeta
 {
     use HasSizeParameter;
 
     public const PROFILE_URI = 'https://jsonapi.org/profiles/ethanresnick/cursor-pagination';
-
-    public readonly int $size;
-    public readonly ?string $after;
-    public readonly ?string $before;
 
     public function __construct(int $defaultSize = 20, ?int $maxSize = 50)
     {
         $this->configureSizeParameter($defaultSize, $maxSize);
     }
 
+    public function parameters(): array
+    {
+        return [
+            Parameter::make('page[size]')
+                ->type(
+                    Type\Integer::make()
+                        ->minimum(1)
+                        ->maximum($this->maxSize),
+                )
+                ->default(fn() => $this->defaultSize),
+
+            Parameter::make('page[after]')->type(Type\Str::make()),
+
+            Parameter::make('page[before]')->type(Type\Str::make()),
+        ];
+    }
+
     public function paginate(object $query, Context $context): array
     {
         $context->activateProfile(self::PROFILE_URI);
-
-        $size = $this->getSize($context, 'size');
-        $after = $this->getCursor($context, 'after');
-        $before = $this->getCursor($context, 'before');
 
         $collection = $context->collection;
 
@@ -39,6 +60,10 @@ class CursorPagination implements Pagination
                 sprintf('%s must implement %s', get_class($collection), CursorPaginatable::class),
             );
         }
+
+        $size = $context->parameter('page[size]');
+        $after = $context->parameter('page[after]');
+        $before = $context->parameter('page[before]');
 
         try {
             $page = $collection->cursorPaginate($query, $size, $after, $before, $context);
@@ -77,14 +102,22 @@ class CursorPagination implements Pagination
         return $page->results;
     }
 
-    private function getCursor(Context $context, string $key): ?string
+    public function documentMeta(): array
     {
-        $cursor = $context->queryParam('page')[$key] ?? null;
+        return [
+            Meta::make('page')->type(
+                Type\Obj::make()->property('rangeTruncated', Type\Boolean::make()),
+            ),
+        ];
+    }
 
-        if ($cursor && !is_string($cursor)) {
-            throw (new InvalidPageCursorException())->source(['parameter' => "page[$key]"]);
-        }
+    public function documentLinks(): array
+    {
+        return [Link::make('prev'), Link::make('next')];
+    }
 
-        return $cursor;
+    public function resourceMeta(): array
+    {
+        return [Meta::make('page')->type(Type\Obj::make()->property('cursor', Type\Str::make()))];
     }
 }

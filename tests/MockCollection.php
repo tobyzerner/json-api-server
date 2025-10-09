@@ -5,11 +5,11 @@ namespace Tobyz\Tests\JsonApiServer;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Pagination\Page;
 use Tobyz\JsonApiServer\Pagination\Pagination;
-use Tobyz\JsonApiServer\Resource\Collection;
+use Tobyz\JsonApiServer\Resource\AbstractCollection;
 use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Resource\Paginatable;
 
-class MockCollection implements Collection, Listable, Paginatable
+class MockCollection extends AbstractCollection implements Listable, Paginatable
 {
     public function __construct(
         private readonly string $name,

@@ -5,27 +5,22 @@ namespace Tobyz\JsonApiServer\Endpoint;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsDocument;
-use Tobyz\JsonApiServer\Endpoint\Concerns\FindsResources;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
-use Tobyz\JsonApiServer\Endpoint\Concerns\HasSchema;
-use Tobyz\JsonApiServer\Exception\ForbiddenException;
+use Tobyz\JsonApiServer\Endpoint\Concerns\ResolvesModel;
+use Tobyz\JsonApiServer\Endpoint\Concerns\SerializesDocument;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
-use Tobyz\JsonApiServer\JsonApi;
-use Tobyz\JsonApiServer\OpenApi\OpenApiPathsProvider;
-use Tobyz\JsonApiServer\Resource\Collection;
+use Tobyz\JsonApiServer\OpenApi\ProvidesRootSchema;
 use Tobyz\JsonApiServer\Resource\Deletable;
-use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
-use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
+use Tobyz\JsonApiServer\Schema\Concerns\HasSchema;
+use Tobyz\JsonApiServer\Schema\Link;
+use Tobyz\JsonApiServer\SchemaContext;
 
-class Delete implements Endpoint, OpenApiPathsProvider
+class Delete implements Endpoint, ProvidesRootSchema, ProvidesResourceLinks
 {
-    use HasDescription;
-    use HasVisibility;
     use HasResponse;
     use HasSchema;
-    use FindsResources;
-    use BuildsDocument;
+    use ResolvesModel;
+    use SerializesDocument;
 
     public static function make(): static
     {
@@ -34,67 +29,64 @@ class Delete implements Endpoint, OpenApiPathsProvider
 
     public function handle(Context $context): ?ResponseInterface
     {
-        $segments = explode('/', $context->path());
+        $segments = $context->pathSegments();
 
-        if (count($segments) !== 2) {
+        if (count($segments) !== 1) {
             return null;
         }
 
-        if ($context->request->getMethod() !== 'DELETE') {
+        if ($context->method() !== 'DELETE') {
             throw new MethodNotAllowedException();
         }
 
-        $model = $this->findResource($context, $segments[1]);
+        $context = $this->resolveModel($context, $segments[0]);
 
-        $context = $context->withResource(
-            $resource = $context->resource($context->collection->resource($model, $context)),
-        );
-
-        if (!$resource instanceof Deletable) {
+        if (!$context->resource instanceof Deletable) {
             throw new RuntimeException(
-                sprintf('%s must implement %s', get_class($resource), Deletable::class),
+                sprintf('%s must implement %s', get_class($context->resource), Deletable::class),
             );
         }
 
-        if (!$this->isVisible($context = $context->withModel($model))) {
-            throw new ForbiddenException();
-        }
+        $context->resource->delete($context->model, $context);
 
-        $resource->delete($model, $context);
-
-        $response = $context->createResponse($this->buildDocument($context))->withStatus(204);
-
-        return $this->applyResponseHooks($response, $context);
+        return $this->createResponse($this->serializeDocument($context), $context)->withStatus(204);
     }
 
-    public function getOpenApiPaths(Collection $collection, JsonApi $api): array
+    public function rootSchema(SchemaContext $context): array
     {
-        $response = [];
+        $type = $context->collection->name();
 
-        if ($headers = $this->getHeadersSchema($api)) {
-            $response['headers'] = $headers;
-        }
-
-        $paths = [
-            "/{$collection->name()}/{id}" => [
-                'delete' => [
-                    'description' => $this->getDescription(),
-                    'tags' => [$collection->name()],
-                    'parameters' => [
-                        [
-                            'name' => 'id',
-                            'in' => 'path',
-                            'required' => true,
-                            'schema' => ['type' => 'string'],
+        return [
+            'paths' => [
+                "/$type/{id}" => [
+                    'delete' => [
+                        'tags' => [$type],
+                        'parameters' => [
+                            [
+                                'name' => 'id',
+                                'in' => 'path',
+                                'required' => true,
+                                'schema' => ['type' => 'string'],
+                            ],
                         ],
-                    ],
-                    'responses' => [
-                        '204' => $response,
+                        'responses' => [
+                            '204' => [
+                                'description' => 'Resource deleted successfully.',
+                                ...$this->responseSchema(null, $context),
+                            ],
+                        ],
                     ],
                 ],
             ],
         ];
+    }
 
-        return $this->mergeSchema($paths);
+    public function resourceLinks(SchemaContext $context): array
+    {
+        return [
+            Link::make('self')->get(
+                fn($model, Context $context) => $this->resourceSelfLink($model, $context),
+            ),
+        ];
     }
 }

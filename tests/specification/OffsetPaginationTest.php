@@ -54,23 +54,23 @@ class OffsetPaginationTest extends AbstractTestCase
         $response = $this->api->handle(
             $this->buildRequest('GET', '/articles')->withQueryParams([
                 'page' => ['offset' => '40'],
-                'otherParam' => 'value',
+                'fields[test]' => 'value',
             ]),
         );
 
         $links = json_decode($response->getBody(), true)['links'] ?? null;
 
-        $this->assertEquals('/articles?otherParam=value', $links['first'] ?? null);
+        $this->assertEquals('/articles?fields%5Btest%5D=value', $links['first'] ?? null);
         $this->assertEquals(
-            '/articles?otherParam=value&page%5Boffset%5D=80',
+            '/articles?fields%5Btest%5D=value&page%5Boffset%5D=80',
             $links['last'] ?? null,
         );
         $this->assertEquals(
-            '/articles?otherParam=value&page%5Boffset%5D=60',
+            '/articles?fields%5Btest%5D=value&page%5Boffset%5D=60',
             $links['next'] ?? null,
         );
         $this->assertEquals(
-            '/articles?otherParam=value&page%5Boffset%5D=20',
+            '/articles?fields%5Btest%5D=value&page%5Boffset%5D=20',
             $links['prev'] ?? null,
         );
     }

@@ -5,32 +5,29 @@ namespace Tobyz\JsonApiServer\Endpoint;
 use Psr\Http\Message\ResponseInterface as Response;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
-use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsResourceDocument;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
-use Tobyz\JsonApiServer\Endpoint\Concerns\HasSchema;
-use Tobyz\JsonApiServer\Endpoint\Concerns\ListsResources;
+use Tobyz\JsonApiServer\Endpoint\Concerns\ResolvesList;
+use Tobyz\JsonApiServer\Endpoint\Concerns\SerializesResourceDocument;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
-use Tobyz\JsonApiServer\JsonApi;
-use Tobyz\JsonApiServer\OpenApi\OpenApiPathsProvider;
+use Tobyz\JsonApiServer\OpenApi\ProvidesRootSchema;
 use Tobyz\JsonApiServer\Pagination\CursorPagination;
 use Tobyz\JsonApiServer\Pagination\OffsetPagination;
 use Tobyz\JsonApiServer\Pagination\Pagination;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Listable;
-use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
+use Tobyz\JsonApiServer\Schema\Concerns\HasSchema;
 use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
+use Tobyz\JsonApiServer\Schema\Parameter;
+use Tobyz\JsonApiServer\SchemaContext;
 
-class Index implements Endpoint, OpenApiPathsProvider
+class Index implements Endpoint, ProvidesRootSchema
 {
-    use HasDescription;
     use HasVisibility;
     use HasResponse;
     use HasSchema;
-    use ListsResources;
-    use BuildsResourceDocument;
-    use BuildsOpenApiPaths;
+    use ResolvesList;
+    use SerializesResourceDocument;
 
     public ?Pagination $pagination = null;
     public ?string $defaultSort = null;
@@ -63,11 +60,11 @@ class Index implements Endpoint, OpenApiPathsProvider
 
     public function handle(Context $context): ?Response
     {
-        if (str_contains($context->path(), '/')) {
+        if ($context->pathSegments()) {
             return null;
         }
 
-        if ($context->request->getMethod() !== 'GET') {
+        if ($context->method() !== 'GET') {
             throw new MethodNotAllowedException();
         }
 
@@ -83,53 +80,68 @@ class Index implements Endpoint, OpenApiPathsProvider
             throw new ForbiddenException();
         }
 
+        $context = $context->withParameters($this->getParameters($collection));
+
         $context = $context->withQuery($query = $collection->query($context));
 
-        $models = $this->listResources(
-            $query,
-            $collection,
-            $context,
-            $this->defaultSort,
-            $this->pagination,
-        );
+        $models = $this->resolveList($query, $collection, $context, $this->pagination);
 
-        $document = $this->buildResourceDocument($models, $context);
+        $document = $this->serializeResourceDocument($models, $context);
 
         $document['links']['self'] ??= $context->currentUrl();
 
-        $response = $context->createResponse($document);
-
-        return $this->applyResponseHooks($response, $context);
+        return $this->createResponse($document, $context);
     }
 
-    public function getOpenApiPaths(Collection $collection, JsonApi $api): array
+    public function rootSchema(SchemaContext $context): array
     {
-        $response = [
-            'content' => $this->buildOpenApiContent(
-                array_map(
-                    fn($resource) => ['$ref' => "#/components/schemas/$resource"],
-                    $collection->resources(),
-                ),
-                multiple: true,
-            ),
-        ];
+        $type = $context->collection->name();
 
-        if ($headers = $this->getHeadersSchema($api)) {
-            $response['headers'] = $headers;
+        $schemaProviders = [];
+
+        if ($pagination = $this->pagination ?? $context->collection->pagination()) {
+            $schemaProviders[] = $pagination;
         }
 
-        $paths = [
-            "/{$collection->name()}" => [
-                'get' => [
-                    'description' => $this->getDescription(),
-                    'tags' => [$collection->name()],
-                    'responses' => [
-                        '200' => $response,
-                    ],
+        return [
+            'paths' => [
+                "/$type" => [
+                    'get' => $this->mergeSchema([
+                        'tags' => [$type],
+                        'parameters' => array_map(
+                            fn(Parameter $parameter) => $parameter->getSchema($context),
+                            $this->getParameters($context->collection),
+                        ),
+                        'responses' => [
+                            '200' => [
+                                'description' => 'Successful list response.',
+                                ...$this->responseSchema(
+                                    $this->resourceDocumentSchema(
+                                        $context,
+                                        array_map(
+                                            fn($resource) => [
+                                                '$ref' => "#/components/schemas/$resource",
+                                            ],
+                                            $context->collection->resources(),
+                                        ),
+                                        multiple: true,
+                                        schemaProviders: $schemaProviders,
+                                    ),
+                                    $context,
+                                ),
+                            ],
+                        ],
+                    ]),
                 ],
             ],
         ];
+    }
 
-        return $this->mergeSchema($paths);
+    protected function getParameters(Collection $collection): array
+    {
+        return [
+            ...$this->resourceDocumentParameters(),
+            ...$this->listParameters($collection, $this->defaultSort, $this->pagination),
+        ];
     }
 }

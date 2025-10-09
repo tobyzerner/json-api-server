@@ -64,27 +64,8 @@ class ArrTest extends AbstractTestCase
     public static function schemaProvider(): array
     {
         return [
-            [
-                Arr::make(),
-                [
-                    'type' => 'array',
-                    'minItems' => 0,
-                    'maxItems' => null,
-                    'uniqueItems' => false,
-                    'items' => null,
-                ],
-            ],
-            [
-                Arr::make()->nullable(),
-                [
-                    'type' => 'array',
-                    'minItems' => 0,
-                    'maxItems' => null,
-                    'uniqueItems' => false,
-                    'items' => null,
-                    'nullable' => true,
-                ],
-            ],
+            [Arr::make(), ['type' => 'array']],
+            [Arr::make()->nullable(), ['type' => 'array', 'nullable' => true]],
             [
                 Arr::make()
                     ->minItems(1)
@@ -95,16 +76,12 @@ class ArrTest extends AbstractTestCase
                     'minItems' => 1,
                     'maxItems' => 10,
                     'uniqueItems' => true,
-                    'items' => null,
                 ],
             ],
             [
                 Arr::make()->items(Str::make()->nullable()),
                 [
                     'type' => 'array',
-                    'minItems' => 0,
-                    'maxItems' => null,
-                    'uniqueItems' => false,
                     'items' => [
                         'type' => 'string',
                         'nullable' => true,

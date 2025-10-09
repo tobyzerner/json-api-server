@@ -3,108 +3,81 @@
 namespace Tobyz\JsonApiServer\OpenApi;
 
 use Tobyz\JsonApiServer\JsonApi;
-use Tobyz\JsonApiServer\Schema\Field\Relationship;
+use Tobyz\JsonApiServer\SchemaContext;
 
 class OpenApiGenerator
 {
     public function generate(JsonApi $api): array
     {
         $jsonApiVersion = $api::VERSION;
-        $paths = [];
-        $schemas = [
-            'jsonApiResourceIdentifier' => [
-                'type' => 'object',
-                'required' => ['type', 'id'],
-                'properties' => [
-                    'type' => ['type' => 'string'],
-                    'id' => ['type' => 'string'],
-                ],
-            ],
-        ];
 
-        foreach ($api->collections as $collection) {
-            foreach ($collection->endpoints() as $endpoint) {
-                if ($endpoint instanceof OpenApiPathsProvider) {
-                    $paths = array_merge_recursive(
-                        $paths,
-                        $endpoint->getOpenApiPaths($collection, $api),
-                    );
-                }
-            }
-        }
-
-        foreach ($api->resources as $resource) {
-            $type = $resource->type();
-            $id = $resource->id();
-
-            $schema = [
-                'type' => 'object',
-                'required' => ['type'],
-                'properties' => [
-                    'type' => ['type' => 'string', 'const' => $type],
-                    'attributes' => ['type' => 'object'],
-                    'relationships' => ['type' => 'object'],
-                ],
-            ];
-
-            $createSchema = $schema;
-
-            $updateSchema = array_merge_recursive($schema, [
-                'required' => ['id'],
-                'properties' => ['id' => $id->getSchema($api)],
-            ]);
-
-            foreach ([$id, ...$resource->fields()] as $field) {
-                $location = $field::location();
-                $valueSchema = (object) $field->getSchema($api);
-
-                if ($field instanceof Relationship) {
-                    $relationshipSchema = "{$type}_{$field->name}";
-                    $schemas[$relationshipSchema] = $valueSchema;
-                    $valueSchema = ['$ref' => "#/components/schemas/$relationshipSchema"];
-                }
-
-                if ($location) {
-                    $fieldSchema = &$schema['properties'][$location];
-                    $fieldUpdateSchema = &$updateSchema['properties'][$location];
-                    $fieldCreateSchema = &$createSchema['properties'][$location];
-                } else {
-                    $fieldSchema = &$schema;
-                    $fieldUpdateSchema = &$updateSchema;
-                    $fieldCreateSchema = &$createSchema;
-                }
-
-                $fieldSchema['properties'][$field->name] = $valueSchema;
-                $fieldSchema['required'][] = $field->name;
-
-                if ($field->writable) {
-                    $fieldUpdateSchema['properties'][$field->name] = $valueSchema;
-                }
-
-                if ($field->writableOnCreate) {
-                    $fieldCreateSchema['properties'][$field->name] = $valueSchema;
-                    if ($field->required) {
-                        $fieldCreateSchema['required'][] = $field->name;
-                    }
-                }
-            }
-
-            $schemas[$type] = $schema;
-            $schemas["{$type}_create"] = $createSchema;
-            $schemas["{$type}_update"] = $updateSchema;
-        }
-
-        return array_filter([
+        $document = [
             'openapi' => '3.1.0',
-            'servers' => $api->basePath ? [['url' => $api->basePath]] : null,
-            'paths' => $paths,
+            'info' => [
+                'title' => '',
+                'version' => '',
+            ],
+            'paths' => [],
             'components' => [
-                'schemas' => $schemas,
+                'schemas' => [
+                    'jsonApiResourceIdentifier' => [
+                        'type' => 'object',
+                        'required' => ['type', 'id'],
+                        'properties' => [
+                            'type' => ['type' => 'string'],
+                            'id' => ['type' => 'string'],
+                        ],
+                    ],
+                    'jsonApiResource' => [
+                        'type' => 'object',
+                        'required' => ['type', 'id'],
+                        'properties' => [
+                            'type' => ['type' => 'string'],
+                            'id' => ['type' => 'string'],
+                            'attributes' => ['type' => 'object'],
+                            'relationships' => ['type' => 'object'],
+                            'meta' => ['type' => 'object'],
+                            'links' => ['type' => 'object'],
+                        ],
+                    ],
+                    'jsonApiLinkObject' => [
+                        'type' => 'object',
+                        'required' => ['href'],
+                        'properties' => [
+                            'href' => ['type' => 'string', 'format' => 'uri'],
+                            'rel' => ['type' => 'string'],
+                            'describedby' => [
+                                'oneOf' => [
+                                    ['type' => 'string', 'format' => 'uri'],
+                                    ['$ref' => '#/components/schemas/jsonApiLinkObject'],
+                                ],
+                            ],
+                            'title' => ['type' => 'string'],
+                            'type' => ['type' => 'string'],
+                            'hreflang' => ['type' => 'string'],
+                            'meta' => ['type' => 'object'],
+                        ],
+                    ],
+                ],
             ],
             'externalDocs' => [
                 'description' => "JSON:API v$jsonApiVersion Specification",
                 'url' => "https://jsonapi.org/format/$jsonApiVersion/",
             ],
-        ]);
+        ];
+
+        if ($api->basePath) {
+            $document['servers'] = [['url' => $api->basePath]];
+        }
+
+        $context = new SchemaContext($api);
+
+        foreach ([...$api->collections, ...$api->resources] as $provider) {
+            if ($provider instanceof ProvidesRootSchema) {
+                $document = array_replace_recursive($document, $provider->rootSchema($context));
+            }
+        }
+
+        return $document;
     }
 }

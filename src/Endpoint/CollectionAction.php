@@ -5,26 +5,23 @@ namespace Tobyz\JsonApiServer\Endpoint;
 use Closure;
 use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsDocument;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
-use Tobyz\JsonApiServer\Endpoint\Concerns\HasSchema;
+use Tobyz\JsonApiServer\Endpoint\Concerns\SerializesDocument;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
-use Tobyz\JsonApiServer\JsonApi;
-use Tobyz\JsonApiServer\OpenApi\OpenApiPathsProvider;
-use Tobyz\JsonApiServer\Resource\Collection;
-use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
+use Tobyz\JsonApiServer\OpenApi\ProvidesRootSchema;
+use Tobyz\JsonApiServer\Schema\Concerns\HasSchema;
 use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
+use Tobyz\JsonApiServer\SchemaContext;
 
-class CollectionAction implements Endpoint, OpenApiPathsProvider
+class CollectionAction implements Endpoint, ProvidesRootSchema
 {
     use HasVisibility;
-    use HasDescription;
     use HasResponse;
     use HasSchema;
-    use BuildsDocument;
+    use SerializesDocument;
 
-    public string $method = 'POST';
+    private string $method = 'POST';
 
     public function __construct(public string $name, public Closure $handler)
     {
@@ -44,13 +41,13 @@ class CollectionAction implements Endpoint, OpenApiPathsProvider
 
     public function handle(Context $context): ?ResponseInterface
     {
-        $segments = explode('/', $context->path());
+        $segments = $context->pathSegments();
 
-        if (count($segments) !== 2 || $segments[1] !== $this->name) {
+        if (count($segments) !== 1 || $segments[0] !== $this->name) {
             return null;
         }
 
-        if ($context->request->getMethod() !== $this->method) {
+        if (strtoupper($context->method()) !== $this->method) {
             throw new MethodNotAllowedException();
         }
 
@@ -58,33 +55,31 @@ class CollectionAction implements Endpoint, OpenApiPathsProvider
             throw new ForbiddenException();
         }
 
-        ($this->handler)($context);
-
-        $response = $context->createResponse($this->buildDocument($context))->withStatus(204);
-
-        return $this->applyResponseHooks($response, $context);
-    }
-
-    public function getOpenApiPaths(Collection $collection, JsonApi $api): array
-    {
-        $response = [];
-
-        if ($headers = $this->getHeadersSchema($api)) {
-            $response['headers'] = $headers;
+        if ($response = ($this->handler)($context)) {
+            return $this->applyResponseHooks($response, $context);
         }
 
-        $paths = [
-            "/{$collection->name()}/$this->name" => [
-                strtolower($this->method) => [
-                    'description' => $this->getDescription(),
-                    'tags' => [$collection->name()],
-                    'responses' => [
-                        '204' => $response,
-                    ],
+        return $this->createResponse($this->serializeDocument($context), $context)->withStatus(204);
+    }
+
+    public function rootSchema(SchemaContext $context): array
+    {
+        $type = $context->collection->name();
+
+        return [
+            'paths' => [
+                "/$type/$this->name" => [
+                    strtolower($this->method) => $this->mergeSchema([
+                        'tags' => [$type],
+                        'responses' => [
+                            '204' => [
+                                'description' => 'Action performed successfully.',
+                                ...$this->responseSchema(null, $context),
+                            ],
+                        ],
+                    ]),
                 ],
             ],
         ];
-
-        return $this->mergeSchema($paths);
     }
 }

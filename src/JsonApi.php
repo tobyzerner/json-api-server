@@ -8,12 +8,11 @@ use Nyholm\Psr7\ServerRequest;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Tobyz\JsonApiServer\Endpoint\Concerns\EndpointDispatcher;
 use Tobyz\JsonApiServer\Exception\ErrorProvider;
 use Tobyz\JsonApiServer\Exception\InternalServerErrorException;
 use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
-use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
 use Tobyz\JsonApiServer\Exception\NotFoundException;
-use Tobyz\JsonApiServer\Exception\Request\InvalidQueryParameterException;
 use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\Exception\UnsupportedMediaTypeException;
 use Tobyz\JsonApiServer\Extension\Extension;
@@ -24,6 +23,7 @@ use Tobyz\JsonApiServer\Schema\Concerns\HasMeta;
 class JsonApi implements RequestHandlerInterface
 {
     use HasMeta;
+    use EndpointDispatcher;
 
     public const MEDIA_TYPE = 'application/vnd.api+json';
     public const VERSION = '1.1';
@@ -137,30 +137,27 @@ class JsonApi implements RequestHandlerInterface
      */
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
-        $this->validateQueryParameters($request);
-
         $context = new Context($this, $request);
 
         $response = $this->runExtensions($context);
 
         if (!$response) {
-            $segments = explode('/', trim($context->path(), '/'), 2);
+            $segments = $context->pathSegments();
 
-            $context = $context->withCollection($this->getCollection($segments[0]));
-
-            foreach ($context->collection->endpoints() as $endpoint) {
-                try {
-                    if ($response = $endpoint->handle($context->withEndpoint($endpoint))) {
-                        break;
-                    }
-                } catch (MethodNotAllowedException $e) {
-                    // Give other endpoints a chance to handle
-                }
+            if (!$segments) {
+                throw new NotFoundException();
             }
+
+            $collectionName = array_shift($segments);
+            $collection = $this->getCollection($collectionName);
+
+            $context = $context->withCollection($collection)->withPathSegments($segments);
+
+            $response = $this->dispatchEndpoints($collection->endpoints(), $context);
         }
 
         if (!$response) {
-            throw $e ?? new NotFoundException();
+            throw new NotFoundException();
         }
 
         if (count($context->activeProfiles)) {
@@ -197,20 +194,6 @@ class JsonApi implements RequestHandlerInterface
         }
 
         return null;
-    }
-
-    private function validateQueryParameters(ServerRequestInterface $request): void
-    {
-        foreach ($request->getQueryParams() as $key => $value) {
-            if (
-                !preg_match('/[^a-z]/', $key) &&
-                !in_array($key, ['include', 'fields', 'filter', 'page', 'sort'])
-            ) {
-                throw (new InvalidQueryParameterException($key))->source([
-                    'parameter' => $key,
-                ]);
-            }
-        }
     }
 
     private function getContentTypeExtensionUris(ServerRequestInterface $request): array

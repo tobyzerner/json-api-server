@@ -4,7 +4,7 @@ namespace Tobyz\Tests\JsonApiServer\specification;
 
 use Tobyz\JsonApiServer\Endpoint\Index;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
-use Tobyz\JsonApiServer\Exception\Pagination\MaxPageSizeExceededException;
+use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
 use Tobyz\JsonApiServer\Exception\Pagination\RangePaginationNotSupportedException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
@@ -45,6 +45,8 @@ class CursorPaginationTest extends AbstractTestCase
 
         $this->assertEquals('1', $document['data'][0]['id'] ?? null);
         $this->assertEquals('2', $document['data'][1]['id'] ?? null);
+
+        $this->assertEquals('1', $document['data'][0]['meta']['page']['cursor'] ?? null);
 
         $this->assertEquals(10, $document['meta']['page']['total'] ?? null);
 
@@ -119,7 +121,7 @@ class CursorPaginationTest extends AbstractTestCase
 
     public function test_max_size_exceeded_error_contains_meta(): void
     {
-        $this->expectException(MaxPageSizeExceededException::class);
+        $this->expectException(JsonApiErrorsException::class);
 
         $this->api->handle(
             $this->buildRequest('GET', '/articles')->withQueryParams([
@@ -138,8 +140,8 @@ class CursorPaginationTest extends AbstractTestCase
             );
 
             $this->fail('BadRequestException was not thrown');
-        } catch (BadRequestException $exception) {
-            $error = $exception->getJsonApiError() ?? [];
+        } catch (JsonApiErrorsException $e) {
+            $error = $e->errors[0]->getJsonApiError() ?? [];
 
             $this->assertEquals('400', $error['status'] ?? null);
             $this->assertEquals('page[size]', $error['source']['parameter'] ?? null);

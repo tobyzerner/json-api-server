@@ -2,11 +2,13 @@
 
 namespace Tobyz\JsonApiServer\Schema;
 
-use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Field\Field;
+use Tobyz\JsonApiServer\SchemaContext;
 
 class Link extends Field
 {
+    public bool $object = false;
+
     public static function make(string $name): static
     {
         return new static($name);
@@ -17,36 +19,18 @@ class Link extends Field
         return null;
     }
 
-    public function getSchema(JsonApi $api): array
+    public function object(bool $object = true): static
     {
-        return parent::getSchema($api) + [
-            'oneOf' => [
-                ['type' => 'string', 'format' => 'uri'],
-                [
-                    'type' => 'object',
-                    'required' => ['href'],
-                    'properties' => [
-                        'href' => ['type' => 'string', 'format' => 'uri'],
-                        'rel' => ['type' => 'string'],
-                        'describedby' => [
-                            'oneOf' => [
-                                ['type' => 'string', 'format' => 'uri'],
-                                [
-                                    'type' => 'object',
-                                    'required' => ['href'],
-                                    'properties' => [
-                                        'href' => ['type' => 'string', 'format' => 'uri'],
-                                    ],
-                                ],
-                            ],
-                        ],
-                        'title' => ['type' => 'string'],
-                        'type' => ['type' => 'string'],
-                        'hreflang' => ['type' => 'string'],
-                        'meta' => ['type' => 'object'],
-                    ],
-                ],
-            ],
-        ];
+        $this->object = $object;
+
+        return $this;
+    }
+
+    public function getSchema(SchemaContext $context): array
+    {
+        return parent::getSchema($context) +
+            ($this->object
+                ? ['$ref' => '#/components/schemas/jsonApiLinkObject']
+                : ['type' => 'string', 'format' => 'uri']);
     }
 }

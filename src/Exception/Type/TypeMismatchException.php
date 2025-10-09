@@ -2,9 +2,9 @@
 
 namespace Tobyz\JsonApiServer\Exception\Type;
 
-use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
+use Tobyz\JsonApiServer\Exception\BadRequestException;
 
-class TypeMismatchException extends UnprocessableEntityException
+class TypeMismatchException extends BadRequestException
 {
     public function __construct(string $expected, ?string $actual = null)
     {

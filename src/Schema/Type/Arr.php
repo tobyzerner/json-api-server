@@ -64,13 +64,25 @@ class Arr extends AbstractType
 
     protected function getSchema(): array
     {
-        return [
-            'type' => 'array',
-            'minItems' => $this->minItems,
-            'maxItems' => $this->maxItems,
-            'uniqueItems' => $this->uniqueItems,
-            'items' => $this->items?->schema(),
-        ];
+        $schema = ['type' => 'array'];
+
+        if ($this->minItems) {
+            $schema['minItems'] = $this->minItems;
+        }
+
+        if ($this->maxItems !== null) {
+            $schema['maxItems'] = $this->maxItems;
+        }
+
+        if ($this->uniqueItems) {
+            $schema['uniqueItems'] = $this->uniqueItems;
+        }
+
+        if ($this->items) {
+            $schema['items'] = $this->items->schema();
+        }
+
+        return $schema;
     }
 
     public function minItems(int $minItems): static

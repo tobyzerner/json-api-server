@@ -5,30 +5,26 @@ namespace Tobyz\JsonApiServer\Endpoint;
 use Closure;
 use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
-use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsResourceDocument;
-use Tobyz\JsonApiServer\Endpoint\Concerns\FindsResources;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
-use Tobyz\JsonApiServer\Endpoint\Concerns\HasSchema;
+use Tobyz\JsonApiServer\Endpoint\Concerns\ResolvesModel;
+use Tobyz\JsonApiServer\Endpoint\Concerns\SerializesResourceDocument;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
-use Tobyz\JsonApiServer\JsonApi;
-use Tobyz\JsonApiServer\OpenApi\OpenApiPathsProvider;
-use Tobyz\JsonApiServer\Resource\Collection;
-use Tobyz\JsonApiServer\Schema\Concerns\HasDescription;
+use Tobyz\JsonApiServer\OpenApi\ProvidesRootSchema;
+use Tobyz\JsonApiServer\Schema\Concerns\HasSchema;
 use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
+use Tobyz\JsonApiServer\Schema\Parameter;
+use Tobyz\JsonApiServer\SchemaContext;
 
-class ResourceAction implements Endpoint, OpenApiPathsProvider
+class ResourceAction implements Endpoint, ProvidesRootSchema
 {
     use HasVisibility;
-    use HasDescription;
     use HasResponse;
     use HasSchema;
-    use FindsResources;
-    use BuildsResourceDocument;
-    use BuildsOpenApiPaths;
+    use ResolvesModel;
+    use SerializesResourceDocument;
 
-    public string $method = 'POST';
+    private string $method = 'POST';
 
     public function __construct(public string $name, public Closure $handler)
     {
@@ -48,68 +44,75 @@ class ResourceAction implements Endpoint, OpenApiPathsProvider
 
     public function handle(Context $context): ?ResponseInterface
     {
-        $segments = explode('/', $context->path());
+        $segments = $context->pathSegments();
 
-        if (count($segments) !== 3 || $segments[2] !== $this->name) {
+        if (count($segments) !== 2 || $segments[1] !== $this->name) {
             return null;
         }
 
-        if ($context->request->getMethod() !== $this->method) {
+        if (strtoupper($context->method()) !== $this->method) {
             throw new MethodNotAllowedException();
         }
 
-        $model = $this->findResource($context, $segments[1]);
-
-        $context = $context
-            ->withModel($model)
-            ->withResource($context->resource($context->collection->resource($model, $context)));
+        $context = $this->resolveModel($context, $segments[0]);
 
         if (!$this->isVisible($context)) {
             throw new ForbiddenException();
         }
 
-        ($this->handler)($model, $context);
+        $context = $context->withParameters($this->resourceDocumentParameters());
 
-        $response = $context->createResponse($this->buildResourceDocument($model, $context));
-
-        return $this->applyResponseHooks($response, $context);
-    }
-
-    public function getOpenApiPaths(Collection $collection, JsonApi $api): array
-    {
-        $response = [
-            'content' => $this->buildOpenApiContent(
-                array_map(
-                    fn($resource) => ['$ref' => "#/components/schemas/$resource"],
-                    $collection->resources(),
-                ),
-            ),
-        ];
-
-        if ($headers = $this->getHeadersSchema($api)) {
-            $response['headers'] = $headers;
+        if ($response = ($this->handler)($context->model, $context)) {
+            return $this->applyResponseHooks($response, $context);
         }
 
-        $paths = [
-            "/{$collection->name()}/{id}/{$this->name}" => [
-                strtolower($this->method) => [
-                    'description' => $this->getDescription(),
-                    'tags' => [$collection->name()],
-                    'parameters' => [
-                        [
-                            'name' => 'id',
-                            'in' => 'path',
-                            'required' => true,
-                            'schema' => ['type' => 'string'],
+        return $this->createResponse(
+            $this->serializeResourceDocument($context->model, $context),
+            $context,
+        );
+    }
+
+    public function rootSchema(SchemaContext $context): array
+    {
+        $type = $context->collection->name();
+
+        return [
+            'paths' => [
+                "/$type/{id}/$this->name" => $this->mergeSchema([
+                    strtolower($this->method) => [
+                        'tags' => [$type],
+                        'parameters' => [
+                            [
+                                'name' => 'id',
+                                'in' => 'path',
+                                'required' => true,
+                                'schema' => ['type' => 'string'],
+                            ],
+                            ...array_map(
+                                fn(Parameter $parameter) => $parameter->getSchema($context),
+                                $this->resourceDocumentParameters(),
+                            ),
+                        ],
+                        'responses' => [
+                            '200' => [
+                                'description' => 'Action performed successfully.',
+                                ...$this->responseSchema(
+                                    $this->resourceDocumentSchema(
+                                        $context,
+                                        array_map(
+                                            fn($resource) => [
+                                                '$ref' => "#/components/schemas/$resource",
+                                            ],
+                                            $context->collection->resources(),
+                                        ),
+                                    ),
+                                    $context,
+                                ),
+                            ],
                         ],
                     ],
-                    'responses' => [
-                        '200' => $response,
-                    ],
-                ],
+                ]),
             ],
         ];
-
-        return $this->mergeSchema($paths);
     }
 }

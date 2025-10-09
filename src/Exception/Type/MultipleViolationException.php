@@ -2,9 +2,9 @@
 
 namespace Tobyz\JsonApiServer\Exception\Type;
 
-use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
+use Tobyz\JsonApiServer\Exception\BadRequestException;
 
-class MultipleViolationException extends UnprocessableEntityException
+class MultipleViolationException extends BadRequestException
 {
     public function __construct(int|float $multipleOf, int|float|null $actual = null)
     {

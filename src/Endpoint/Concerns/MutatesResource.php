@@ -26,7 +26,7 @@ use function Tobyz\JsonApiServer\get_value;
 use function Tobyz\JsonApiServer\has_value;
 use function Tobyz\JsonApiServer\set_value;
 
-trait SavesData
+trait MutatesResource
 {
     use FindsResources;
 

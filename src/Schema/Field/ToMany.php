@@ -5,8 +5,8 @@ namespace Tobyz\JsonApiServer\Schema\Field;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\Relationship\InvalidRelationshipDataException;
 use Tobyz\JsonApiServer\Exception\Sourceable;
-use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Pagination\Pagination;
+use Tobyz\JsonApiServer\SchemaContext;
 
 class ToMany extends Relationship
 {
@@ -90,23 +90,11 @@ class ToMany extends Relationship
         ];
     }
 
-    protected function getDataSchema(JsonApi $api): array
+    protected function getDataSchema(SchemaContext $context): array
     {
         return [
             'type' => 'array',
-            'items' => [
-                'allOf' => [
-                    ['$ref' => '#/components/schemas/jsonApiResourceIdentifier'],
-                    [
-                        'properties' => [
-                            'type' => [
-                                'type' => 'string',
-                                'enum' => $this->getRelatedResources($api),
-                            ],
-                        ],
-                    ],
-                ],
-            ],
+            'items' => $this->getLinkageSchema($context),
         ];
     }
 }

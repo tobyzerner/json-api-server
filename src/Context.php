@@ -9,24 +9,23 @@ use Nyholm\Psr7\Stream;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use RuntimeException;
-use Tobyz\JsonApiServer\Endpoint\Endpoint;
+use Tobyz\JsonApiServer\Exception\ErrorProvider;
+use Tobyz\JsonApiServer\Exception\Field\InvalidFieldValueException;
+use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
 use Tobyz\JsonApiServer\Exception\NotAcceptableException;
+use Tobyz\JsonApiServer\Exception\Request\InvalidQueryParameterException;
 use Tobyz\JsonApiServer\Exception\Request\InvalidSparseFieldsetsException;
-use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Resource;
 use Tobyz\JsonApiServer\Schema\Field\Field;
+use Tobyz\JsonApiServer\Schema\Parameter;
 use WeakMap;
 
-class Context
+class Context extends SchemaContext
 {
-    public ?Collection $collection = null;
-    public ?Resource $resource = null;
-    public ?Endpoint $endpoint = null;
     public ?object $query = null;
     public ?Serializer $serializer = null;
     public ?object $model = null;
     public ?array $data = null;
-    public ?Field $field = null;
     public ?array $include = null;
     public ArrayObject $documentMeta;
     public ArrayObject $documentLinks;
@@ -35,23 +34,24 @@ class Context
 
     private ?array $body;
     private ?string $path;
+    private ?array $pathSegments = null;
     private ?array $requestedExtensions = null;
     private ?array $requestedProfiles = null;
+    private array $parameters = [];
+    private ?array $queryParameterMap = null;
 
-    private WeakMap $endpoints;
     private WeakMap $resourceIds;
     private WeakMap $modelIds;
-    private WeakMap $fields;
     private WeakMap $sparseFields;
 
-    public function __construct(public JsonApi $api, public ServerRequestInterface $request)
+    public function __construct(JsonApi $api, public ServerRequestInterface $request)
     {
+        parent::__construct($api);
+
         $this->parseAcceptHeader();
 
-        $this->endpoints = new WeakMap();
         $this->resourceIds = new WeakMap();
         $this->modelIds = new WeakMap();
-        $this->fields = new WeakMap();
         $this->sparseFields = new WeakMap();
 
         $this->documentMeta = new ArrayObject();
@@ -59,14 +59,6 @@ class Context
         $this->activeProfiles = new ArrayObject();
 
         $this->resourceMeta = new WeakMap();
-    }
-
-    /**
-     * Get the value of a query param.
-     */
-    public function queryParam(string $name, $default = null)
-    {
-        return $this->request->getQueryParams()[$name] ?? $default;
     }
 
     /**
@@ -86,6 +78,21 @@ class Context
             $this->api->stripBasePath($this->request->getUri()->getPath()),
             '/',
         );
+    }
+
+    public function pathSegments(): array
+    {
+        return $this->pathSegments ??= array_values(
+            array_filter(explode('/', trim($this->path(), '/'))),
+        );
+    }
+
+    public function withPathSegments(array $segments): static
+    {
+        $new = clone $this;
+        $new->pathSegments = array_values($segments);
+
+        return $new;
     }
 
     /**
@@ -121,19 +128,6 @@ class Context
             json_decode($this->request->getBody()->getContents(), true);
     }
 
-    /**
-     * Get a resource by its type.
-     */
-    public function resource(string $type): Resource
-    {
-        return $this->api->getResource($type);
-    }
-
-    public function endpoints(Collection $collection): array
-    {
-        return $this->endpoints[$collection] ??= $collection->endpoints();
-    }
-
     public function id(Resource $resource, $model): string
     {
         if (isset($this->modelIds[$model])) {
@@ -143,26 +137,6 @@ class Context
         $id = $this->resourceIds[$resource] ??= $resource->id();
 
         return $this->modelIds[$model] = $id->serializeValue($id->getValue($this), $this);
-    }
-
-    /**
-     * Get the fields for the given resource, keyed by name.
-     *
-     * @return array<string, Field>
-     */
-    public function fields(Resource $resource): array
-    {
-        if (isset($this->fields[$resource])) {
-            return $this->fields[$resource];
-        }
-
-        $fields = [];
-
-        foreach ($resource->fields() as $field) {
-            $fields[$field->name] = $field;
-        }
-
-        return $this->fields[$resource] = $fields;
     }
 
     /**
@@ -178,7 +152,7 @@ class Context
 
         $fields = $this->fields($resource);
         $type = $resource->type();
-        $fieldsParam = $this->queryParam('fields');
+        $fieldsParam = $this->parameter('fields');
 
         if (is_array($fieldsParam) && array_key_exists($type, $fieldsParam)) {
             $requested = $fieldsParam[$type];
@@ -210,7 +184,7 @@ class Context
      */
     public function sortRequested(string $field): bool
     {
-        if ($sort = $this->queryParam('sort')) {
+        if ($sort = $this->parameter('sort')) {
             foreach (parse_sort_string($sort) as [$name, $direction]) {
                 if ($name === $field) {
                     return true;
@@ -305,8 +279,10 @@ class Context
         $new->sparseFields = new WeakMap();
         $new->body = null;
         $new->path = null;
+        $new->pathSegments = null;
         $new->requestedProfiles = null;
         $new->requestedExtensions = null;
+        $new->queryParameterMap = null;
         $new->parseAcceptHeader();
         return $new;
     }
@@ -322,27 +298,6 @@ class Context
     {
         $new = clone $this;
         $new->data = $data;
-        return $new;
-    }
-
-    public function withCollection(?Collection $collection): static
-    {
-        $new = clone $this;
-        $new->collection = $collection;
-        return $new;
-    }
-
-    public function withResource(?Resource $resource): static
-    {
-        $new = clone $this;
-        $new->resource = $resource;
-        return $new;
-    }
-
-    public function withEndpoint(?Endpoint $endpoint): static
-    {
-        $new = clone $this;
-        $new->endpoint = $endpoint;
         return $new;
     }
 
@@ -367,13 +322,6 @@ class Context
         return $new;
     }
 
-    public function withField(?Field $field): static
-    {
-        $new = clone $this;
-        $new->field = $field;
-        return $new;
-    }
-
     public function withInclude(?array $include): static
     {
         $new = clone $this;
@@ -393,6 +341,130 @@ class Context
         $this->activeProfiles[$uri] = true;
 
         return $this;
+    }
+
+    /**
+     * Load and validate parameters from the request.
+     *
+     * @param Parameter[] $parameters
+     */
+    public function withParameters(array $parameters): static
+    {
+        $context = clone $this;
+        $context->parameters = [];
+
+        $this->validateQueryParameters(
+            array_filter($parameters, fn(Parameter $p) => $p->in === 'query'),
+        );
+
+        $errors = [];
+
+        foreach ($parameters as $parameter) {
+            $value = $this->extractParameterValue($parameter);
+
+            if ($value === null && $parameter->default) {
+                $value = ($parameter->default)();
+            }
+
+            $value = $parameter->deserializeValue($value, $context);
+
+            if ($value === null && !$parameter->required) {
+                continue;
+            }
+
+            $fail = function ($error = []) use (&$errors, $parameter) {
+                if (!$error instanceof ErrorProvider) {
+                    $error = new InvalidFieldValueException(
+                        is_scalar($error) ? ['detail' => (string) $error] : $error,
+                    );
+                }
+
+                $errors[] = $error->source(['parameter' => $parameter->name]);
+            };
+
+            $parameter->validateValue($value, $fail, $context);
+
+            $context->parameters[$parameter->name] = $value;
+        }
+
+        if ($errors) {
+            throw new JsonApiErrorsException($errors);
+        }
+
+        return $context;
+    }
+
+    /**
+     * Get a validated parameter value.
+     */
+    public function parameter(string $name): mixed
+    {
+        return $this->parameters[$name] ?? null;
+    }
+
+    private function validateQueryParameters(array $parameters): void
+    {
+        foreach ($this->request->getQueryParams() as $key => $value) {
+            if (!ctype_lower($key)) {
+                continue;
+            }
+
+            foreach ($this->flattenQueryParameters([$key => $value]) as $flattenedKey => $v) {
+                $matched = false;
+
+                foreach ($parameters as $parameter) {
+                    if (
+                        $flattenedKey === $parameter->name ||
+                        str_starts_with($flattenedKey, $parameter->name . '[')
+                    ) {
+                        $matched = true;
+                    }
+                }
+
+                if (!$matched) {
+                    throw new InvalidQueryParameterException($flattenedKey);
+                }
+            }
+        }
+    }
+
+    private function flattenQueryParameters(array $params, string $prefix = ''): array
+    {
+        $result = [];
+
+        foreach ($params as $key => $value) {
+            $newKey = $prefix ? "{$prefix}[{$key}]" : $key;
+
+            if (is_array($value)) {
+                $result += $this->flattenQueryParameters($value, $newKey);
+            } else {
+                $result[$newKey] = $value;
+            }
+        }
+
+        return $result;
+    }
+
+    private function extractParameterValue(Parameter $param): mixed
+    {
+        return match ($param->in) {
+            'query' => $this->getNestedQueryParam($param->name),
+            'header' => $this->request->getHeaderLine($param->name) ?: null,
+            default => null,
+        };
+    }
+
+    private function getNestedQueryParam(string $name): mixed
+    {
+        $value = $this->request->getQueryParams();
+
+        preg_match_all('/[^\[\]]+/', $name, $matches);
+
+        foreach ($matches[0] ?? [] as $segment) {
+            $value = $value[$segment] ?? null;
+        }
+
+        return $value;
     }
 
     public function forModel(array $collections, ?object $model): static

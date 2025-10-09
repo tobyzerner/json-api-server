@@ -8,9 +8,10 @@ use Tobyz\JsonApiServer\Endpoint\Index;
 use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\Endpoint\Update;
 use Tobyz\JsonApiServer\JsonApi;
-use Tobyz\JsonApiServer\Schema\Field\Attribute;
+use Tobyz\JsonApiServer\Schema\Field\Met;
 use Tobyz\JsonApiServer\Schema\Field\ToMany;
 use Tobyz\JsonApiServer\Schema\Field\ToOne;
+use Tobyz\JsonApiServer\Schema\Meta;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockResource;
 
@@ -33,7 +34,7 @@ class MetaTest extends AbstractTestCase
                 'users',
                 models: [(object) ['id' => '1', 'foo' => 'bar']],
                 endpoints: [Show::make()],
-                meta: [Attribute::make('foo')],
+                meta: [Meta::make('foo')],
             ),
         );
 
@@ -52,7 +53,7 @@ class MetaTest extends AbstractTestCase
                 'users',
                 models: [(object) ['id' => '1']],
                 endpoints: [Show::make()],
-                fields: [ToOne::make('pet')->meta([Attribute::make('foo')->get(fn() => 'bar')])],
+                fields: [ToOne::make('pet')->meta([Meta::make('foo')->get(fn() => 'bar')])],
             ),
         );
 
@@ -73,7 +74,7 @@ class MetaTest extends AbstractTestCase
                 'users',
                 models: [(object) ['id' => '1']],
                 endpoints: [Show::make()],
-                fields: [ToMany::make('pets')->meta([Attribute::make('foo')->get(fn() => 'bar')])],
+                fields: [ToMany::make('pets')->meta([Meta::make('foo')->get(fn() => 'bar')])],
             ),
         );
 
@@ -99,7 +100,7 @@ class MetaTest extends AbstractTestCase
                 fields: [
                     ToOne::make('role')
                         ->get(fn($user) => $user->role)
-                        ->linkageMeta([Attribute::make('active')->get(fn() => true)]),
+                        ->linkageMeta([Meta::make('active')->get(fn() => true)]),
                 ],
             ),
         );
@@ -141,7 +142,7 @@ class MetaTest extends AbstractTestCase
                         ->get(fn($user) => $user->roles)
                         ->withLinkage()
                         ->linkageMeta([
-                            Attribute::make('assignedAt')->get(fn($role) => $role->assignedAt),
+                            Meta::make('assignedAt')->get(fn($role) => $role->assignedAt),
                         ]),
                 ],
             ),
@@ -182,7 +183,7 @@ class MetaTest extends AbstractTestCase
             new MockResource(
                 'users',
                 models: [(object) ['id' => '1', 'foo' => 'bar']],
-                endpoints: [Show::make()->meta([Attribute::make('foo')->get(fn() => 'bar')])],
+                endpoints: [Show::make()->meta([Meta::make('foo')->get(fn() => 'bar')])],
             ),
         );
 
@@ -197,7 +198,7 @@ class MetaTest extends AbstractTestCase
             new MockResource(
                 'users',
                 models: [(object) ['id' => '1', 'foo' => 'bar']],
-                endpoints: [Update::make()->meta([Attribute::make('foo')->get(fn() => 'bar')])],
+                endpoints: [Update::make()->meta([Meta::make('foo')->get(fn() => 'bar')])],
             ),
         );
 
@@ -216,7 +217,7 @@ class MetaTest extends AbstractTestCase
             new MockResource(
                 'users',
                 models: [(object) ['id' => '1', 'foo' => 'bar']],
-                endpoints: [Delete::make()->meta([Attribute::make('foo')->get(fn() => 'bar')])],
+                endpoints: [Delete::make()->meta([Meta::make('foo')->get(fn() => 'bar')])],
             ),
         );
 
@@ -230,7 +231,7 @@ class MetaTest extends AbstractTestCase
         $this->api->resource(
             new MockResource(
                 'users',
-                endpoints: [Index::make()->meta([Attribute::make('foo')->get(fn() => 'bar')])],
+                endpoints: [Index::make()->meta([Meta::make('foo')->get(fn() => 'bar')])],
             ),
         );
 
@@ -244,7 +245,7 @@ class MetaTest extends AbstractTestCase
         $this->api->resource(
             new MockResource(
                 'users',
-                endpoints: [Create::make()->meta([Attribute::make('foo')->get(fn() => 'bar')])],
+                endpoints: [Create::make()->meta([Meta::make('foo')->get(fn() => 'bar')])],
             ),
         );
 

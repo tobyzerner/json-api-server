@@ -2,9 +2,9 @@
 
 namespace Tobyz\JsonApiServer\Exception\Type;
 
-use Tobyz\JsonApiServer\Exception\UnprocessableEntityException;
+use Tobyz\JsonApiServer\Exception\BadRequestException;
 
-class NullViolationException extends UnprocessableEntityException
+class NullViolationException extends BadRequestException
 {
     public function __construct()
     {
