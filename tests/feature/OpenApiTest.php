@@ -56,9 +56,7 @@ class OpenApiTest extends AbstractTestCase
             ),
         );
 
-        $generator = new OpenApiGenerator();
-
-        $definition = $generator->generate($api);
+        $definition = (new OpenApiGenerator())->generate($api);
 
         $this->assertEquals(
             json_decode(
@@ -128,6 +126,29 @@ class OpenApiTest extends AbstractTestCase
                             ],
                             'post' => [
                                 'tags' => ['users'],
+                                'parameters' => [
+                                    [
+                                        'name' => 'include',
+                                        'in' => 'query',
+                                        'schema' => [
+                                            'type' => 'string',
+                                        ],
+                                        'description' =>
+                                            'Comma-separated list of relationship paths to include',
+                                    ],
+                                    [
+                                        'name' => 'fields',
+                                        'in' => 'query',
+                                        'schema' => [
+                                            'type' => 'object',
+                                            'additionalProperties' => [
+                                                'type' => 'string',
+                                            ],
+                                        ],
+                                        'description' =>
+                                            'Comma-separated sparse fieldsets keyed by type',
+                                    ],
+                                ],
                                 'requestBody' => [
                                     'required' => true,
                                     'content' => [

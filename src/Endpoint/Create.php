@@ -6,6 +6,7 @@ use Closure;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\HasParameters;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
 use Tobyz\JsonApiServer\Endpoint\Concerns\MutatesResource;
 use Tobyz\JsonApiServer\Endpoint\Concerns\SerializesResourceDocument;
@@ -16,6 +17,7 @@ use Tobyz\JsonApiServer\OpenApi\ProvidesRootSchema;
 use Tobyz\JsonApiServer\Resource\Creatable;
 use Tobyz\JsonApiServer\Schema\Concerns\HasSchema;
 use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
+use Tobyz\JsonApiServer\Schema\Parameter;
 use Tobyz\JsonApiServer\SchemaContext;
 
 use function Tobyz\JsonApiServer\has_value;
@@ -24,6 +26,7 @@ use function Tobyz\JsonApiServer\set_value;
 class Create implements Endpoint, ProvidesRootSchema
 {
     use HasVisibility;
+    use HasParameters;
     use HasResponse;
     use HasSchema;
     use MutatesResource;
@@ -59,7 +62,7 @@ class Create implements Endpoint, ProvidesRootSchema
             throw new ForbiddenException();
         }
 
-        $context = $context->withParameters($this->resourceDocumentParameters());
+        $context = $context->withParameters($this->getParameters());
 
         $data = $this->parseData($context);
 
@@ -181,6 +184,10 @@ class Create implements Endpoint, ProvidesRootSchema
                 "/$type" => [
                     'post' => $this->mergeSchema([
                         'tags' => [$type],
+                        'parameters' => array_map(
+                            fn(Parameter $parameter) => $parameter->getSchema($context),
+                            $this->getParameters(),
+                        ),
                         'requestBody' => [
                             'required' => true,
                             'content' => [
@@ -202,5 +209,10 @@ class Create implements Endpoint, ProvidesRootSchema
                 ],
             ],
         ];
+    }
+
+    protected function getParameters(): array
+    {
+        return [...$this->resourceDocumentParameters(), ...$this->parameters];
     }
 }

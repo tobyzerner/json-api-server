@@ -4,6 +4,7 @@ namespace Tobyz\JsonApiServer\Endpoint;
 
 use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\HasParameters;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
 use Tobyz\JsonApiServer\Endpoint\Concerns\ResolvesList;
 use Tobyz\JsonApiServer\Endpoint\Concerns\ResolvesModel;
@@ -20,6 +21,7 @@ use Tobyz\JsonApiServer\SchemaContext;
 
 class ShowRelationship implements Endpoint, ProvidesRootSchema, ProvidesRelationshipLinks
 {
+    use HasParameters;
     use HasResponse;
     use ResolvesModel;
     use ResolvesRelationship;
@@ -53,7 +55,7 @@ class ShowRelationship implements Endpoint, ProvidesRootSchema, ProvidesRelation
             return null;
         }
 
-        $context = $context->withParameters($this->parameters($field, $context));
+        $context = $context->withParameters($this->getParameters($field, $context));
 
         $relatedData = $this->resolveRelationshipData($context, $field);
 
@@ -99,7 +101,7 @@ class ShowRelationship implements Endpoint, ProvidesRootSchema, ProvidesRelation
                         ],
                         ...array_map(
                             fn(Parameter $parameter) => $parameter->getSchema($context),
-                            $this->parameters($field, $context),
+                            $this->getParameters($field, $context),
                         ),
                     ],
                     'responses' => [
@@ -120,7 +122,7 @@ class ShowRelationship implements Endpoint, ProvidesRootSchema, ProvidesRelation
         return ['paths' => $paths];
     }
 
-    protected function parameters(Relationship $field, SchemaContext $context): array
+    protected function getParameters(Relationship $field, SchemaContext $context): array
     {
         $parameters = [];
 
@@ -131,7 +133,7 @@ class ShowRelationship implements Endpoint, ProvidesRootSchema, ProvidesRelation
             );
         }
 
-        return $parameters;
+        return [...$parameters, ...$this->parameters];
     }
 
     public function relationshipLinks(Relationship $field, SchemaContext $context): array

@@ -5,6 +5,7 @@ namespace Tobyz\JsonApiServer\Endpoint;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\HasParameters;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
 use Tobyz\JsonApiServer\Endpoint\Concerns\ResolvesModel;
 use Tobyz\JsonApiServer\Endpoint\Concerns\SerializesDocument;
@@ -13,10 +14,12 @@ use Tobyz\JsonApiServer\OpenApi\ProvidesRootSchema;
 use Tobyz\JsonApiServer\Resource\Deletable;
 use Tobyz\JsonApiServer\Schema\Concerns\HasSchema;
 use Tobyz\JsonApiServer\Schema\Link;
+use Tobyz\JsonApiServer\Schema\Parameter;
 use Tobyz\JsonApiServer\SchemaContext;
 
 class Delete implements Endpoint, ProvidesRootSchema, ProvidesResourceLinks
 {
+    use HasParameters;
     use HasResponse;
     use HasSchema;
     use ResolvesModel;
@@ -47,6 +50,8 @@ class Delete implements Endpoint, ProvidesRootSchema, ProvidesResourceLinks
             );
         }
 
+        $context = $context->withParameters($this->parameters);
+
         $context->resource->delete($context->model, $context);
 
         return $this->createResponse($this->serializeDocument($context), $context)->withStatus(204);
@@ -68,6 +73,10 @@ class Delete implements Endpoint, ProvidesRootSchema, ProvidesResourceLinks
                                 'required' => true,
                                 'schema' => ['type' => 'string'],
                             ],
+                            ...array_map(
+                                fn(Parameter $parameter) => $parameter->getSchema($context),
+                                $this->parameters,
+                            ),
                         ],
                         'responses' => [
                             '204' => [

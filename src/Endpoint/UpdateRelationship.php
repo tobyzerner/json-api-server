@@ -5,6 +5,7 @@ namespace Tobyz\JsonApiServer\Endpoint;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\HasParameters;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
 use Tobyz\JsonApiServer\Endpoint\Concerns\MutatesResource;
 use Tobyz\JsonApiServer\Endpoint\Concerns\ResolvesModel;
@@ -21,12 +22,14 @@ use Tobyz\JsonApiServer\Resource\Updatable;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
 use Tobyz\JsonApiServer\Schema\Field\ToMany;
 use Tobyz\JsonApiServer\Schema\Link;
+use Tobyz\JsonApiServer\Schema\Parameter;
 use Tobyz\JsonApiServer\SchemaContext;
 
 use function Tobyz\JsonApiServer\resolve_value;
 
 class UpdateRelationship implements Endpoint, ProvidesRootSchema, ProvidesRelationshipLinks
 {
+    use HasParameters;
     use HasResponse;
     use ResolvesModel;
     use ResolvesRelationship;
@@ -65,6 +68,8 @@ class UpdateRelationship implements Endpoint, ProvidesRootSchema, ProvidesRelati
         );
 
         $this->assertFieldWritable($context, $field);
+
+        $context = $context->withParameters($this->parameters);
 
         $value = $field->deserializeValue($context->body() ?? [], $context);
 
@@ -108,6 +113,10 @@ class UpdateRelationship implements Endpoint, ProvidesRootSchema, ProvidesRelati
                             'required' => true,
                             'schema' => ['type' => 'string'],
                         ],
+                        ...array_map(
+                            fn(Parameter $parameter) => $parameter->getSchema($context),
+                            $this->parameters,
+                        ),
                     ],
                     'requestBody' => [
                         'required' => true,

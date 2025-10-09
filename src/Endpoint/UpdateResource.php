@@ -5,6 +5,7 @@ namespace Tobyz\JsonApiServer\Endpoint;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\HasParameters;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
 use Tobyz\JsonApiServer\Endpoint\Concerns\MutatesResource;
 use Tobyz\JsonApiServer\Endpoint\Concerns\ResolvesModel;
@@ -20,6 +21,7 @@ use Tobyz\JsonApiServer\SchemaContext;
 
 class UpdateResource implements Endpoint, ProvidesRootSchema, ProvidesResourceLinks
 {
+    use HasParameters;
     use HasResponse;
     use HasSchema;
     use ResolvesModel;
@@ -51,7 +53,7 @@ class UpdateResource implements Endpoint, ProvidesRootSchema, ProvidesResourceLi
             );
         }
 
-        $context = $context->withParameters($this->resourceDocumentParameters());
+        $context = $context->withParameters($this->getParameters());
 
         $data = $this->parseData($context);
 
@@ -90,7 +92,7 @@ class UpdateResource implements Endpoint, ProvidesRootSchema, ProvidesResourceLi
                             ],
                             ...array_map(
                                 fn(Parameter $parameter) => $parameter->getSchema($context),
-                                $this->resourceDocumentParameters(),
+                                $this->getParameters(),
                             ),
                         ],
                         'requestBody' => [
@@ -139,5 +141,10 @@ class UpdateResource implements Endpoint, ProvidesRootSchema, ProvidesResourceLi
                 fn($model, Context $context) => $this->resourceSelfLink($model, $context),
             ),
         ];
+    }
+
+    protected function getParameters(): array
+    {
+        return [...$this->resourceDocumentParameters(), ...$this->parameters];
     }
 }

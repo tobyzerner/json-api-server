@@ -5,6 +5,7 @@ namespace Tobyz\JsonApiServer\Endpoint;
 use Closure;
 use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\HasParameters;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
 use Tobyz\JsonApiServer\Endpoint\Concerns\ResolvesModel;
 use Tobyz\JsonApiServer\Endpoint\Concerns\SerializesResourceDocument;
@@ -19,6 +20,7 @@ use Tobyz\JsonApiServer\SchemaContext;
 class ResourceAction implements Endpoint, ProvidesRootSchema
 {
     use HasVisibility;
+    use HasParameters;
     use HasResponse;
     use HasSchema;
     use ResolvesModel;
@@ -60,7 +62,7 @@ class ResourceAction implements Endpoint, ProvidesRootSchema
             throw new ForbiddenException();
         }
 
-        $context = $context->withParameters($this->resourceDocumentParameters());
+        $context = $context->withParameters($this->getParameters());
 
         if ($response = ($this->handler)($context->model, $context)) {
             return $this->applyResponseHooks($response, $context);
@@ -90,7 +92,7 @@ class ResourceAction implements Endpoint, ProvidesRootSchema
                             ],
                             ...array_map(
                                 fn(Parameter $parameter) => $parameter->getSchema($context),
-                                $this->resourceDocumentParameters(),
+                                $this->getParameters(),
                             ),
                         ],
                         'responses' => [
@@ -114,5 +116,10 @@ class ResourceAction implements Endpoint, ProvidesRootSchema
                 ]),
             ],
         ];
+    }
+
+    protected function getParameters(): array
+    {
+        return [...$this->resourceDocumentParameters(), ...$this->parameters];
     }
 }

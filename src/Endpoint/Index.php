@@ -5,6 +5,7 @@ namespace Tobyz\JsonApiServer\Endpoint;
 use Psr\Http\Message\ResponseInterface as Response;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\HasParameters;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
 use Tobyz\JsonApiServer\Endpoint\Concerns\ResolvesList;
 use Tobyz\JsonApiServer\Endpoint\Concerns\SerializesResourceDocument;
@@ -24,6 +25,7 @@ use Tobyz\JsonApiServer\SchemaContext;
 class Index implements Endpoint, ProvidesRootSchema
 {
     use HasVisibility;
+    use HasParameters;
     use HasResponse;
     use HasSchema;
     use ResolvesList;
@@ -142,6 +144,7 @@ class Index implements Endpoint, ProvidesRootSchema
         return [
             ...$this->resourceDocumentParameters(),
             ...$this->listParameters($collection, $this->defaultSort, $this->pagination),
+            ...$this->parameters,
         ];
     }
 }

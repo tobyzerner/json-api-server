@@ -11,10 +11,14 @@ use Tobyz\JsonApiServer\SchemaContext;
 
 trait HasResponse
 {
-    /** @var Header[] */
+    /**
+     * @var Header[]
+     */
     protected array $headers = [];
 
-    /** @var Closure[] */
+    /**
+     * @var Closure[]
+     */
     protected array $responseCallbacks = [];
 
     /**
