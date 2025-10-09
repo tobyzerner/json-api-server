@@ -5,6 +5,8 @@ namespace Tobyz\JsonApiServer\Laravel\Filter;
 use LogicException;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Laravel\EloquentResource;
+use Tobyz\JsonApiServer\Laravel\Field\ToMany;
+use Tobyz\JsonApiServer\Laravel\Field\ToOne;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
 use Tobyz\JsonApiServer\Schema\Filter;
 
@@ -72,14 +74,16 @@ class WhereHas extends Filter
                 $operator,
                 $v,
                 $relatedCollection,
+                $field,
                 $context,
             ) {
                 if ($relatedCollection instanceof EloquentResource) {
                     $relatedCollection->scope($query, $context);
                 }
 
-                // TODO: apply relationship scope
-                // TODO: allow applying custom scope
+                if (($field instanceof ToMany || $field instanceof ToOne) && $field->scope) {
+                    ($field->scope)($query, $context);
+                }
 
                 if (in_array($operator, ['null', 'notnull'])) {
                     return;
