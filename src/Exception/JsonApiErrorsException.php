@@ -10,7 +10,7 @@ class JsonApiErrorsException extends DomainException implements Sourceable
     {
         parent::__construct('Multiple errors occurred');
 
-        foreach ($this->errors as $error) {
+        foreach ($this->errors as &$error) {
             if (!$error instanceof ErrorProvider) {
                 $error = new InternalServerErrorException();
             }
