@@ -38,7 +38,6 @@ class Context extends SchemaContext
     private ?array $requestedExtensions = null;
     private ?array $requestedProfiles = null;
     private array $parameters = [];
-    private ?array $queryParameterMap = null;
 
     private WeakMap $resourceIds;
     private WeakMap $modelIds;
@@ -282,7 +281,6 @@ class Context extends SchemaContext
         $new->pathSegments = null;
         $new->requestedProfiles = null;
         $new->requestedExtensions = null;
-        $new->queryParameterMap = null;
         $new->parseAcceptHeader();
         return $new;
     }
