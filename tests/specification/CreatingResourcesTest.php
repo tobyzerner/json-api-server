@@ -2,10 +2,12 @@
 
 namespace Tobyz\Tests\JsonApiServer\specification;
 
+use Nyholm\Psr7\Stream;
 use Tobyz\JsonApiServer\Endpoint\Create;
 use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\ConflictException;
+use Tobyz\JsonApiServer\Exception\Data\InvalidJsonException;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
 use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\JsonApi;
@@ -35,6 +37,15 @@ class CreatingResourcesTest extends AbstractTestCase
         );
 
         $this->api->resource(new MockResource('pets'));
+    }
+
+    public function test_bad_request_error_if_body_is_invalid_json()
+    {
+        $this->expectException(InvalidJsonException::class);
+
+        $this->api->handle(
+            $this->buildRequest('POST', '/users')->withBody(Stream::create('invalid json')),
+        );
     }
 
     public function test_bad_request_error_if_body_does_not_contain_data_type()

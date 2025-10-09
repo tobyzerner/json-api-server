@@ -4,11 +4,13 @@ namespace Tobyz\JsonApiServer;
 
 use ArrayObject;
 use HttpAccept\AcceptParser;
+use JsonException;
 use Nyholm\Psr7\Response;
 use Nyholm\Psr7\Stream;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use RuntimeException;
+use Tobyz\JsonApiServer\Exception\Data\InvalidJsonException;
 use Tobyz\JsonApiServer\Exception\ErrorProvider;
 use Tobyz\JsonApiServer\Exception\Field\InvalidFieldValueException;
 use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
@@ -122,9 +124,17 @@ class Context extends SchemaContext
      */
     public function body(): ?array
     {
-        return $this->body ??=
-            (array) $this->request->getParsedBody() ?:
-            json_decode($this->request->getBody()->getContents(), true);
+        try {
+            return $this->body ??=
+                (array) $this->request->getParsedBody() ?:
+                json_decode(
+                    $this->request->getBody()->getContents(),
+                    true,
+                    flags: JSON_THROW_ON_ERROR,
+                );
+        } catch (JsonException $e) {
+            throw new InvalidJsonException($e->getMessage());
+        }
     }
 
     public function id(Resource $resource, $model): string
