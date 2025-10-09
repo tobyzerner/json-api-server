@@ -9,7 +9,6 @@ use Tobyz\JsonApiServer\Endpoint\ProvidesDocumentMeta;
 use Tobyz\JsonApiServer\Endpoint\ProvidesParameters;
 use Tobyz\JsonApiServer\Endpoint\ProvidesResourceMeta;
 use Tobyz\JsonApiServer\Exception\Sourceable;
-use Tobyz\JsonApiServer\Pagination\Concerns\HasSizeParameter;
 use Tobyz\JsonApiServer\Resource\CursorPaginatable;
 use Tobyz\JsonApiServer\Schema\Link;
 use Tobyz\JsonApiServer\Schema\Meta;
@@ -23,13 +22,10 @@ class CursorPagination implements
     ProvidesDocumentLinks,
     ProvidesResourceMeta
 {
-    use HasSizeParameter;
-
     public const PROFILE_URI = 'https://jsonapi.org/profiles/ethanresnick/cursor-pagination';
 
-    public function __construct(int $defaultSize = 20, ?int $maxSize = 50)
+    public function __construct(public int $defaultSize = 20, public ?int $maxSize = 50)
     {
-        $this->configureSizeParameter($defaultSize, $maxSize);
     }
 
     public function parameters(): array

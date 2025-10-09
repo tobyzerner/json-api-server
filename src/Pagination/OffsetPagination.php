@@ -7,7 +7,6 @@ use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\ProvidesDocumentLinks;
 use Tobyz\JsonApiServer\Endpoint\ProvidesDocumentMeta;
 use Tobyz\JsonApiServer\Endpoint\ProvidesParameters;
-use Tobyz\JsonApiServer\Pagination\Concerns\HasSizeParameter;
 use Tobyz\JsonApiServer\Resource\Paginatable;
 use Tobyz\JsonApiServer\Schema\Link;
 use Tobyz\JsonApiServer\Schema\Meta;
@@ -20,11 +19,8 @@ class OffsetPagination implements
     ProvidesDocumentMeta,
     ProvidesDocumentLinks
 {
-    use HasSizeParameter;
-
-    public function __construct(int $defaultLimit = 20, ?int $maxLimit = 50)
+    public function __construct(public int $defaultLimit = 20, public ?int $maxLimit = 50)
     {
-        $this->configureSizeParameter($defaultLimit, $maxLimit);
     }
 
     public function parameters(): array
@@ -38,9 +34,9 @@ class OffsetPagination implements
                 ->type(
                     Type\Integer::make()
                         ->minimum(1)
-                        ->maximum($this->maxSize),
+                        ->maximum($this->maxLimit),
                 )
-                ->default(fn() => $this->defaultSize),
+                ->default(fn() => $this->defaultLimit),
         ];
     }
 
