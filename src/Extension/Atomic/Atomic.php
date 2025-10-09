@@ -12,8 +12,11 @@ use Tobyz\JsonApiServer\Extension\Atomic\Exception\AtomicRefUnsupportedException
 use Tobyz\JsonApiServer\Extension\Atomic\Exception\InvalidAtomicOperationException;
 use Tobyz\JsonApiServer\Extension\Atomic\Exception\InvalidAtomicOperationsException;
 use Tobyz\JsonApiServer\Extension\Extension;
+use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\OpenApi\ProvidesRootSchema;
+use Tobyz\JsonApiServer\SchemaContext;
 
-class Atomic extends Extension
+class Atomic extends Extension implements ProvidesRootSchema
 {
     public const URI = 'https://jsonapi.org/ext/atomic';
 
@@ -155,5 +158,224 @@ class Atomic extends Extension
         }
 
         return $array;
+    }
+
+    public function rootSchema(SchemaContext $context): array
+    {
+        $mediaType = JsonApi::MEDIA_TYPE . '; ext=' . static::URI;
+
+        return [
+            'paths' => [
+                "/$this->path" => [
+                    'post' => [
+                        'summary' => 'Perform a set of atomic operations.',
+                        'requestBody' => [
+                            'required' => true,
+                            'content' => [
+                                $mediaType => [
+                                    'schema' => [
+                                        '$ref' => '#/components/schemas/jsonApiAtomicOperationsDocument',
+                                    ],
+                                ],
+                            ],
+                        ],
+                        'responses' => [
+                            '200' => [
+                                'description' => 'Atomic operations executed successfully.',
+                                'content' => [
+                                    $mediaType => [
+                                        'schema' => [
+                                            '$ref' => '#/components/schemas/jsonApiAtomicResultsDocument',
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'components' => [
+                'schemas' => [
+                    'jsonApiAtomicOperationsDocument' => [
+                        'type' => 'object',
+                        'required' => ['atomic:operations'],
+                        'properties' => [
+                            'atomic:operations' => [
+                                'type' => 'array',
+                                'minItems' => 1,
+                                'items' => [
+                                    '$ref' => '#/components/schemas/jsonApiAtomicOperation',
+                                ],
+                            ],
+                            'jsonapi' => ['type' => 'object'],
+                            'meta' => ['type' => 'object'],
+                            'links' => ['type' => 'object'],
+                        ],
+                        'additionalProperties' => true,
+                    ],
+                    'jsonApiAtomicOperation' => [
+                        'type' => 'object',
+                        'required' => ['op'],
+                        'properties' => [
+                            'op' => [
+                                'type' => 'string',
+                                'enum' => ['add', 'update', 'remove'],
+                            ],
+                            'href' => ['type' => 'string', 'format' => 'uri-reference'],
+                            'ref' => [
+                                '$ref' => '#/components/schemas/jsonApiAtomicRef',
+                            ],
+                            'params' => [
+                                'type' => 'object',
+                                'additionalProperties' => [
+                                    'oneOf' => [
+                                        ['type' => 'string'],
+                                        ['type' => 'number'],
+                                        ['type' => 'integer'],
+                                        ['type' => 'boolean'],
+                                        [
+                                            'type' => 'array',
+                                            'items' => ['type' => 'string'],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                            'data' => [
+                                '$ref' => '#/components/schemas/jsonApiAtomicOperationData',
+                            ],
+                            'meta' => ['type' => 'object'],
+                        ],
+                        'additionalProperties' => true,
+                    ],
+                    'jsonApiAtomicRef' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'type' => ['type' => 'string'],
+                            'id' => ['type' => 'string'],
+                            'lid' => ['type' => 'string'],
+                            'relationship' => [
+                                'oneOf' => [
+                                    ['type' => 'string'],
+                                    [
+                                        'type' => 'object',
+                                        'properties' => [
+                                            'type' => ['type' => 'string'],
+                                            'id' => ['type' => 'string'],
+                                            'lid' => ['type' => 'string'],
+                                            'name' => ['type' => 'string'],
+                                        ],
+                                        'additionalProperties' => true,
+                                    ],
+                                ],
+                            ],
+                            'meta' => ['type' => 'object'],
+                        ],
+                        'additionalProperties' => true,
+                    ],
+                    'jsonApiAtomicOperationData' => [
+                        'anyOf' => [
+                            ['$ref' => '#/components/schemas/jsonApiAtomicResourceObject'],
+                            ['$ref' => '#/components/schemas/jsonApiAtomicRelationshipData'],
+                        ],
+                    ],
+                    'jsonApiAtomicRelationshipData' => [
+                        'oneOf' => [
+                            ['$ref' => '#/components/schemas/jsonApiAtomicResourceIdentifier'],
+                            [
+                                'type' => 'array',
+                                'items' => [
+                                    '$ref' => '#/components/schemas/jsonApiAtomicResourceIdentifier',
+                                ],
+                            ],
+                            ['type' => 'null'],
+                        ],
+                    ],
+                    'jsonApiAtomicResourceObject' => [
+                        'type' => 'object',
+                        'required' => ['type'],
+                        'properties' => [
+                            'type' => ['type' => 'string'],
+                            'id' => ['type' => 'string'],
+                            'lid' => ['type' => 'string'],
+                            'attributes' => ['type' => 'object'],
+                            'relationships' => [
+                                'type' => 'object',
+                                'additionalProperties' => [
+                                    'type' => 'object',
+                                    'properties' => [
+                                        'data' => [
+                                            '$ref' => '#/components/schemas/jsonApiAtomicRelationshipData',
+                                        ],
+                                        'meta' => ['type' => 'object'],
+                                        'links' => ['type' => 'object'],
+                                    ],
+                                    'additionalProperties' => true,
+                                ],
+                            ],
+                            'meta' => ['type' => 'object'],
+                        ],
+                        'additionalProperties' => true,
+                    ],
+                    'jsonApiAtomicResourceIdentifier' => [
+                        'type' => 'object',
+                        'required' => ['type'],
+                        'properties' => [
+                            'type' => ['type' => 'string'],
+                            'id' => ['type' => 'string'],
+                            'lid' => ['type' => 'string'],
+                            'meta' => ['type' => 'object'],
+                        ],
+                        'additionalProperties' => true,
+                    ],
+                    'jsonApiAtomicResultsDocument' => [
+                        'type' => 'object',
+                        'required' => ['atomic:results'],
+                        'properties' => [
+                            'atomic:results' => [
+                                'type' => 'array',
+                                'items' => [
+                                    'oneOf' => [
+                                        ['type' => 'null'],
+                                        [
+                                            '$ref' => '#/components/schemas/jsonApiAtomicResultDocument',
+                                        ],
+                                    ],
+                                ],
+                            ],
+                            'jsonapi' => ['type' => 'object'],
+                            'meta' => ['type' => 'object'],
+                            'links' => ['type' => 'object'],
+                        ],
+                        'additionalProperties' => true,
+                    ],
+                    'jsonApiAtomicResultDocument' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'data' => [
+                                'anyOf' => [
+                                    ['type' => 'object'],
+                                    [
+                                        'type' => 'array',
+                                        'items' => ['type' => 'object'],
+                                    ],
+                                    ['type' => 'null'],
+                                ],
+                            ],
+                            'errors' => [
+                                'type' => 'array',
+                                'items' => ['type' => 'object'],
+                            ],
+                            'meta' => ['type' => 'object'],
+                            'links' => ['type' => 'object'],
+                            'included' => [
+                                'type' => 'array',
+                                'items' => ['type' => 'object'],
+                            ],
+                        ],
+                        'additionalProperties' => true,
+                    ],
+                ],
+            ],
+        ];
     }
 }

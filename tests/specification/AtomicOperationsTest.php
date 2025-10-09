@@ -8,6 +8,7 @@ use Tobyz\JsonApiServer\Endpoint\Update;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Extension\Atomic\Atomic;
 use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\OpenApi\OpenApiGenerator;
 use Tobyz\JsonApiServer\Schema\Field\Attribute;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockResource;
@@ -125,5 +126,141 @@ class AtomicOperationsTest extends AbstractTestCase
                 $e->getJsonApiError()['source']['pointer'],
             );
         }
+    }
+
+    public function test_atomic_operations_schema()
+    {
+        $definition = (new OpenApiGenerator())->generate($this->api);
+
+        $this->assertArraySubset(
+            [
+                'paths' => [
+                    '/operations' => [
+                        'post' => [
+                            'requestBody' => [
+                                'required' => true,
+                                'content' => [
+                                    static::MEDIA_TYPE => [
+                                        'schema' => [
+                                            '$ref' =>
+                                                '#/components/schemas/jsonApiAtomicOperationsDocument',
+                                        ],
+                                    ],
+                                ],
+                            ],
+                            'responses' => [
+                                '200' => [
+                                    'content' => [
+                                        static::MEDIA_TYPE => [
+                                            'schema' => [
+                                                '$ref' =>
+                                                    '#/components/schemas/jsonApiAtomicResultsDocument',
+                                            ],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                'components' => [
+                    'schemas' => [
+                        'jsonApiAtomicOperationsDocument' => [
+                            'required' => ['atomic:operations'],
+                            'properties' => [
+                                'atomic:operations' => [
+                                    'items' => [
+                                        '$ref' =>
+                                            '#/components/schemas/jsonApiAtomicOperation',
+                                    ],
+                                ],
+                            ],
+                        ],
+                        'jsonApiAtomicOperation' => [
+                            'required' => ['op'],
+                            'properties' => [
+                                'op' => [
+                                    'enum' => ['add', 'update', 'remove'],
+                                ],
+                                'data' => [
+                                    '$ref' =>
+                                        '#/components/schemas/jsonApiAtomicOperationData',
+                                ],
+                                'ref' => [
+                                    '$ref' => '#/components/schemas/jsonApiAtomicRef',
+                                ],
+                            ],
+                        ],
+                        'jsonApiAtomicOperationData' => [
+                            'anyOf' => [
+                                ['$ref' => '#/components/schemas/jsonApiAtomicResourceObject'],
+                                [
+                                    '$ref' =>
+                                        '#/components/schemas/jsonApiAtomicRelationshipData',
+                                ],
+                            ],
+                        ],
+                        'jsonApiAtomicRelationshipData' => [
+                            'oneOf' => [
+                                ['$ref' => '#/components/schemas/jsonApiAtomicResourceIdentifier'],
+                                ['type' => 'array'],
+                                ['type' => 'null'],
+                            ],
+                        ],
+                        'jsonApiAtomicResourceIdentifier' => [
+                            'required' => ['type'],
+                            'properties' => [
+                                'lid' => ['type' => 'string'],
+                            ],
+                        ],
+                        'jsonApiAtomicResourceObject' => [
+                            'required' => ['type'],
+                            'properties' => [
+                                'lid' => ['type' => 'string'],
+                                'relationships' => ['type' => 'object'],
+                            ],
+                        ],
+                        'jsonApiAtomicRef' => [
+                            'properties' => [
+                                'relationship' => [
+                                    'oneOf' => [
+                                        ['type' => 'string'],
+                                        ['type' => 'object'],
+                                    ],
+                                ],
+                            ],
+                        ],
+                        'jsonApiAtomicResultsDocument' => [
+                            'required' => ['atomic:results'],
+                            'properties' => [
+                                'atomic:results' => [
+                                    'items' => [
+                                        'oneOf' => [
+                                            ['type' => 'null'],
+                                            [
+                                                '$ref' =>
+                                                    '#/components/schemas/jsonApiAtomicResultDocument',
+                                            ],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                        'jsonApiAtomicResultDocument' => [
+                            'properties' => [
+                                'data' => [
+                                    'anyOf' => [
+                                        ['type' => 'object'],
+                                        ['type' => 'array'],
+                                        ['type' => 'null'],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            $definition,
+        );
     }
 }

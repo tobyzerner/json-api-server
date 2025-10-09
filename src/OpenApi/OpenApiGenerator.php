@@ -72,7 +72,7 @@ class OpenApiGenerator
 
         $context = new SchemaContext($api);
 
-        foreach ([...$api->collections, ...$api->resources] as $provider) {
+        foreach ([...$api->extensions, ...$api->collections, ...$api->resources] as $provider) {
             if ($provider instanceof ProvidesRootSchema) {
                 $document = array_replace_recursive($document, $provider->rootSchema($context));
             }
