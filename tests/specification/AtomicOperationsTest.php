@@ -170,8 +170,7 @@ class AtomicOperationsTest extends AbstractTestCase
                             'properties' => [
                                 'atomic:operations' => [
                                     'items' => [
-                                        '$ref' =>
-                                            '#/components/schemas/jsonApiAtomicOperation',
+                                        '$ref' => '#/components/schemas/jsonApiAtomicOperation',
                                     ],
                                 ],
                             ],
@@ -183,8 +182,7 @@ class AtomicOperationsTest extends AbstractTestCase
                                     'enum' => ['add', 'update', 'remove'],
                                 ],
                                 'data' => [
-                                    '$ref' =>
-                                        '#/components/schemas/jsonApiAtomicOperationData',
+                                    '$ref' => '#/components/schemas/jsonApiAtomicOperationData',
                                 ],
                                 'ref' => [
                                     '$ref' => '#/components/schemas/jsonApiAtomicRef',
@@ -195,8 +193,7 @@ class AtomicOperationsTest extends AbstractTestCase
                             'anyOf' => [
                                 ['$ref' => '#/components/schemas/jsonApiAtomicResourceObject'],
                                 [
-                                    '$ref' =>
-                                        '#/components/schemas/jsonApiAtomicRelationshipData',
+                                    '$ref' => '#/components/schemas/jsonApiAtomicRelationshipData',
                                 ],
                             ],
                         ],
@@ -223,10 +220,7 @@ class AtomicOperationsTest extends AbstractTestCase
                         'jsonApiAtomicRef' => [
                             'properties' => [
                                 'relationship' => [
-                                    'oneOf' => [
-                                        ['type' => 'string'],
-                                        ['type' => 'object'],
-                                    ],
+                                    'oneOf' => [['type' => 'string'], ['type' => 'object']],
                                 ],
                             ],
                         ],

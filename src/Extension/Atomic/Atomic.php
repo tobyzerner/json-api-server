@@ -174,7 +174,8 @@ class Atomic extends Extension implements ProvidesRootSchema
                             'content' => [
                                 $mediaType => [
                                     'schema' => [
-                                        '$ref' => '#/components/schemas/jsonApiAtomicOperationsDocument',
+                                        '$ref' =>
+                                            '#/components/schemas/jsonApiAtomicOperationsDocument',
                                     ],
                                 ],
                             ],
@@ -185,7 +186,8 @@ class Atomic extends Extension implements ProvidesRootSchema
                                 'content' => [
                                     $mediaType => [
                                         'schema' => [
-                                            '$ref' => '#/components/schemas/jsonApiAtomicResultsDocument',
+                                            '$ref' =>
+                                                '#/components/schemas/jsonApiAtomicResultsDocument',
                                         ],
                                     ],
                                 ],
@@ -284,7 +286,8 @@ class Atomic extends Extension implements ProvidesRootSchema
                             [
                                 'type' => 'array',
                                 'items' => [
-                                    '$ref' => '#/components/schemas/jsonApiAtomicResourceIdentifier',
+                                    '$ref' =>
+                                        '#/components/schemas/jsonApiAtomicResourceIdentifier',
                                 ],
                             ],
                             ['type' => 'null'],
@@ -304,7 +307,8 @@ class Atomic extends Extension implements ProvidesRootSchema
                                     'type' => 'object',
                                     'properties' => [
                                         'data' => [
-                                            '$ref' => '#/components/schemas/jsonApiAtomicRelationshipData',
+                                            '$ref' =>
+                                                '#/components/schemas/jsonApiAtomicRelationshipData',
                                         ],
                                         'meta' => ['type' => 'object'],
                                         'links' => ['type' => 'object'],
@@ -337,7 +341,8 @@ class Atomic extends Extension implements ProvidesRootSchema
                                     'oneOf' => [
                                         ['type' => 'null'],
                                         [
-                                            '$ref' => '#/components/schemas/jsonApiAtomicResultDocument',
+                                            '$ref' =>
+                                                '#/components/schemas/jsonApiAtomicResultDocument',
                                         ],
                                     ],
                                 ],
