@@ -63,18 +63,17 @@ class Serializer
                     foreach ($context->endpoints($collection) as $endpoint) {
                         if ($endpoint instanceof ProvidesResourceLinks) {
                             foreach ($endpoint->resourceLinks($collectionContext) as $field) {
-                                $linkFieldsCache[$type][$field->name] ??= [
-                                    $field,
-                                    $collectionContext,
-                                ];
+                                $linkFieldsCache[$type][$field->name] ??= [$field, $collection];
                             }
                         }
                     }
                 }
             }
 
-            foreach ($linkFieldsCache[$type] ?? [] as [$field, $collectionContext]) {
-                if (!$field->isVisible($linkContext = $collectionContext->withField($field))) {
+            foreach ($linkFieldsCache[$type] ?? [] as [$field, $collection]) {
+                $linkContext = $context->withCollection($collection)->withField($field);
+
+                if (!$field->isVisible($linkContext)) {
                     continue;
                 }
 
