@@ -97,6 +97,17 @@ interface for you. Learn more on the
 [Laravel Integration](laravel.md#eloquent-resources) page.  
 :::
 
+## Post-processing
+
+If you need to perform work after every field has been saved but before the
+response document is produced, register a `saved` callback:
+
+```php
+Update::make()->saved(function ($model, Context $context) {
+    // e.g. refresh aggregates or mutate the context prior to serialization
+});
+```
+
 ## Modifying To-Many Relationships
 
 By default, the JSON:API `POST` and `DELETE` relationship routes behave like a

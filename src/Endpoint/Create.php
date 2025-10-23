@@ -6,6 +6,7 @@ use Closure;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\HasSavedCallbacks;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasParameters;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
 use Tobyz\JsonApiServer\Endpoint\Concerns\MutatesResource;
@@ -27,6 +28,7 @@ class Create implements Endpoint, ProvidesRootSchema
 {
     use HasVisibility;
     use HasParameters;
+    use HasSavedCallbacks;
     use HasResponse;
     use HasSchema;
     use MutatesResource;
@@ -110,6 +112,8 @@ class Create implements Endpoint, ProvidesRootSchema
         $context = $context->withModel($model = $resource->create($model, $context));
 
         $this->saveFields($context, true);
+
+        $context = $this->runSavedCallbacks($context);
 
         $response = $this->createResponse(
             $document = $this->serializeResourceDocument($model, $context),

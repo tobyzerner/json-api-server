@@ -77,6 +77,8 @@ and this project adheres to
       `Header` schema class
     - Add `Endpoint::response()` method for defining custom response callbacks
     - Add `Endpoint::schema()` method for defining custom schema
+    - Add `Create::saved()` and `Update::saved()` to register callbacks after
+      the model/fields are saved, but before the response is serialized
 - Add ability to customize error objects
     - Add specific exception classes for all errors
     - Add `JsonApi::errors(array $overrides)` method to register error object

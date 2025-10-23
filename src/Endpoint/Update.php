@@ -71,6 +71,13 @@ class Update extends AggregateEndpoint implements ProvidesResourceLinks, Provide
         return $this;
     }
 
+    public function saved(Closure $callback): static
+    {
+        $this->updateResource->saved($callback);
+
+        return $this;
+    }
+
     public function headers(array $headers): static
     {
         $this->updateResource->headers($headers);

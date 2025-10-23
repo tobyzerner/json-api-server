@@ -95,3 +95,14 @@ For Laravel applications with Eloquent-backed resources, you can extend the
 interface for you. Learn more on the
 [Laravel Integration](laravel.md#eloquent-resources) page.  
 :::
+
+## Post-processing
+
+Run logic after every field has been persisted but before the response document
+is built by chaining `saved`:
+
+```php
+Create::make()->saved(function ($model, Context $context) {
+    // e.g. dispatch an event or tweak the model before serialization
+});
+```

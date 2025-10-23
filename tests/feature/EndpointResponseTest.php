@@ -11,6 +11,7 @@ use Tobyz\JsonApiServer\Endpoint\ResourceAction;
 use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\Endpoint\Update;
 use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\Schema\Field\Attribute;
 use Tobyz\JsonApiServer\Schema\Header;
 use Tobyz\JsonApiServer\Schema\Type\Integer;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
@@ -90,5 +91,66 @@ class EndpointResponseTest extends AbstractTestCase
         $response = $api->handle($this->buildRequest($method, $uri)->withParsedBody($body));
 
         $this->assertEquals('executed', $response->getHeaderLine('X-Callback'));
+    }
+
+    public function test_create_after_callback_runs_before_response()
+    {
+        $api = new JsonApi();
+
+        $endpoint = Create::make()->saved(function ($model): void {
+            $model->after = 'executed';
+        });
+
+        $api->resource(
+            new MockResource(
+                'users',
+                endpoints: [$endpoint],
+                fields: [
+                    Attribute::make('after')->get(fn($model, $context) => $model->after ?? null),
+                ],
+            ),
+        );
+
+        $response = $api->handle(
+            $this->buildRequest('POST', '/users')->withParsedBody([
+                'data' => ['type' => 'users'],
+            ]),
+        );
+
+        $this->assertJsonApiDocumentSubset(
+            ['data' => ['attributes' => ['after' => 'executed']]],
+            $response->getBody(),
+        );
+    }
+
+    public function test_update_after_callback_runs_before_response()
+    {
+        $api = new JsonApi();
+
+        $endpoint = Update::make()->saved(function ($model): void {
+            $model->after = 'executed';
+        });
+
+        $api->resource(
+            new MockResource(
+                'users',
+                models: [(object) ['id' => '1']],
+                endpoints: [$endpoint],
+                fields: [
+                    Attribute::make('after')->get(fn($model, $context) => $model->after ?? null),
+                ],
+            ),
+        );
+
+        $response = $api->handle(
+            $this->buildRequest('PATCH', '/users/1')->withParsedBody([
+                'data' => ['type' => 'users', 'id' => '1'],
+            ]),
+        );
+
+        $this->assertJsonApiDocumentSubset(
+            ['data' => ['attributes' => ['after' => 'executed']]],
+            $response->getBody(),
+        );
     }
 }

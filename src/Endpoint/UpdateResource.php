@@ -5,6 +5,7 @@ namespace Tobyz\JsonApiServer\Endpoint;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\HasSavedCallbacks;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasParameters;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
 use Tobyz\JsonApiServer\Endpoint\Concerns\MutatesResource;
@@ -22,6 +23,7 @@ use Tobyz\JsonApiServer\SchemaContext;
 class UpdateResource implements Endpoint, ProvidesRootSchema, ProvidesResourceLinks
 {
     use HasParameters;
+    use HasSavedCallbacks;
     use HasResponse;
     use HasSchema;
     use ResolvesModel;
@@ -67,6 +69,8 @@ class UpdateResource implements Endpoint, ProvidesRootSchema, ProvidesResourceLi
         $context = $context->withModel($context->resource->update($context->model, $context));
 
         $this->saveFields($context);
+
+        $context = $this->runSavedCallbacks($context);
 
         return $this->createResponse(
             $this->serializeResourceDocument($context->model, $context),
