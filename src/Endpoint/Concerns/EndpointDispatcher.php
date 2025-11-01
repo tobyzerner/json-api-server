@@ -14,7 +14,7 @@ trait EndpointDispatcher
 
         foreach ($endpoints as $endpoint) {
             try {
-                if ($response = $endpoint->handle($context)) {
+                if ($response = $endpoint->handle($context->withEndpoint($endpoint))) {
                     return $response;
                 }
             } catch (MethodNotAllowedException $exception) {
