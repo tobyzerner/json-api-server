@@ -53,7 +53,7 @@ class EndpointVisibilityTest extends AbstractTestCase
     }
 
     #[DataProvider('endpointProvider')]
-    public function test_endpoint_forbidden(string $method, string $uri, array $body = null)
+    public function test_endpoint_forbidden(string $method, string $uri, ?array $body = null)
     {
         $this->expectException(ForbiddenException::class);
 
@@ -61,7 +61,7 @@ class EndpointVisibilityTest extends AbstractTestCase
     }
 
     #[DataProvider('endpointProvider')]
-    public function test_endpoint_allowed(string $method, string $uri, array $body = null)
+    public function test_endpoint_allowed(string $method, string $uri, ?array $body = null)
     {
         $response = $this->api->handle(
             $this->buildRequest($method, $uri)

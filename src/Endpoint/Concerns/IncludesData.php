@@ -18,7 +18,7 @@ trait IncludesData
         return $this;
     }
 
-    private function getInclude(Context $context, array $collections = null): array
+    private function getInclude(Context $context, ?array $collections = null): array
     {
         if ($includeString = $context->parameter('include')) {
             $include = $this->parseInclude($includeString);

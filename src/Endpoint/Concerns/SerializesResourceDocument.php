@@ -33,7 +33,7 @@ trait SerializesResourceDocument
     private function serializeResourceDocument(
         mixed $data,
         Context $context,
-        array $collections = null,
+        ?array $collections = null,
     ): array {
         $collections ??= [$context->collection];
 
