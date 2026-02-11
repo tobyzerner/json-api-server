@@ -18,6 +18,7 @@ use Tobyz\JsonApiServer\Exception\Pagination\RangePaginationNotSupportedExceptio
 use Tobyz\JsonApiServer\Laravel\Field\ToMany as LaravelToMany;
 use Tobyz\JsonApiServer\Pagination\Page;
 use Tobyz\JsonApiServer\Resource\AbstractResource;
+use Tobyz\JsonApiServer\Resource\Attachable;
 use Tobyz\JsonApiServer\Resource\Countable;
 use Tobyz\JsonApiServer\Resource\Creatable;
 use Tobyz\JsonApiServer\Resource\CursorPaginatable;
@@ -45,6 +46,7 @@ abstract class EloquentResource extends AbstractResource implements
     Creatable,
     Updatable,
     Deletable,
+    Attachable,
     RelatedListable
 {
     public function resource(object $model, Context $context): ?string
@@ -181,7 +183,7 @@ abstract class EloquentResource extends AbstractResource implements
             $paginator = $query->cursorPaginate(perPage: $size, cursor: $cursor);
         } catch (Exception) {
             $key = $after ? 'after' : 'before';
-            throw (new InvalidPageCursorException())->source(['parameter' => "page[$key]"]);
+            throw (new InvalidPageCursorException())->source(['parameter' => "[$key]"]);
         }
 
         return new Page($paginator->items(), $paginator->onFirstPage(), $paginator->onLastPage());
@@ -252,6 +254,34 @@ abstract class EloquentResource extends AbstractResource implements
             if ($relation instanceof BelongsToMany) {
                 $relation->sync(new Collection($value));
             }
+        }
+    }
+
+    public function attach(
+        object $model,
+        Relationship $relationship,
+        array $related,
+        Context $context,
+    ): void {
+        $method = $this->modelMethod($relationship);
+        $relation = $model->$method();
+
+        if ($relation instanceof BelongsToMany) {
+            $relation->syncWithoutDetaching(new Collection($related));
+        }
+    }
+
+    public function detach(
+        object $model,
+        Relationship $relationship,
+        array $related,
+        Context $context,
+    ): void {
+        $method = $this->modelMethod($relationship);
+        $relation = $model->$method();
+
+        if ($relation instanceof BelongsToMany) {
+            $relation->detach(new Collection($related));
         }
     }
 
