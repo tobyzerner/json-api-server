@@ -15,7 +15,7 @@ use Illuminate\Support\Str;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\Pagination\InvalidPageCursorException;
 use Tobyz\JsonApiServer\Exception\Pagination\RangePaginationNotSupportedException;
-use Tobyz\JsonApiServer\Laravel\Field\ToMany as LaravelToMany;
+use Tobyz\JsonApiServer\Laravel\Concerns\ScopesRelatedResourceQueries;
 use Tobyz\JsonApiServer\Pagination\Page;
 use Tobyz\JsonApiServer\Resource\AbstractResource;
 use Tobyz\JsonApiServer\Resource\Attachable;
@@ -49,6 +49,8 @@ abstract class EloquentResource extends AbstractResource implements
     Attachable,
     RelatedListable
 {
+    use ScopesRelatedResourceQueries;
+
     public function resource(object $model, Context $context): ?string
     {
         $eloquentModel = $this->newModel($context);
@@ -137,12 +139,11 @@ abstract class EloquentResource extends AbstractResource implements
         }
 
         $relation = $model->$method();
+        $query = $relation->getQuery();
 
-        if ($relationship instanceof LaravelToMany && $relationship->scope) {
-            ($relationship->scope)($relation, $context);
-        }
+        static::scopeRelatedQuery($relationship, $relation, $query, $context);
 
-        return $relation->getQuery();
+        return $query;
     }
 
     /**

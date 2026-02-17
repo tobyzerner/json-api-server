@@ -4,14 +4,14 @@ namespace Tobyz\JsonApiServer\Laravel;
 
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Laravel\Field\ToMany;
-use Tobyz\JsonApiServer\Laravel\Field\ToOne;
+use Tobyz\JsonApiServer\Laravel\Concerns\ScopesRelatedResourceQueries;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
 
 abstract class EloquentBuffer
 {
+    use ScopesRelatedResourceQueries;
+
     private static array $buffer = [];
 
     public static function add(Model $model, string $relationName): void
@@ -30,68 +30,12 @@ abstract class EloquentBuffer
         }
 
         Collection::make($models)->load([
-            $relationName => function ($relation) use (
-                $model,
-                $relationName,
+            $relationName => fn($relation) => static::scopeRelatedQuery(
                 $relationship,
+                $relation,
+                $relation->getQuery(),
                 $context,
-            ) {
-                $query = $relation->getQuery();
-
-                // When loading the relationship, we need to scope the query
-                // using the scopes defined in the related API resource – there
-                // may be multiple if this is a polymorphic relationship. We
-                // start by getting the resource types this relationship
-                // could possibly contain.
-                $resources = array_merge(
-                    ...array_map(
-                        fn($collection) => array_map(
-                            fn($resource) => $context->api->getResource($resource),
-                            $context->api->getCollection($collection)->resources(),
-                        ),
-                        $relationship->collections,
-                    ),
-                );
-
-                // Now, construct a map of model class names -> scoping
-                // functions. This will be provided to the MorphTo::constrain
-                // method in order to apply type-specific scoping.
-                $constrain = [];
-
-                foreach ($resources as $resource) {
-                    if (!$resource instanceof EloquentResource) {
-                        continue;
-                    }
-
-                    $modelClass = get_class($resource->newModel($context));
-
-                    if (isset($constrain[$modelClass])) {
-                        continue;
-                    }
-
-                    $constrain[$modelClass] = function ($query) use (
-                        $resource,
-                        $context,
-                        $relationship,
-                        $relation,
-                    ) {
-                        $resource->scope($query, $context);
-
-                        if (
-                            ($relationship instanceof ToMany || $relationship instanceof ToOne) &&
-                            $relationship->scope
-                        ) {
-                            ($relationship->scope)($relation, $context);
-                        }
-                    };
-                }
-
-                if ($relation instanceof MorphTo) {
-                    $relation->constrain($constrain);
-                } elseif ($constrain) {
-                    reset($constrain)($query);
-                }
-            },
+            ),
         ]);
 
         static::$buffer[get_class($model)][$relationName] = [];
