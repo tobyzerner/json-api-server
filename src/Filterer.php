@@ -19,13 +19,17 @@ class Filterer
 
     public function apply($query, array $filters): void
     {
-        $this->applyGroup($query, $filters, 'and', []);
+        $this->applyGroup($query, $filters, 'and', [], $this->resolveAvailableFilters());
     }
 
-    private function applyGroup($query, array $filters, string $boolean, array $path): void
-    {
+    private function applyGroup(
+        $query,
+        array $filters,
+        string $boolean,
+        array $path,
+        array $availableFilters,
+    ): void {
         $clauses = [];
-        $availableFilters = $this->resolveAvailableFilters();
 
         foreach ($filters as $key => $value) {
             $keyPath = [...$path, $key];
@@ -38,7 +42,13 @@ class Filterer
                     throw $this->badRequest(new InvalidFilterStructureException(), $keyPath);
                 }
 
-                $clauses[] = fn($query) => $this->applyGroup($query, $value, $key, $keyPath);
+                $clauses[] = fn($query) => $this->applyGroup(
+                    $query,
+                    $value,
+                    $key,
+                    $keyPath,
+                    $availableFilters,
+                );
 
                 continue;
             }
@@ -48,7 +58,13 @@ class Filterer
                     throw $this->badRequest(new InvalidFilterStructureException(), $keyPath);
                 }
 
-                $clauses[] = fn($query) => $this->applyGroup($query, $value, 'and', $keyPath);
+                $clauses[] = fn($query) => $this->applyGroup(
+                    $query,
+                    $value,
+                    'and',
+                    $keyPath,
+                    $availableFilters,
+                );
 
                 continue;
             }
