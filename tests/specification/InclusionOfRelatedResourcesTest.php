@@ -4,6 +4,7 @@ namespace Tobyz\Tests\JsonApiServer\specification;
 
 use Tobyz\JsonApiServer\Endpoint\Index;
 use Tobyz\JsonApiServer\Endpoint\Show;
+use Tobyz\JsonApiServer\Exception\Request\InvalidIncludeException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Field\Attribute;
 use Tobyz\JsonApiServer\Schema\Field\ToMany;
@@ -182,6 +183,19 @@ class InclusionOfRelatedResourcesTest extends AbstractTestCase
             ],
             $response->getBody(),
         );
+    }
+
+    public function test_invalid_nested_include_reports_full_path()
+    {
+        try {
+            $this->api->handle(
+                $this->buildRequest('GET', '/articles/1?include=comments.author.pet'),
+            );
+
+            $this->fail('Expected InvalidIncludeException to be thrown.');
+        } catch (InvalidIncludeException $exception) {
+            $this->assertSame('comments.author.pet', $exception->include);
+        }
     }
 
     public function test_relationship_inclusion_for_polymorphic_relationship()

@@ -80,7 +80,7 @@ trait IncludesData
                     $context,
                 );
 
-                $this->validateInclude($context, $relatedResources, $nested, $name . '.');
+                $this->validateInclude($context, $relatedResources, $nested, $path . $name . '.');
 
                 continue 2;
             }
