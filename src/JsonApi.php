@@ -175,13 +175,20 @@ class JsonApi implements RequestHandlerInterface
 
     private function runExtensions(Context $context): ?ResponseInterface
     {
-        $contentTypeExtensionUris = $this->getContentTypeExtensionUris($context->request);
         $acceptExtensionUris = $context->requestedExtensions();
+
+        $requestedExtensionUris = !$context->request->hasHeader('Content-Type')
+            ? $acceptExtensionUris
+            : array_values(
+                array_intersect(
+                    $acceptExtensionUris,
+                    $this->getContentTypeExtensionUris($context->request),
+                ),
+            );
 
         $activeExtensions = array_intersect_key(
             $this->extensions,
-            array_flip($contentTypeExtensionUris),
-            array_flip($acceptExtensionUris),
+            array_flip($requestedExtensionUris),
         );
 
         foreach ($activeExtensions as $extension) {

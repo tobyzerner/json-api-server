@@ -2,8 +2,11 @@
 
 namespace Tobyz\Tests\JsonApiServer\specification;
 
+use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\Endpoint\Show;
+use Tobyz\JsonApiServer\Extension\Extension;
 use Tobyz\JsonApiServer\Exception\NotAcceptableException;
+use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\Exception\UnsupportedMediaTypeException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
@@ -195,5 +198,63 @@ class ContentNegotiationTest extends AbstractTestCase
 
         // Should only get the profile from the second (valid) Accept line
         $this->assertEquals(['https://example.com/valid-profile'], $capturedProfiles);
+    }
+
+    public function test_extensions_can_activate_on_get_requests_without_content_type()
+    {
+        $this->api = new JsonApi();
+        $this->api->extension($this->extensionDemo());
+
+        $response = $this->api->handle(
+            $this->buildRequest('GET', '/extension-demo')->withHeader(
+                'Accept',
+                'application/vnd.api+json; ext="https://example.com/extensions/demo"',
+            ),
+        );
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertEquals(
+            'application/vnd.api+json; ext=https://example.com/extensions/demo',
+            $response->getHeaderLine('Content-Type'),
+        );
+        $this->assertJsonApiDocumentSubset(['meta' => ['activated' => true]], (string) $response->getBody());
+    }
+
+    public function test_extensions_with_content_type_must_be_requested_in_both_headers()
+    {
+        $this->api = new JsonApi();
+        $this->api->extension($this->extensionDemo());
+
+        $this->expectException(ResourceNotFoundException::class);
+
+        $this->api->handle(
+            $this->buildRequest('POST', '/extension-demo')
+                ->withHeader(
+                    'Accept',
+                    'application/vnd.api+json; ext="https://example.com/extensions/demo"',
+                )
+                ->withHeader('Content-Type', 'application/vnd.api+json')
+                ->withParsedBody(['data' => ['type' => 'users']]),
+        );
+    }
+
+    private function extensionDemo(): Extension
+    {
+        return new class extends Extension
+        {
+            public function uri(): string
+            {
+                return 'https://example.com/extensions/demo';
+            }
+
+            public function handle(\Tobyz\JsonApiServer\Context $context): ?ResponseInterface
+            {
+                if ($context->path() !== 'extension-demo') {
+                    return null;
+                }
+
+                return $context->createResponse(['meta' => ['activated' => true]]);
+            }
+        };
     }
 }
