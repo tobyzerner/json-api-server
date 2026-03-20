@@ -5,6 +5,7 @@ namespace Tobyz\JsonApiServer\Endpoint;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasParameters;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
 use Tobyz\JsonApiServer\Endpoint\Concerns\ResolvesModel;
@@ -12,12 +13,11 @@ use Tobyz\JsonApiServer\Endpoint\Concerns\SerializesResourceDocument;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
 use Tobyz\JsonApiServer\OpenApi\ProvidesRootSchema;
 use Tobyz\JsonApiServer\Schema\Concerns\HasSchema;
-use Tobyz\JsonApiServer\Schema\Link;
-use Tobyz\JsonApiServer\Schema\Parameter;
 use Tobyz\JsonApiServer\SchemaContext;
 
 class ShowResource implements Endpoint, ProvidesRootSchema, ProvidesResourceLinks
 {
+    use BuildsOpenApiPaths;
     use HasParameters;
     use HasResponse;
     use HasSchema;
@@ -51,6 +51,11 @@ class ShowResource implements Endpoint, ProvidesRootSchema, ProvidesResourceLink
         );
     }
 
+    protected function getParameters(): array
+    {
+        return [...$this->resourceDocumentParameters(), ...$this->parameters];
+    }
+
     public function rootSchema(SchemaContext $context): array
     {
         $type = $context->collection->name();
@@ -60,30 +65,17 @@ class ShowResource implements Endpoint, ProvidesRootSchema, ProvidesResourceLink
                 "/$type/{id}" => [
                     'get' => $this->mergeSchema([
                         'tags' => [$type],
-                        'parameters' => [
-                            [
-                                'name' => 'id',
-                                'in' => 'path',
-                                'required' => true,
-                                'schema' => ['type' => 'string'],
-                            ],
-                            ...array_map(
-                                fn(Parameter $parameter) => $parameter->getSchema($context),
-                                $this->getParameters(),
-                            ),
-                        ],
+                        'parameters' => $this->openApiResourceParameters(
+                            $context,
+                            $this->getParameters(),
+                        ),
                         'responses' => [
                             '200' => [
                                 'description' => 'Successful show response.',
                                 ...$this->responseSchema(
                                     $this->resourceDocumentSchema(
                                         $context,
-                                        array_map(
-                                            fn($resource) => [
-                                                '$ref' => "#/components/schemas/$resource",
-                                            ],
-                                            $context->collection->resources(),
-                                        ),
+                                        $this->openApiSchemaRefs($context->collection->resources()),
                                     ),
                                     $context,
                                 ),
@@ -131,15 +123,6 @@ class ShowResource implements Endpoint, ProvidesRootSchema, ProvidesResourceLink
 
     public function resourceLinks(SchemaContext $context): array
     {
-        return [
-            Link::make('self')->get(
-                fn($model, Context $context) => $this->resourceSelfLink($model, $context),
-            ),
-        ];
-    }
-
-    protected function getParameters(): array
-    {
-        return [...$this->resourceDocumentParameters(), ...$this->parameters];
+        return [$this->resourceSelfLinkDefinition()];
     }
 }

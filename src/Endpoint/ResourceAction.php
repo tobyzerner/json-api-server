@@ -5,6 +5,7 @@ namespace Tobyz\JsonApiServer\Endpoint;
 use Closure;
 use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasParameters;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
 use Tobyz\JsonApiServer\Endpoint\Concerns\ResolvesModel;
@@ -14,11 +15,11 @@ use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
 use Tobyz\JsonApiServer\OpenApi\ProvidesRootSchema;
 use Tobyz\JsonApiServer\Schema\Concerns\HasSchema;
 use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
-use Tobyz\JsonApiServer\Schema\Parameter;
 use Tobyz\JsonApiServer\SchemaContext;
 
 class ResourceAction implements Endpoint, ProvidesRootSchema
 {
+    use BuildsOpenApiPaths;
     use HasVisibility;
     use HasParameters;
     use HasResponse;
@@ -74,52 +75,39 @@ class ResourceAction implements Endpoint, ProvidesRootSchema
         );
     }
 
+    protected function getParameters(): array
+    {
+        return [...$this->resourceDocumentParameters(), ...$this->parameters];
+    }
+
     public function rootSchema(SchemaContext $context): array
     {
         $type = $context->collection->name();
 
         return [
             'paths' => [
-                "/$type/{id}/$this->name" => $this->mergeSchema([
-                    strtolower($this->method) => [
+                "/$type/{id}/$this->name" => [
+                    strtolower($this->method) => $this->mergeSchema([
                         'tags' => [$type],
-                        'parameters' => [
-                            [
-                                'name' => 'id',
-                                'in' => 'path',
-                                'required' => true,
-                                'schema' => ['type' => 'string'],
-                            ],
-                            ...array_map(
-                                fn(Parameter $parameter) => $parameter->getSchema($context),
-                                $this->getParameters(),
-                            ),
-                        ],
+                        'parameters' => $this->openApiResourceParameters(
+                            $context,
+                            $this->getParameters(),
+                        ),
                         'responses' => [
                             '200' => [
                                 'description' => 'Action performed successfully.',
                                 ...$this->responseSchema(
                                     $this->resourceDocumentSchema(
                                         $context,
-                                        array_map(
-                                            fn($resource) => [
-                                                '$ref' => "#/components/schemas/$resource",
-                                            ],
-                                            $context->collection->resources(),
-                                        ),
+                                        $this->openApiSchemaRefs($context->collection->resources()),
                                     ),
                                     $context,
                                 ),
                             ],
                         ],
-                    ],
-                ]),
+                    ]),
+                ],
             ],
         ];
-    }
-
-    protected function getParameters(): array
-    {
-        return [...$this->resourceDocumentParameters(), ...$this->parameters];
     }
 }

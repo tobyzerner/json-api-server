@@ -5,6 +5,8 @@ namespace Tobyz\JsonApiServer\Endpoint;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsRelationshipPaths;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasParameters;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
 use Tobyz\JsonApiServer\Endpoint\Concerns\MutatesResource;
@@ -19,18 +21,20 @@ use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\OpenApi\ProvidesRootSchema;
 use Tobyz\JsonApiServer\Resource\Attachable;
 use Tobyz\JsonApiServer\Resource\Updatable;
+use Tobyz\JsonApiServer\Schema\Concerns\HasSchema;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
 use Tobyz\JsonApiServer\Schema\Field\ToMany;
-use Tobyz\JsonApiServer\Schema\Link;
-use Tobyz\JsonApiServer\Schema\Parameter;
 use Tobyz\JsonApiServer\SchemaContext;
 
 use function Tobyz\JsonApiServer\resolve_value;
 
 class UpdateRelationship implements Endpoint, ProvidesRootSchema, ProvidesRelationshipLinks
 {
+    use BuildsOpenApiPaths;
+    use BuildsRelationshipPaths;
     use HasParameters;
     use HasResponse;
+    use HasSchema;
     use ResolvesModel;
     use ResolvesRelationship;
     use MutatesResource;
@@ -92,51 +96,36 @@ class UpdateRelationship implements Endpoint, ProvidesRootSchema, ProvidesRelati
 
     public function rootSchema(SchemaContext $context): array
     {
-        $type = $context->collection->name();
-        $paths = [];
-
-        foreach ($context->collection->resources() as $resourceName) {
-            $resource = $context->resource($resourceName);
-            $context = $context->withResource($resource);
-
-            foreach ($resource->fields() as $field) {
-                if (!$field instanceof Relationship || !$field->writable) {
-                    continue;
+        return $this->relationshipPaths(
+            $context,
+            function (string $type, $resource, Relationship $field, SchemaContext $resourceContext): ?array {
+                if (!$field->writable) {
+                    return null;
                 }
+
+                $relationshipSchema = $this->relationshipDocumentSchema(
+                    $resourceContext,
+                    $this->openApiRelationshipSchemaRef($resource->type(), $field->name),
+                );
 
                 $updateOperation = [
                     'tags' => [$type],
-                    'parameters' => [
-                        [
-                            'name' => 'id',
-                            'in' => 'path',
-                            'required' => true,
-                            'schema' => ['type' => 'string'],
-                        ],
-                        ...array_map(
-                            fn(Parameter $parameter) => $parameter->getSchema($context),
-                            $this->parameters,
-                        ),
-                    ],
+                    'parameters' => $this->openApiResourceParameters(
+                        $resourceContext,
+                        $this->parameters,
+                    ),
                     'requestBody' => [
                         'required' => true,
                         'content' => [
                             JsonApi::MEDIA_TYPE => [
-                                'schema' => $this->relationshipDocumentSchema($context, [
-                                    '$ref' => "#/components/schemas/{$resource->type()}_relationship_{$field->name}",
-                                ]),
+                                'schema' => $relationshipSchema,
                             ],
                         ],
                     ],
                     'responses' => [
                         '200' => [
                             'description' => 'Relationship updated successfully.',
-                            ...$this->responseSchema(
-                                $this->relationshipDocumentSchema($context, [
-                                    '$ref' => "#/components/schemas/{$resource->type()}_relationship_{$field->name}",
-                                ]),
-                                $context,
-                            ),
+                            ...$this->responseSchema($relationshipSchema, $resourceContext),
                         ],
                     ],
                 ];
@@ -160,11 +149,13 @@ class UpdateRelationship implements Endpoint, ProvidesRootSchema, ProvidesRelati
                     ];
                 }
 
-                $paths["/$type/{id}/relationships/$field->name"] = $operations;
-            }
-        }
+                foreach ($operations as $method => $operation) {
+                    $operations[$method] = $this->mergeSchema($operation);
+                }
 
-        return ['paths' => $paths];
+                return ["/$type/{id}/relationships/$field->name", $operations];
+            },
+        );
     }
 
     private function showRelationship(Context $context, Relationship $field): ResponseInterface
@@ -290,12 +281,6 @@ class UpdateRelationship implements Endpoint, ProvidesRootSchema, ProvidesRelati
 
     public function relationshipLinks(Relationship $field, SchemaContext $context): array
     {
-        return [
-            Link::make('self')->get(
-                fn($model, Context $context) => $this->resourceSelfLink($model, $context) .
-                    '/relationships/' .
-                    $field->name,
-            ),
-        ];
+        return [$this->relationshipSelfLinkDefinition($field)];
     }
 }

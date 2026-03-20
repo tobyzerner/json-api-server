@@ -5,6 +5,7 @@ namespace Tobyz\JsonApiServer\Endpoint;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasSavedCallbacks;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasParameters;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
@@ -16,12 +17,11 @@ use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\OpenApi\ProvidesRootSchema;
 use Tobyz\JsonApiServer\Resource\Updatable;
 use Tobyz\JsonApiServer\Schema\Concerns\HasSchema;
-use Tobyz\JsonApiServer\Schema\Link;
-use Tobyz\JsonApiServer\Schema\Parameter;
 use Tobyz\JsonApiServer\SchemaContext;
 
 class UpdateResource implements Endpoint, ProvidesRootSchema, ProvidesResourceLinks
 {
+    use BuildsOpenApiPaths;
     use HasParameters;
     use HasSavedCallbacks;
     use HasResponse;
@@ -78,6 +78,11 @@ class UpdateResource implements Endpoint, ProvidesRootSchema, ProvidesResourceLi
         );
     }
 
+    protected function getParameters(): array
+    {
+        return [...$this->resourceDocumentParameters(), ...$this->parameters];
+    }
+
     public function rootSchema(SchemaContext $context): array
     {
         $type = $context->collection->name();
@@ -87,29 +92,19 @@ class UpdateResource implements Endpoint, ProvidesRootSchema, ProvidesResourceLi
                 "/$type/{id}" => [
                     'patch' => $this->mergeSchema([
                         'tags' => [$type],
-                        'parameters' => [
-                            [
-                                'name' => 'id',
-                                'in' => 'path',
-                                'required' => true,
-                                'schema' => ['type' => 'string'],
-                            ],
-                            ...array_map(
-                                fn(Parameter $parameter) => $parameter->getSchema($context),
-                                $this->getParameters(),
-                            ),
-                        ],
+                        'parameters' => $this->openApiResourceParameters(
+                            $context,
+                            $this->getParameters(),
+                        ),
                         'requestBody' => [
                             'required' => true,
                             'content' => [
                                 JsonApi::MEDIA_TYPE => [
                                     'schema' => $this->resourceDocumentSchema(
                                         $context,
-                                        array_map(
-                                            fn($resource) => [
-                                                '$ref' => "#/components/schemas/{$resource}_update",
-                                            ],
+                                        $this->openApiSchemaRefs(
                                             $context->collection->resources(),
+                                            '_update',
                                         ),
                                     ),
                                 ],
@@ -121,12 +116,7 @@ class UpdateResource implements Endpoint, ProvidesRootSchema, ProvidesResourceLi
                                 ...$this->responseSchema(
                                     $this->resourceDocumentSchema(
                                         $context,
-                                        array_map(
-                                            fn($resource) => [
-                                                '$ref' => "#/components/schemas/$resource",
-                                            ],
-                                            $context->collection->resources(),
-                                        ),
+                                        $this->openApiSchemaRefs($context->collection->resources()),
                                     ),
                                     $context,
                                 ),
@@ -140,15 +130,6 @@ class UpdateResource implements Endpoint, ProvidesRootSchema, ProvidesResourceLi
 
     public function resourceLinks(SchemaContext $context): array
     {
-        return [
-            Link::make('self')->get(
-                fn($model, Context $context) => $this->resourceSelfLink($model, $context),
-            ),
-        ];
-    }
-
-    protected function getParameters(): array
-    {
-        return [...$this->resourceDocumentParameters(), ...$this->parameters];
+        return [$this->resourceSelfLinkDefinition()];
     }
 }

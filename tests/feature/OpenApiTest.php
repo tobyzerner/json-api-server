@@ -7,13 +7,17 @@ use Tobyz\JsonApiServer\Endpoint\Delete;
 use Tobyz\JsonApiServer\Endpoint\Index;
 use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\Endpoint\Update;
+use Tobyz\JsonApiServer\Endpoint\UpdateRelationship;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\OpenApi\OpenApiGenerator;
 use Tobyz\JsonApiServer\Pagination\OffsetPagination;
 use Tobyz\JsonApiServer\Schema\Field\Attribute;
 use Tobyz\JsonApiServer\Schema\Field\ToMany;
 use Tobyz\JsonApiServer\Schema\Field\ToOne;
+use Tobyz\JsonApiServer\Schema\Header;
 use Tobyz\JsonApiServer\Schema\Id;
+use Tobyz\JsonApiServer\Schema\Meta;
+use Tobyz\JsonApiServer\Schema\Parameter;
 use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockResource;
@@ -1034,6 +1038,136 @@ class OpenApiTest extends AbstractTestCase
                 ],
             ],
             $items,
+        );
+    }
+
+    public function test_async_create_schema_uses_top_level_content_and_location_headers()
+    {
+        $api = new JsonApi();
+
+        $api->resource(new MockResource('jobs'));
+        $api->resource(
+            new MockResource(
+                'photos',
+                endpoints: [
+                    Create::make()->async('jobs', fn() => 'jobs/job-1'),
+                ],
+                fields: [Attribute::make('title')->writable()],
+            ),
+        );
+
+        $definition = (new OpenApiGenerator())->generate($api);
+        $response = $definition['paths']['/photos']['post']['responses']['202'];
+
+        $this->assertSame(
+            ['schema' => ['type' => 'string']],
+            $response['headers']['Content-Location'],
+        );
+        $this->assertSame(['schema' => ['type' => 'string']], $response['headers']['Location']);
+        $this->assertEquals(
+            [
+                'schema' => [
+                    'type' => 'object',
+                    'required' => ['data'],
+                    'properties' => [
+                        'data' => ['$ref' => '#/components/schemas/jobs'],
+                        'included' => [
+                            'type' => 'array',
+                            'items' => ['$ref' => '#/components/schemas/jsonApiResource'],
+                        ],
+                    ],
+                ],
+            ],
+            $response['content']['application/vnd.api+json'],
+        );
+    }
+
+    public function test_typed_parameters_headers_and_meta_preserve_schema_definitions()
+    {
+        $api = new JsonApi();
+
+        $api->resource(
+            new MockResource(
+                'users',
+                models: [(object) ['id' => '1']],
+                endpoints: [
+                    Show::make()
+                        ->parameters([
+                            Parameter::make('pageSize')->type(Type\Integer::make())->required(),
+                        ])
+                        ->headers([
+                            Header::make('Retry-After')->type(Type\Integer::make()),
+                        ])
+                        ->meta([
+                            Meta::make('count')->type(Type\Integer::make()),
+                        ]),
+                ],
+            ),
+        );
+
+        $definition = (new OpenApiGenerator())->generate($api);
+        $operation = $definition['paths']['/users/{id}']['get'];
+
+        $this->assertContains(
+            [
+                'name' => 'pageSize',
+                'in' => 'query',
+                'schema' => ['type' => 'integer'],
+                'required' => true,
+            ],
+            $operation['parameters'],
+        );
+
+        $this->assertSame(
+            ['schema' => ['type' => 'integer']],
+            $operation['responses']['200']['headers']['Retry-After'],
+        );
+
+        $this->assertSame(
+            ['type' => 'integer'],
+            json_decode(
+                json_encode(
+                    $operation['responses']['200']['content']['application/vnd.api+json']['schema']['properties']['meta']['properties']['count'],
+                ),
+                true,
+            ),
+        );
+    }
+
+    public function test_custom_schema_is_merged_for_delete_and_relationship_operations()
+    {
+        $api = new JsonApi();
+
+        $api->resource(new MockResource('pets'));
+        $api->resource(
+            new MockResource(
+                'users',
+                endpoints: [
+                    Delete::make()->schema(['summary' => 'Delete a user']),
+                    UpdateRelationship::make()->schema(['summary' => 'Manage pet relationships']),
+                ],
+                fields: [
+                    ToMany::make('pets')
+                        ->type('pets')
+                        ->writable(),
+                ],
+            ),
+        );
+
+        $definition = (new OpenApiGenerator())->generate($api);
+
+        $this->assertSame('Delete a user', $definition['paths']['/users/{id}']['delete']['summary']);
+        $this->assertSame(
+            'Manage pet relationships',
+            $definition['paths']['/users/{id}/relationships/pets']['patch']['summary'],
+        );
+        $this->assertSame(
+            'Manage pet relationships',
+            $definition['paths']['/users/{id}/relationships/pets']['post']['summary'],
+        );
+        $this->assertSame(
+            'Manage pet relationships',
+            $definition['paths']['/users/{id}/relationships/pets']['delete']['summary'],
         );
     }
 }

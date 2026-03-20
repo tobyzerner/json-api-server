@@ -5,6 +5,7 @@ namespace Tobyz\JsonApiServer\Endpoint;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasParameters;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
 use Tobyz\JsonApiServer\Endpoint\Concerns\ResolvesModel;
@@ -13,12 +14,11 @@ use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
 use Tobyz\JsonApiServer\OpenApi\ProvidesRootSchema;
 use Tobyz\JsonApiServer\Resource\Deletable;
 use Tobyz\JsonApiServer\Schema\Concerns\HasSchema;
-use Tobyz\JsonApiServer\Schema\Link;
-use Tobyz\JsonApiServer\Schema\Parameter;
 use Tobyz\JsonApiServer\SchemaContext;
 
 class Delete implements Endpoint, ProvidesRootSchema, ProvidesResourceLinks
 {
+    use BuildsOpenApiPaths;
     use HasParameters;
     use HasResponse;
     use HasSchema;
@@ -64,27 +64,16 @@ class Delete implements Endpoint, ProvidesRootSchema, ProvidesResourceLinks
         return [
             'paths' => [
                 "/$type/{id}" => [
-                    'delete' => [
+                    'delete' => $this->mergeSchema([
                         'tags' => [$type],
-                        'parameters' => [
-                            [
-                                'name' => 'id',
-                                'in' => 'path',
-                                'required' => true,
-                                'schema' => ['type' => 'string'],
-                            ],
-                            ...array_map(
-                                fn(Parameter $parameter) => $parameter->getSchema($context),
-                                $this->parameters,
-                            ),
-                        ],
+                        'parameters' => $this->openApiResourceParameters($context, $this->parameters),
                         'responses' => [
                             '204' => [
                                 'description' => 'Resource deleted successfully.',
                                 ...$this->responseSchema(null, $context),
                             ],
                         ],
-                    ],
+                    ]),
                 ],
             ],
         ];
@@ -92,10 +81,6 @@ class Delete implements Endpoint, ProvidesRootSchema, ProvidesResourceLinks
 
     public function resourceLinks(SchemaContext $context): array
     {
-        return [
-            Link::make('self')->get(
-                fn($model, Context $context) => $this->resourceSelfLink($model, $context),
-            ),
-        ];
+        return [$this->resourceSelfLinkDefinition()];
     }
 }

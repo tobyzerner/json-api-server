@@ -4,6 +4,8 @@ namespace Tobyz\JsonApiServer\Endpoint;
 
 use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsRelationshipPaths;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasParameters;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
 use Tobyz\JsonApiServer\Endpoint\Concerns\ResolvesList;
@@ -13,16 +15,18 @@ use Tobyz\JsonApiServer\Endpoint\Concerns\SerializesRelationshipDocument;
 use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
 use Tobyz\JsonApiServer\OpenApi\ProvidesRootSchema;
 use Tobyz\JsonApiServer\Resource\Listable;
+use Tobyz\JsonApiServer\Schema\Concerns\HasSchema;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
 use Tobyz\JsonApiServer\Schema\Field\ToMany;
-use Tobyz\JsonApiServer\Schema\Link;
-use Tobyz\JsonApiServer\Schema\Parameter;
 use Tobyz\JsonApiServer\SchemaContext;
 
 class ShowRelationship implements Endpoint, ProvidesRootSchema, ProvidesRelationshipLinks
 {
+    use BuildsOpenApiPaths;
+    use BuildsRelationshipPaths;
     use HasParameters;
     use HasResponse;
+    use HasSchema;
     use ResolvesModel;
     use ResolvesRelationship;
     use ResolvesList;
@@ -66,60 +70,42 @@ class ShowRelationship implements Endpoint, ProvidesRootSchema, ProvidesRelation
 
     public function rootSchema(SchemaContext $context): array
     {
-        $type = $context->collection->name();
-        $paths = [];
-
-        foreach ($context->collection->resources() as $resourceName) {
-            $resource = $context->resource($resourceName);
-            $context = $context->withResource($resource);
-
-            foreach ($resource->fields() as $field) {
-                if (
-                    !$field instanceof Relationship ||
-                    !$this->hasRelationshipLink($field, $context)
-                ) {
-                    continue;
+        return $this->relationshipPaths(
+            $context,
+            function (string $type, $resource, Relationship $field, SchemaContext $resourceContext): ?array {
+                if (!$this->hasRelationshipLink($field, $resourceContext)) {
+                    return null;
                 }
 
-                $schemaProviders = [];
-
-                if (
-                    ($collection = $this->listableRelationshipCollection($field, $context)) &&
-                    ($pagination = $field->pagination ?? $collection->pagination())
-                ) {
-                    $schemaProviders[] = $pagination;
-                }
-
-                $paths["/$type/{id}/relationships/$field->name"]['get'] = [
-                    'tags' => [$type],
-                    'parameters' => [
-                        [
-                            'name' => 'id',
-                            'in' => 'path',
-                            'required' => true,
-                            'schema' => ['type' => 'string'],
-                        ],
-                        ...array_map(
-                            fn(Parameter $parameter) => $parameter->getSchema($context),
-                            $this->getParameters($field, $context),
-                        ),
-                    ],
-                    'responses' => [
-                        '200' => [
-                            'description' => 'Successful show relationship response.',
-                            ...$this->responseSchema(
-                                $this->relationshipDocumentSchema($context, [
-                                    '$ref' => "#/components/schemas/{$resource->type()}_relationship_{$field->name}",
-                                ]),
-                                $context,
+                return [
+                    "/$type/{id}/relationships/$field->name",
+                    [
+                        'get' => $this->mergeSchema([
+                            'tags' => [$type],
+                            'parameters' => $this->openApiResourceParameters(
+                                $resourceContext,
+                                $this->getParameters($field, $resourceContext),
                             ),
-                        ],
+                            'responses' => [
+                                '200' => [
+                                    'description' => 'Successful show relationship response.',
+                                    ...$this->responseSchema(
+                                        $this->relationshipDocumentSchema(
+                                            $resourceContext,
+                                            $this->openApiRelationshipSchemaRef(
+                                                $resource->type(),
+                                                $field->name,
+                                            ),
+                                        ),
+                                        $resourceContext,
+                                    ),
+                                ],
+                            ],
+                        ]),
                     ],
                 ];
-            }
-        }
-
-        return ['paths' => $paths];
+            },
+        );
     }
 
     protected function getParameters(Relationship $field, SchemaContext $context): array
@@ -138,17 +124,9 @@ class ShowRelationship implements Endpoint, ProvidesRootSchema, ProvidesRelation
 
     public function relationshipLinks(Relationship $field, SchemaContext $context): array
     {
-        $links = [];
-
-        if ($this->hasRelationshipLink($field, $context)) {
-            $links[] = Link::make('self')->get(
-                fn($model, Context $context) => $this->resourceSelfLink($model, $context) .
-                    '/relationships/' .
-                    $field->name,
-            );
-        }
-
-        return $links;
+        return $this->hasRelationshipLink($field, $context)
+            ? [$this->relationshipSelfLinkDefinition($field)]
+            : [];
     }
 
     private function hasRelationshipLink(Relationship $field, SchemaContext $context): bool

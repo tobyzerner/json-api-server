@@ -5,6 +5,7 @@ namespace Tobyz\JsonApiServer\Endpoint;
 use Psr\Http\Message\ResponseInterface as Response;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasParameters;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
 use Tobyz\JsonApiServer\Endpoint\Concerns\ResolvesList;
@@ -24,6 +25,7 @@ use Tobyz\JsonApiServer\SchemaContext;
 
 class Index implements Endpoint, ProvidesRootSchema
 {
+    use BuildsOpenApiPaths;
     use HasVisibility;
     use HasParameters;
     use HasResponse;
@@ -110,8 +112,8 @@ class Index implements Endpoint, ProvidesRootSchema
                 "/$type" => [
                     'get' => $this->mergeSchema([
                         'tags' => [$type],
-                        'parameters' => array_map(
-                            fn(Parameter $parameter) => $parameter->getSchema($context),
+                        'parameters' => $this->openApiParameters(
+                            $context,
                             $this->getParameters($context->collection),
                         ),
                         'responses' => [
@@ -120,12 +122,7 @@ class Index implements Endpoint, ProvidesRootSchema
                                 ...$this->responseSchema(
                                     $this->resourceDocumentSchema(
                                         $context,
-                                        array_map(
-                                            fn($resource) => [
-                                                '$ref' => "#/components/schemas/$resource",
-                                            ],
-                                            $context->collection->resources(),
-                                        ),
+                                        $this->openApiSchemaRefs($context->collection->resources()),
                                         multiple: true,
                                         schemaProviders: $schemaProviders,
                                     ),

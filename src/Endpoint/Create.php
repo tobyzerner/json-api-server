@@ -6,6 +6,7 @@ use Closure;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasSavedCallbacks;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasParameters;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
@@ -18,7 +19,6 @@ use Tobyz\JsonApiServer\OpenApi\ProvidesRootSchema;
 use Tobyz\JsonApiServer\Resource\Creatable;
 use Tobyz\JsonApiServer\Schema\Concerns\HasSchema;
 use Tobyz\JsonApiServer\Schema\Concerns\HasVisibility;
-use Tobyz\JsonApiServer\Schema\Parameter;
 use Tobyz\JsonApiServer\SchemaContext;
 
 use function Tobyz\JsonApiServer\has_value;
@@ -26,6 +26,7 @@ use function Tobyz\JsonApiServer\set_value;
 
 class Create implements Endpoint, ProvidesRootSchema
 {
+    use BuildsOpenApiPaths;
     use HasVisibility;
     use HasParameters;
     use HasSavedCallbacks;
@@ -144,6 +145,11 @@ class Create implements Endpoint, ProvidesRootSchema
         }
     }
 
+    protected function getParameters(): array
+    {
+        return [...$this->resourceDocumentParameters(), ...$this->parameters];
+    }
+
     public function rootSchema(SchemaContext $context): array
     {
         $type = $context->collection->name();
@@ -154,10 +160,7 @@ class Create implements Endpoint, ProvidesRootSchema
                 ...$this->responseSchema(
                     $this->resourceDocumentSchema(
                         $context,
-                        array_map(
-                            fn($resource) => ['$ref' => "#/components/schemas/$resource"],
-                            $context->collection->resources(),
-                        ),
+                        $this->openApiSchemaRefs($context->collection->resources()),
                     ),
                     $context,
                 ),
@@ -167,20 +170,22 @@ class Create implements Endpoint, ProvidesRootSchema
         if ($this->asyncCollection) {
             $asyncCollection = $context->api->getCollection($this->asyncCollection);
 
-            $responses['202'] = [
-                'description' => 'Resource accepted for creation.',
-                'headers' => ['Content-Location' => ['schema' => ['type' => 'string']]],
-                'content' => $this->responseSchema(
+            $responses['202'] = array_replace_recursive(
+                [
+                    'description' => 'Resource accepted for creation.',
+                    'headers' => [
+                        'Content-Location' => ['schema' => ['type' => 'string']],
+                        'Location' => ['schema' => ['type' => 'string']],
+                    ],
+                ],
+                $this->responseSchema(
                     $this->resourceDocumentSchema(
                         $context,
-                        array_map(
-                            fn($resource) => ['$ref' => "#/components/schemas/$resource"],
-                            $asyncCollection->resources(),
-                        ),
+                        $this->openApiSchemaRefs($asyncCollection->resources()),
                     ),
                     $context,
                 ),
-            ];
+            );
         }
 
         return [
@@ -188,21 +193,16 @@ class Create implements Endpoint, ProvidesRootSchema
                 "/$type" => [
                     'post' => $this->mergeSchema([
                         'tags' => [$type],
-                        'parameters' => array_map(
-                            fn(Parameter $parameter) => $parameter->getSchema($context),
-                            $this->getParameters(),
-                        ),
+                        'parameters' => $this->openApiParameters($context, $this->getParameters()),
                         'requestBody' => [
                             'required' => true,
                             'content' => [
                                 JsonApi::MEDIA_TYPE => [
                                     'schema' => $this->resourceDocumentSchema(
                                         $context,
-                                        array_map(
-                                            fn($resource) => [
-                                                '$ref' => "#/components/schemas/{$resource}_create",
-                                            ],
+                                        $this->openApiSchemaRefs(
                                             $context->collection->resources(),
+                                            '_create',
                                         ),
                                     ),
                                 ],
@@ -213,10 +213,5 @@ class Create implements Endpoint, ProvidesRootSchema
                 ],
             ],
         ];
-    }
-
-    protected function getParameters(): array
-    {
-        return [...$this->resourceDocumentParameters(), ...$this->parameters];
     }
 }

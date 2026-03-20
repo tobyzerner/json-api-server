@@ -4,6 +4,8 @@ namespace Tobyz\JsonApiServer\Endpoint;
 
 use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsRelationshipPaths;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasParameters;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
 use Tobyz\JsonApiServer\Endpoint\Concerns\ResolvesList;
@@ -14,16 +16,18 @@ use Tobyz\JsonApiServer\Exception\MethodNotAllowedException;
 use Tobyz\JsonApiServer\OpenApi\ProvidesRootSchema;
 use Tobyz\JsonApiServer\Resource\Findable;
 use Tobyz\JsonApiServer\Resource\Listable;
+use Tobyz\JsonApiServer\Schema\Concerns\HasSchema;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
 use Tobyz\JsonApiServer\Schema\Field\ToMany;
-use Tobyz\JsonApiServer\Schema\Link;
-use Tobyz\JsonApiServer\Schema\Parameter;
 use Tobyz\JsonApiServer\SchemaContext;
 
 class ShowRelated implements Endpoint, ProvidesRootSchema, ProvidesRelationshipLinks
 {
+    use BuildsOpenApiPaths;
+    use BuildsRelationshipPaths;
     use HasParameters;
     use HasResponse;
+    use HasSchema;
     use ResolvesModel;
     use ResolvesRelationship;
     use ResolvesList;
@@ -71,76 +75,50 @@ class ShowRelated implements Endpoint, ProvidesRootSchema, ProvidesRelationshipL
 
     public function rootSchema(SchemaContext $context): array
     {
-        $type = $context->collection->name();
-        $paths = [];
-
-        foreach ($context->collection->resources() as $resourceName) {
-            $resource = $context->api->getResource($resourceName);
-            $context = $context->withResource($resource);
-
-            foreach ($resource->fields() as $field) {
-                if (!$field instanceof Relationship || !$this->hasRelatedLink($field, $context)) {
-                    continue;
+        return $this->relationshipPaths(
+            $context,
+            function (string $type, $resource, Relationship $field, SchemaContext $resourceContext): ?array {
+                if (!$this->hasRelatedLink($field, $resourceContext)) {
+                    return null;
                 }
 
                 $schemaProviders = [];
 
                 if (
-                    ($collection = $this->listableRelationshipCollection($field, $context)) &&
+                    ($collection = $this->listableRelationshipCollection($field, $resourceContext)) &&
                     ($pagination = $field->pagination ?? $collection->pagination())
                 ) {
                     $schemaProviders[] = $pagination;
                 }
 
-                $relatedCollections = array_map(
-                    $context->api->getCollection(...),
-                    $field->collections,
-                );
-                $relatedSchemas = [];
-
-                foreach ($relatedCollections as $collection) {
-                    foreach ($collection->resources() as $relatedResource) {
-                        $relatedSchemas[] = ['$ref' => "#/components/schemas/$relatedResource"];
-                    }
-                }
-
-                if ($field->nullable) {
-                    $relatedSchemas[] = ['type' => 'null'];
-                }
-
-                $paths["/$type/{id}/$field->name"]['get'] = [
-                    'tags' => [$type],
-                    'parameters' => [
-                        [
-                            'name' => 'id',
-                            'in' => 'path',
-                            'required' => true,
-                            'schema' => ['type' => 'string'],
-                        ],
-                        ...array_map(
-                            fn(Parameter $parameter) => $parameter->getSchema($context),
-                            $this->getParameters($field, $context),
-                        ),
-                    ],
-                    'responses' => [
-                        '200' => [
-                            'description' => 'Successful show related response.',
-                            ...$this->responseSchema(
-                                $this->resourceDocumentSchema(
-                                    $context,
-                                    $relatedSchemas,
-                                    multiple: $field instanceof ToMany,
-                                    schemaProviders: $schemaProviders,
-                                ),
-                                $context,
+                return [
+                    "/$type/{id}/$field->name",
+                    [
+                        'get' => $this->mergeSchema([
+                            'tags' => [$type],
+                            'parameters' => $this->openApiResourceParameters(
+                                $resourceContext,
+                                $this->getParameters($field, $resourceContext),
                             ),
-                        ],
+                            'responses' => [
+                                '200' => [
+                                    'description' => 'Successful show related response.',
+                                    ...$this->responseSchema(
+                                        $this->resourceDocumentSchema(
+                                            $resourceContext,
+                                            $this->relatedSchemas($field, $resourceContext),
+                                            multiple: $field instanceof ToMany,
+                                            schemaProviders: $schemaProviders,
+                                        ),
+                                        $resourceContext,
+                                    ),
+                                ],
+                            ],
+                        ]),
                     ],
                 ];
-            }
-        }
-
-        return ['paths' => $paths];
+            },
+        );
     }
 
     protected function getParameters(Relationship $field, SchemaContext $context): array
@@ -159,15 +137,7 @@ class ShowRelated implements Endpoint, ProvidesRootSchema, ProvidesRelationshipL
 
     public function relationshipLinks(Relationship $field, SchemaContext $context): array
     {
-        $links = [];
-
-        if ($this->hasRelatedLink($field, $context)) {
-            $links[] = Link::make('related')->get(
-                fn($model, Context $context) => $this->relatedLink($model, $field, $context),
-            );
-        }
-
-        return $links;
+        return $this->hasRelatedLink($field, $context) ? [$this->relatedLinkDefinition($field)] : [];
     }
 
     private function hasRelatedLink(Relationship $field, SchemaContext $context): bool
@@ -186,8 +156,20 @@ class ShowRelated implements Endpoint, ProvidesRootSchema, ProvidesRelationshipL
             : $collection instanceof Findable;
     }
 
-    private function relatedLink($model, Relationship $field, Context $context): string
+    private function relatedSchemas(Relationship $field, SchemaContext $context): array
     {
-        return $this->resourceSelfLink($model, $context) . '/' . $field->name;
+        $relatedSchemas = [];
+
+        foreach (array_map($context->api->getCollection(...), $field->collections) as $collection) {
+            foreach ($collection->resources() as $relatedResource) {
+                $relatedSchemas[] = ['$ref' => "#/components/schemas/$relatedResource"];
+            }
+        }
+
+        if ($field->nullable) {
+            $relatedSchemas[] = ['type' => 'null'];
+        }
+
+        return $relatedSchemas;
     }
 }

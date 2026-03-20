@@ -5,7 +5,6 @@ namespace Tobyz\JsonApiServer\Schema\Field;
 use Closure;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Concerns\FindsResources;
-use Tobyz\JsonApiServer\Endpoint\ProvidesRelationshipLinks;
 use Tobyz\JsonApiServer\Exception\Data\InvalidIdException;
 use Tobyz\JsonApiServer\Exception\Data\InvalidTypeException;
 use Tobyz\JsonApiServer\Exception\Data\UnsupportedTypeException;
@@ -120,20 +119,9 @@ abstract class Relationship extends Field
             $relationship['meta'] = $meta;
         }
 
-        static $linkFieldsCache = [];
-        $cacheKey = $context->resource->type() . '-' . $this->name;
+        $linkFields = $context->relationshipLinkDefinitions($this);
 
-        if (!isset($linkFieldsCache[$cacheKey])) {
-            foreach ($context->endpoints($context->collection) as $endpoint) {
-                if ($endpoint instanceof ProvidesRelationshipLinks) {
-                    foreach ($endpoint->relationshipLinks($this, $context) as $field) {
-                        $linkFieldsCache[$cacheKey][$field->name] ??= $field;
-                    }
-                }
-            }
-        }
-
-        if ($links = $this->serializeLinks($linkFieldsCache[$cacheKey] ?? [], $context)) {
+        if ($links = $this->serializeLinks($linkFields, $context)) {
             $relationship['links'] = $links;
         }
 
@@ -237,14 +225,8 @@ abstract class Relationship extends Field
 
         $links = [];
 
-        foreach ($context->api->getResourceCollections($context->resource->type()) as $collection) {
-            foreach ($collection->endpoints() as $endpoint) {
-                if ($endpoint instanceof ProvidesRelationshipLinks) {
-                    foreach ($endpoint->relationshipLinks($this, $context) as $link) {
-                        $links[$link->name] = $link->getSchema($context);
-                    }
-                }
-            }
+        foreach ($context->relationshipLinkDefinitions($this) as $link) {
+            $links[$link->name] = $link->getSchema($context);
         }
 
         return $schema + [
