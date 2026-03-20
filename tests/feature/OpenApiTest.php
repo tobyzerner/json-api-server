@@ -1005,15 +1005,13 @@ class OpenApiTest extends AbstractTestCase
     {
         $api = new JsonApi();
 
-        $api->resource(
-            new MockResource(
-                'articles',
-                endpoints: [Index::make()->cursorPaginate()],
-            ),
-        );
+        $api->resource(new MockResource('articles', endpoints: [Index::make()->cursorPaginate()]));
 
         $definition = (new OpenApiGenerator())->generate($api);
-        $items = $definition['paths']['/articles']['get']['responses']['200']['content']['application/vnd.api+json']['schema']['properties']['data']['items'];
+        $items =
+            $definition['paths']['/articles']['get']['responses']['200']['content'][
+                'application/vnd.api+json'
+            ]['schema']['properties']['data']['items'];
 
         $this->assertEquals(
             [
@@ -1049,9 +1047,7 @@ class OpenApiTest extends AbstractTestCase
         $api->resource(
             new MockResource(
                 'photos',
-                endpoints: [
-                    Create::make()->async('jobs', fn() => 'jobs/job-1'),
-                ],
+                endpoints: [Create::make()->async('jobs', fn() => 'jobs/job-1')],
                 fields: [Attribute::make('title')->writable()],
             ),
         );
@@ -1093,14 +1089,12 @@ class OpenApiTest extends AbstractTestCase
                 endpoints: [
                     Show::make()
                         ->parameters([
-                            Parameter::make('pageSize')->type(Type\Integer::make())->required(),
+                            Parameter::make('pageSize')
+                                ->type(Type\Integer::make())
+                                ->required(),
                         ])
-                        ->headers([
-                            Header::make('Retry-After')->type(Type\Integer::make()),
-                        ])
-                        ->meta([
-                            Meta::make('count')->type(Type\Integer::make()),
-                        ]),
+                        ->headers([Header::make('Retry-After')->type(Type\Integer::make())])
+                        ->meta([Meta::make('count')->type(Type\Integer::make())]),
                 ],
             ),
         );
@@ -1127,7 +1121,9 @@ class OpenApiTest extends AbstractTestCase
             ['type' => 'integer'],
             json_decode(
                 json_encode(
-                    $operation['responses']['200']['content']['application/vnd.api+json']['schema']['properties']['meta']['properties']['count'],
+                    $operation['responses']['200']['content']['application/vnd.api+json']['schema'][
+                        'properties'
+                    ]['meta']['properties']['count'],
                 ),
                 true,
             ),
@@ -1156,7 +1152,10 @@ class OpenApiTest extends AbstractTestCase
 
         $definition = (new OpenApiGenerator())->generate($api);
 
-        $this->assertSame('Delete a user', $definition['paths']['/users/{id}']['delete']['summary']);
+        $this->assertSame(
+            'Delete a user',
+            $definition['paths']['/users/{id}']['delete']['summary'],
+        );
         $this->assertSame(
             'Manage pet relationships',
             $definition['paths']['/users/{id}/relationships/pets']['patch']['summary'],

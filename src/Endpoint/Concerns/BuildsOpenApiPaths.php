@@ -12,17 +12,16 @@ trait BuildsOpenApiPaths
      */
     private function openApiParameters(SchemaContext $context, array $parameters): array
     {
-        return array_map(
-            fn(Parameter $parameter) => $parameter->getSchema($context),
-            $parameters,
-        );
+        return array_map(fn(Parameter $parameter) => $parameter->getSchema($context), $parameters);
     }
 
     /**
      * @param Parameter[] $parameters
      */
-    private function openApiResourceParameters(SchemaContext $context, array $parameters = []): array
-    {
+    private function openApiResourceParameters(
+        SchemaContext $context,
+        array $parameters = [],
+    ): array {
         return [$this->openApiIdParameter(), ...$this->openApiParameters($context, $parameters)];
     }
 

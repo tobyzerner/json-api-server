@@ -125,11 +125,8 @@ abstract class AbstractResource extends AbstractCollection implements Resource
         ];
     }
 
-    private function describeFieldSchema(
-        string $type,
-        Field $field,
-        SchemaContext $context,
-    ): array {
+    private function describeFieldSchema(string $type, Field $field, SchemaContext $context): array
+    {
         $valueSchema = (object) $field->getSchema($context);
 
         if (!$field instanceof Relationship) {

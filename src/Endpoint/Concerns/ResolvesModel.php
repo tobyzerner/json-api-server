@@ -35,11 +35,8 @@ trait ResolvesModel
         ]);
     }
 
-    protected function relationshipSelfLink(
-        $model,
-        Relationship $field,
-        Context $context,
-    ): string {
+    protected function relationshipSelfLink($model, Relationship $field, Context $context): string
+    {
         return $this->resourceSelfLink($model, $context) . '/relationships/' . $field->name;
     }
 

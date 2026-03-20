@@ -96,66 +96,68 @@ class UpdateRelationship implements Endpoint, ProvidesRootSchema, ProvidesRelati
 
     public function rootSchema(SchemaContext $context): array
     {
-        return $this->relationshipPaths(
-            $context,
-            function (string $type, $resource, Relationship $field, SchemaContext $resourceContext): ?array {
-                if (!$field->writable) {
-                    return null;
-                }
+        return $this->relationshipPaths($context, function (
+            string $type,
+            $resource,
+            Relationship $field,
+            SchemaContext $resourceContext,
+        ): ?array {
+            if (!$field->writable) {
+                return null;
+            }
 
-                $relationshipSchema = $this->relationshipDocumentSchema(
+            $relationshipSchema = $this->relationshipDocumentSchema(
+                $resourceContext,
+                $this->openApiRelationshipSchemaRef($resource->type(), $field->name),
+            );
+
+            $updateOperation = [
+                'tags' => [$type],
+                'parameters' => $this->openApiResourceParameters(
                     $resourceContext,
-                    $this->openApiRelationshipSchemaRef($resource->type(), $field->name),
-                );
-
-                $updateOperation = [
-                    'tags' => [$type],
-                    'parameters' => $this->openApiResourceParameters(
-                        $resourceContext,
-                        $this->parameters,
-                    ),
-                    'requestBody' => [
-                        'required' => true,
-                        'content' => [
-                            JsonApi::MEDIA_TYPE => [
-                                'schema' => $relationshipSchema,
-                            ],
+                    $this->parameters,
+                ),
+                'requestBody' => [
+                    'required' => true,
+                    'content' => [
+                        JsonApi::MEDIA_TYPE => [
+                            'schema' => $relationshipSchema,
                         ],
                     ],
-                    'responses' => [
-                        '200' => [
-                            'description' => 'Relationship updated successfully.',
-                            ...$this->responseSchema($relationshipSchema, $resourceContext),
-                        ],
+                ],
+                'responses' => [
+                    '200' => [
+                        'description' => 'Relationship updated successfully.',
+                        ...$this->responseSchema($relationshipSchema, $resourceContext),
                     ],
+                ],
+            ];
+
+            $operations = [
+                'patch' => [
+                    'description' => "Replace $field->name relationship",
+                    ...$updateOperation,
+                ],
+            ];
+
+            if ($field instanceof ToMany) {
+                $operations['post'] = [
+                    'description' => "Attach to $field->name relationship",
+                    ...$updateOperation,
                 ];
 
-                $operations = [
-                    'patch' => [
-                        'description' => "Replace $field->name relationship",
-                        ...$updateOperation,
-                    ],
+                $operations['delete'] = [
+                    'description' => "Detach from $field->name relationship",
+                    ...$updateOperation,
                 ];
+            }
 
-                if ($field instanceof ToMany) {
-                    $operations['post'] = [
-                        'description' => "Attach to $field->name relationship",
-                        ...$updateOperation,
-                    ];
+            foreach ($operations as $method => $operation) {
+                $operations[$method] = $this->mergeSchema($operation);
+            }
 
-                    $operations['delete'] = [
-                        'description' => "Detach from $field->name relationship",
-                        ...$updateOperation,
-                    ];
-                }
-
-                foreach ($operations as $method => $operation) {
-                    $operations[$method] = $this->mergeSchema($operation);
-                }
-
-                return ["/$type/{id}/relationships/$field->name", $operations];
-            },
-        );
+            return ["/$type/{id}/relationships/$field->name", $operations];
+        });
     }
 
     private function showRelationship(Context $context, Relationship $field): ResponseInterface

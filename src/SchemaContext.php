@@ -109,27 +109,25 @@ class SchemaContext
     public function relationshipLinkDefinitions(Relationship $relationship): array
     {
         $type = $this->resource->type();
-        $collections = $this->collection ? [$this->collection] : $this->api->getResourceCollections($type);
-        $key = implode("\0", [
-            $this->collection?->name() ?? '*',
-            $type,
-            $relationship->name,
-        ]);
+        $collections = $this->collection
+            ? [$this->collection]
+            : $this->api->getResourceCollections($type);
+        $key = implode("\0", [$this->collection?->name() ?? '*', $type, $relationship->name]);
 
         if (isset($this->relationshipLinkDefinitions[$key])) {
             return $this->relationshipLinkDefinitions[$key];
         }
 
-        $definitions = $this->collectRelationshipLinkDefinitions(
-            $collections,
-            $relationship,
-        );
+        $definitions = $this->collectRelationshipLinkDefinitions($collections, $relationship);
 
         return $this->relationshipLinkDefinitions[$key] = $definitions;
     }
 
-    private function namedDefinitions(WeakMap $cache, object $resource, iterable $definitions): array
-    {
+    private function namedDefinitions(
+        WeakMap $cache,
+        object $resource,
+        iterable $definitions,
+    ): array {
         if (isset($cache[$resource])) {
             return $cache[$resource];
         }

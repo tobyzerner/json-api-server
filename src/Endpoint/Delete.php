@@ -66,7 +66,10 @@ class Delete implements Endpoint, ProvidesRootSchema, ProvidesResourceLinks
                 "/$type/{id}" => [
                     'delete' => $this->mergeSchema([
                         'tags' => [$type],
-                        'parameters' => $this->openApiResourceParameters($context, $this->parameters),
+                        'parameters' => $this->openApiResourceParameters(
+                            $context,
+                            $this->parameters,
+                        ),
                         'responses' => [
                             '204' => [
                                 'description' => 'Resource deleted successfully.',

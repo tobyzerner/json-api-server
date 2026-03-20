@@ -75,50 +75,52 @@ class ShowRelated implements Endpoint, ProvidesRootSchema, ProvidesRelationshipL
 
     public function rootSchema(SchemaContext $context): array
     {
-        return $this->relationshipPaths(
-            $context,
-            function (string $type, $resource, Relationship $field, SchemaContext $resourceContext): ?array {
-                if (!$this->hasRelatedLink($field, $resourceContext)) {
-                    return null;
-                }
+        return $this->relationshipPaths($context, function (
+            string $type,
+            $resource,
+            Relationship $field,
+            SchemaContext $resourceContext,
+        ): ?array {
+            if (!$this->hasRelatedLink($field, $resourceContext)) {
+                return null;
+            }
 
-                $schemaProviders = [];
+            $schemaProviders = [];
 
-                if (
-                    ($collection = $this->listableRelationshipCollection($field, $resourceContext)) &&
-                    ($pagination = $field->pagination ?? $collection->pagination())
-                ) {
-                    $schemaProviders[] = $pagination;
-                }
+            if (
+                ($collection = $this->listableRelationshipCollection($field, $resourceContext)) &&
+                ($pagination = $field->pagination ?? $collection->pagination())
+            ) {
+                $schemaProviders[] = $pagination;
+            }
 
-                return [
-                    "/$type/{id}/$field->name",
-                    [
-                        'get' => $this->mergeSchema([
-                            'tags' => [$type],
-                            'parameters' => $this->openApiResourceParameters(
-                                $resourceContext,
-                                $this->getParameters($field, $resourceContext),
-                            ),
-                            'responses' => [
-                                '200' => [
-                                    'description' => 'Successful show related response.',
-                                    ...$this->responseSchema(
-                                        $this->resourceDocumentSchema(
-                                            $resourceContext,
-                                            $this->relatedSchemas($field, $resourceContext),
-                                            multiple: $field instanceof ToMany,
-                                            schemaProviders: $schemaProviders,
-                                        ),
+            return [
+                "/$type/{id}/$field->name",
+                [
+                    'get' => $this->mergeSchema([
+                        'tags' => [$type],
+                        'parameters' => $this->openApiResourceParameters(
+                            $resourceContext,
+                            $this->getParameters($field, $resourceContext),
+                        ),
+                        'responses' => [
+                            '200' => [
+                                'description' => 'Successful show related response.',
+                                ...$this->responseSchema(
+                                    $this->resourceDocumentSchema(
                                         $resourceContext,
+                                        $this->relatedSchemas($field, $resourceContext),
+                                        multiple: $field instanceof ToMany,
+                                        schemaProviders: $schemaProviders,
                                     ),
-                                ],
+                                    $resourceContext,
+                                ),
                             ],
-                        ]),
-                    ],
-                ];
-            },
-        );
+                        ],
+                    ]),
+                ],
+            ];
+        });
     }
 
     protected function getParameters(Relationship $field, SchemaContext $context): array
@@ -137,7 +139,9 @@ class ShowRelated implements Endpoint, ProvidesRootSchema, ProvidesRelationshipL
 
     public function relationshipLinks(Relationship $field, SchemaContext $context): array
     {
-        return $this->hasRelatedLink($field, $context) ? [$this->relatedLinkDefinition($field)] : [];
+        return $this->hasRelatedLink($field, $context)
+            ? [$this->relatedLinkDefinition($field)]
+            : [];
     }
 
     private function hasRelatedLink(Relationship $field, SchemaContext $context): bool

@@ -70,42 +70,44 @@ class ShowRelationship implements Endpoint, ProvidesRootSchema, ProvidesRelation
 
     public function rootSchema(SchemaContext $context): array
     {
-        return $this->relationshipPaths(
-            $context,
-            function (string $type, $resource, Relationship $field, SchemaContext $resourceContext): ?array {
-                if (!$this->hasRelationshipLink($field, $resourceContext)) {
-                    return null;
-                }
+        return $this->relationshipPaths($context, function (
+            string $type,
+            $resource,
+            Relationship $field,
+            SchemaContext $resourceContext,
+        ): ?array {
+            if (!$this->hasRelationshipLink($field, $resourceContext)) {
+                return null;
+            }
 
-                return [
-                    "/$type/{id}/relationships/$field->name",
-                    [
-                        'get' => $this->mergeSchema([
-                            'tags' => [$type],
-                            'parameters' => $this->openApiResourceParameters(
-                                $resourceContext,
-                                $this->getParameters($field, $resourceContext),
-                            ),
-                            'responses' => [
-                                '200' => [
-                                    'description' => 'Successful show relationship response.',
-                                    ...$this->responseSchema(
-                                        $this->relationshipDocumentSchema(
-                                            $resourceContext,
-                                            $this->openApiRelationshipSchemaRef(
-                                                $resource->type(),
-                                                $field->name,
-                                            ),
-                                        ),
+            return [
+                "/$type/{id}/relationships/$field->name",
+                [
+                    'get' => $this->mergeSchema([
+                        'tags' => [$type],
+                        'parameters' => $this->openApiResourceParameters(
+                            $resourceContext,
+                            $this->getParameters($field, $resourceContext),
+                        ),
+                        'responses' => [
+                            '200' => [
+                                'description' => 'Successful show relationship response.',
+                                ...$this->responseSchema(
+                                    $this->relationshipDocumentSchema(
                                         $resourceContext,
+                                        $this->openApiRelationshipSchemaRef(
+                                            $resource->type(),
+                                            $field->name,
+                                        ),
                                     ),
-                                ],
+                                    $resourceContext,
+                                ),
                             ],
-                        ]),
-                    ],
-                ];
-            },
-        );
+                        ],
+                    ]),
+                ],
+            ];
+        });
     }
 
     protected function getParameters(Relationship $field, SchemaContext $context): array

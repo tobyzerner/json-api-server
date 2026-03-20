@@ -217,7 +217,10 @@ class ContentNegotiationTest extends AbstractTestCase
             'application/vnd.api+json; ext=https://example.com/extensions/demo',
             $response->getHeaderLine('Content-Type'),
         );
-        $this->assertJsonApiDocumentSubset(['meta' => ['activated' => true]], (string) $response->getBody());
+        $this->assertJsonApiDocumentSubset(
+            ['meta' => ['activated' => true]],
+            (string) $response->getBody(),
+        );
     }
 
     public function test_extensions_with_content_type_must_be_requested_in_both_headers()
@@ -240,8 +243,7 @@ class ContentNegotiationTest extends AbstractTestCase
 
     private function extensionDemo(): Extension
     {
-        return new class extends Extension
-        {
+        return new class extends Extension {
             public function uri(): string
             {
                 return 'https://example.com/extensions/demo';

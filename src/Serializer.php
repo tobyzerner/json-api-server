@@ -67,7 +67,10 @@ class Serializer
         Context $context,
         mixed $value,
     ): void {
-        $this->resolveValue($value, fn($value) => $this->writeFieldValue($key, $field, $context, $value));
+        $this->resolveValue(
+            $value,
+            fn($value) => $this->writeFieldValue($key, $field, $context, $value),
+        );
     }
 
     private function resolveMetaValue(
@@ -78,7 +81,10 @@ class Serializer
     ): void {
         $this->resolveValue(
             $value,
-            fn($value) => $this->map[$key]['meta'][$field->name] = $field->serializeValue($value, $context),
+            fn($value) => ($this->map[$key]['meta'][$field->name] = $field->serializeValue(
+                $value,
+                $context,
+            )),
         );
     }
 
@@ -90,7 +96,10 @@ class Serializer
     ): void {
         $this->resolveValue(
             $value,
-            fn($value) => $this->map[$key]['links'][$field->name] = $field->serializeValue($value, $context),
+            fn($value) => ($this->map[$key]['links'][$field->name] = $field->serializeValue(
+                $value,
+                $context,
+            )),
         );
     }
 
@@ -245,7 +254,10 @@ class Serializer
         Context $context,
         mixed $value,
     ): void {
-        if (($value = $field->serializeValue($value, $context)) || !$field instanceof Relationship) {
+        if (
+            ($value = $field->serializeValue($value, $context)) ||
+            !$field instanceof Relationship
+        ) {
             set_value($this->map[$key], $field, $value);
         }
     }
