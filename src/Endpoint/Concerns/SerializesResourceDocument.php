@@ -78,7 +78,20 @@ trait SerializesResourceDocument
 
         if ($resourceMeta) {
             $resourceSchemas = array_map(
-                fn($schema) => ['allOf' => [$schema, ['meta' => $resourceMeta]]],
+                fn($schema) => [
+                    'allOf' => [
+                        $schema,
+                        [
+                            'type' => 'object',
+                            'properties' => [
+                                'meta' => [
+                                    'type' => 'object',
+                                    'properties' => $resourceMeta,
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
                 $resourceSchemas,
             );
         }

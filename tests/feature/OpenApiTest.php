@@ -996,4 +996,44 @@ class OpenApiTest extends AbstractTestCase
             json_decode(json_encode($definition), true),
         );
     }
+
+    public function test_generates_valid_resource_meta_schema_for_cursor_pagination()
+    {
+        $api = new JsonApi();
+
+        $api->resource(
+            new MockResource(
+                'articles',
+                endpoints: [Index::make()->cursorPaginate()],
+            ),
+        );
+
+        $definition = (new OpenApiGenerator())->generate($api);
+        $items = $definition['paths']['/articles']['get']['responses']['200']['content']['application/vnd.api+json']['schema']['properties']['data']['items'];
+
+        $this->assertEquals(
+            [
+                'allOf' => [
+                    ['$ref' => '#/components/schemas/articles'],
+                    [
+                        'type' => 'object',
+                        'properties' => [
+                            'meta' => [
+                                'type' => 'object',
+                                'properties' => [
+                                    'page' => [
+                                        'type' => 'object',
+                                        'properties' => [
+                                            'cursor' => ['type' => 'string'],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            $items,
+        );
+    }
 }
