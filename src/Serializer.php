@@ -4,7 +4,6 @@ namespace Tobyz\JsonApiServer;
 
 use Closure;
 use RuntimeException;
-use Tobyz\JsonApiServer\Endpoint\ProvidesResourceLinks;
 use Tobyz\JsonApiServer\Schema\Field\Field;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
 
@@ -48,90 +47,11 @@ class Serializer
 
         $key = $this->key($type = $resource->type(), $id = $context->id($resource, $model));
 
-        if (!isset($this->map[$key])) {
-            $this->map[$key] = [
-                'type' => $type,
-                'id' => $id,
-            ];
-
-            static $linkFieldsCache = [];
-
-            if (!isset($linkFieldsCache[$type])) {
-                foreach ($context->api->getResourceCollections($type) as $collection) {
-                    $collectionContext = $context->withCollection($collection);
-
-                    foreach ($context->endpoints($collection) as $endpoint) {
-                        if ($endpoint instanceof ProvidesResourceLinks) {
-                            foreach ($endpoint->resourceLinks($collectionContext) as $field) {
-                                $linkFieldsCache[$type][$field->name] ??= [$field, $collection];
-                            }
-                        }
-                    }
-                }
-            }
-
-            foreach ($linkFieldsCache[$type] ?? [] as [$field, $collection]) {
-                $linkContext = $context->withCollection($collection)->withField($field);
-
-                if (!$field->isVisible($linkContext)) {
-                    continue;
-                }
-
-                $value = $field->getValue($linkContext);
-
-                $this->resolveLinkValue($key, $field, $linkContext, $value);
-            }
-        }
-
-        foreach ($context->sparseFields($resource) as $field) {
-            if (in_array($field, $this->processedFields[$key] ?? [])) {
-                continue;
-            }
-
-            $this->processedFields[$key][] = $field;
-
-            $fieldContext = $context
-                ->withField($field)
-                ->withInclude($context->include[$field->name] ?? null);
-
-            if (!$field->isVisible($fieldContext)) {
-                continue;
-            }
-
-            $value = $field->getValue($fieldContext);
-
-            $this->resolveFieldValue($key, $field, $fieldContext, $value);
-        }
-
-        foreach ($context->meta($resource) as $field) {
-            if (
-                array_key_exists($field->name, $this->map[$key]['meta'] ?? []) ||
-                !$field->isVisible($metaContext = $context->withField($field))
-            ) {
-                continue;
-            }
-
-            $value = $field->getValue($metaContext);
-
-            $this->resolveMetaValue($key, $field, $metaContext, $value);
-        }
-
-        foreach ($context->resourceMeta[$model] ?? [] as $k => $v) {
-            $this->map[$key]['meta'][$k] = $v;
-        }
-
-        foreach ($context->links($resource) as $link) {
-            if (
-                array_key_exists($link->name, $this->map[$key]['links'] ?? []) ||
-                !$link->isVisible($linkContext = $context->withField($link))
-            ) {
-                continue;
-            }
-
-            $value = $link->getValue($linkContext);
-
-            $this->resolveLinkValue($key, $link, $linkContext, $value);
-        }
+        $this->initializeResource($key, $type, $id, $context);
+        $this->serializeFields($key, $context);
+        $this->serializeMeta($key, $context);
+        $this->mergeResourceMeta($key, $context);
+        $this->serializeLinks($key, $context);
 
         return $this->map[$key];
     }
@@ -147,14 +67,7 @@ class Serializer
         Context $context,
         mixed $value,
     ): void {
-        if ($value instanceof Closure) {
-            $this->deferred[] = fn() => $this->resolveFieldValue($key, $field, $context, $value());
-        } elseif (
-            ($value = $field->serializeValue($value, $context)) ||
-            !$field instanceof Relationship
-        ) {
-            set_value($this->map[$key], $field, $value);
-        }
+        $this->resolveValue($value, fn($value) => $this->writeFieldValue($key, $field, $context, $value));
     }
 
     private function resolveMetaValue(
@@ -163,11 +76,10 @@ class Serializer
         Context $context,
         mixed $value,
     ): void {
-        if ($value instanceof Closure) {
-            $this->deferred[] = fn() => $this->resolveMetaValue($key, $field, $context, $value());
-        } else {
-            $this->map[$key]['meta'][$field->name] = $field->serializeValue($value, $context);
-        }
+        $this->resolveValue(
+            $value,
+            fn($value) => $this->map[$key]['meta'][$field->name] = $field->serializeValue($value, $context),
+        );
     }
 
     private function resolveLinkValue(
@@ -176,11 +88,10 @@ class Serializer
         Context $context,
         mixed $value,
     ): void {
-        if ($value instanceof Closure) {
-            $this->deferred[] = fn() => $this->resolveLinkValue($key, $field, $context, $value());
-        } else {
-            $this->map[$key]['links'][$field->name] = $field->serializeValue($value, $context);
-        }
+        $this->resolveValue(
+            $value,
+            fn($value) => $this->map[$key]['links'][$field->name] = $field->serializeValue($value, $context),
+        );
     }
 
     /**
@@ -207,6 +118,102 @@ class Serializer
         ];
     }
 
+    private function initializeResource(
+        string $key,
+        string $type,
+        string $id,
+        Context $context,
+    ): void {
+        if (isset($this->map[$key])) {
+            return;
+        }
+
+        $this->map[$key] = [
+            'type' => $type,
+            'id' => $id,
+        ];
+
+        foreach ($context->resourceLinkDefinitions() as [$field, $collection]) {
+            $linkContext = $context->withCollection($collection)->withField($field);
+
+            if (!$field->isVisible($linkContext)) {
+                continue;
+            }
+
+            $this->resolveLinkValue($key, $field, $linkContext, $field->getValue($linkContext));
+        }
+    }
+
+    private function serializeFields(string $key, Context $context): void
+    {
+        foreach ($context->sparseFields($context->resource) as $field) {
+            if ($this->fieldProcessed($key, $field)) {
+                continue;
+            }
+
+            $fieldContext = $context
+                ->withField($field)
+                ->withInclude($context->include[$field->name] ?? null);
+
+            if (!$field->isVisible($fieldContext)) {
+                continue;
+            }
+
+            $this->resolveFieldValue($key, $field, $fieldContext, $field->getValue($fieldContext));
+        }
+    }
+
+    private function serializeMeta(string $key, Context $context): void
+    {
+        foreach ($context->meta($context->resource) as $field) {
+            if (array_key_exists($field->name, $this->map[$key]['meta'] ?? [])) {
+                continue;
+            }
+
+            $metaContext = $context->withField($field);
+
+            if (!$field->isVisible($metaContext)) {
+                continue;
+            }
+
+            $this->resolveMetaValue($key, $field, $metaContext, $field->getValue($metaContext));
+        }
+    }
+
+    private function mergeResourceMeta(string $key, Context $context): void
+    {
+        foreach ($context->resourceMeta[$context->model] ?? [] as $name => $value) {
+            $this->map[$key]['meta'][$name] = $value;
+        }
+    }
+
+    private function serializeLinks(string $key, Context $context): void
+    {
+        foreach ($context->links($context->resource) as $field) {
+            if (array_key_exists($field->name, $this->map[$key]['links'] ?? [])) {
+                continue;
+            }
+
+            $linkContext = $context->withField($field);
+
+            if (!$field->isVisible($linkContext)) {
+                continue;
+            }
+
+            $this->resolveLinkValue($key, $field, $linkContext, $field->getValue($linkContext));
+        }
+    }
+
+    private function fieldProcessed(string $key, Field $field): bool
+    {
+        if (in_array($field, $this->processedFields[$key] ?? [])) {
+            return true;
+        }
+
+        $this->processedFields[$key][] = $field;
+
+        return false;
+    }
     private function resolveDeferred(): void
     {
         $i = 0;
@@ -219,6 +226,27 @@ class Serializer
             if ($i++ > 10) {
                 throw new RuntimeException('Too many levels of deferred values');
             }
+        }
+    }
+
+    private function resolveValue(mixed $value, callable $resolve): void
+    {
+        if ($value instanceof Closure) {
+            $this->deferred[] = fn() => $resolve($value());
+            return;
+        }
+
+        $resolve($value);
+    }
+
+    private function writeFieldValue(
+        string $key,
+        Field $field,
+        Context $context,
+        mixed $value,
+    ): void {
+        if (($value = $field->serializeValue($value, $context)) || !$field instanceof Relationship) {
+            set_value($this->map[$key], $field, $value);
         }
     }
 }
