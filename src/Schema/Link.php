@@ -14,11 +14,6 @@ class Link extends Field
         return new static($name);
     }
 
-    public static function location(): ?string
-    {
-        return null;
-    }
-
     public function object(bool $object = true): static
     {
         $this->object = $object;
