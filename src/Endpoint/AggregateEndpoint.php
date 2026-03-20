@@ -2,6 +2,7 @@
 
 namespace Tobyz\JsonApiServer\Endpoint;
 
+use Closure;
 use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Concerns\EndpointDispatcher;
@@ -13,6 +14,31 @@ abstract class AggregateEndpoint implements Endpoint, ProvidesRootSchema
     use EndpointDispatcher;
 
     abstract public function endpoints(): array;
+
+    protected function tapEndpoints(callable $callback, Endpoint ...$endpoints): static
+    {
+        foreach ($endpoints as $endpoint) {
+            $callback($endpoint);
+        }
+
+        return $this;
+    }
+
+    public function visible(bool|Closure $condition = true): static
+    {
+        return $this->tapEndpoints(
+            fn($endpoint) => $endpoint->visible($condition),
+            ...$this->endpoints(),
+        );
+    }
+
+    public function hidden(bool|Closure $condition = true): static
+    {
+        return $this->tapEndpoints(
+            fn($endpoint) => $endpoint->hidden($condition),
+            ...$this->endpoints(),
+        );
+    }
 
     public function handle(Context $context): ?ResponseInterface
     {

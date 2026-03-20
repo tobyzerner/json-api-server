@@ -41,22 +41,6 @@ class Update extends AggregateEndpoint implements ProvidesResourceLinks, Provide
         return $this;
     }
 
-    public function visible(bool|Closure $condition = true): static
-    {
-        $this->updateResource->visible($condition);
-        $this->updateRelationship->visible($condition);
-
-        return $this;
-    }
-
-    public function hidden(bool|Closure $condition = true): static
-    {
-        $this->updateResource->hidden($condition);
-        $this->updateRelationship->hidden($condition);
-
-        return $this;
-    }
-
     public function parameters(array $parameters): static
     {
         $this->updateResource->parameters($parameters);

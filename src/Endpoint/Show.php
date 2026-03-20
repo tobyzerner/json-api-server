@@ -50,24 +50,6 @@ class Show extends AggregateEndpoint implements ProvidesResourceLinks, ProvidesR
         return $this;
     }
 
-    public function visible(bool|Closure $condition = true): static
-    {
-        $this->showResource->visible($condition);
-        $this->showRelated->visible($condition);
-        $this->showRelationship->visible($condition);
-
-        return $this;
-    }
-
-    public function hidden(bool|Closure $condition = true): static
-    {
-        $this->showResource->hidden($condition);
-        $this->showRelated->hidden($condition);
-        $this->showRelationship->hidden($condition);
-
-        return $this;
-    }
-
     public function parameters(array $parameters): static
     {
         $this->showResource->parameters($parameters);
