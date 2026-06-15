@@ -160,9 +160,10 @@ class Serializer
                 continue;
             }
 
-            $fieldContext = $context
-                ->withField($field)
-                ->withInclude($context->include[$field->name] ?? null);
+            $fieldContext = $context->withFieldAndInclude(
+                $field,
+                $context->include[$field->name] ?? null,
+            );
 
             if (!$field->isVisible($fieldContext)) {
                 continue;
@@ -215,7 +216,7 @@ class Serializer
 
     private function fieldProcessed(string $key, Field $field): bool
     {
-        if (in_array($field, $this->processedFields[$key] ?? [])) {
+        if (in_array($field, $this->processedFields[$key] ?? [], true)) {
             return true;
         }
 

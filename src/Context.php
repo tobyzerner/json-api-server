@@ -337,6 +337,14 @@ class Context extends SchemaContext
         return $new;
     }
 
+    public function withFieldAndInclude(Field $field, ?array $include): static
+    {
+        $new = clone $this;
+        $new->field = $field;
+        $new->include = $include;
+        return $new;
+    }
+
     public function resourceMeta($model, array $meta): static
     {
         $this->resourceMeta[$model] = array_merge($this->resourceMeta[$model] ?? [], $meta);
