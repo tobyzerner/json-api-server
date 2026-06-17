@@ -1296,9 +1296,6 @@ class OpenApiTest extends AbstractTestCase
 
         $this->assertInstanceOf(\stdClass::class, $filterProperties['products']);
         $this->assertInstanceOf(\stdClass::class, $filterProperties['mine']);
-        $this->assertSame(
-            '{"products":{},"mine":{}}',
-            json_encode($filterProperties),
-        );
+        $this->assertSame('{"products":{},"mine":{}}', json_encode($filterProperties));
     }
 }
