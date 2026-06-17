@@ -29,6 +29,25 @@ class BooleanTest extends AbstractTestCase
         $this->assertSame($expected, $type->serialize($value));
     }
 
+    public static function queryDeserializationProvider(): array
+    {
+        return [
+            ['true', true],
+            ['false', false],
+            ['1', true],
+            ['0', false],
+            ['', false],
+            ['sometimes', 'sometimes'],
+            [null, null],
+        ];
+    }
+
+    #[DataProvider('queryDeserializationProvider')]
+    public function test_query_deserialization(mixed $value, mixed $expected)
+    {
+        $this->assertSame($expected, Boolean::make()->deserializeQueryValue($value));
+    }
+
     public static function validationProvider(): array
     {
         return [

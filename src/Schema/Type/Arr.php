@@ -11,7 +11,8 @@ class Arr extends AbstractType
     private int $minItems = 0;
     private ?int $maxItems = null;
     private bool $uniqueItems = false;
-    private ?Type $items = null;
+    private bool $commaSeparated = false;
+    public ?Type $items = null;
 
     public static function make(): static
     {
@@ -20,11 +21,73 @@ class Arr extends AbstractType
 
     protected function serializeValue(mixed $value): mixed
     {
-        return $value;
+        return $this->mapItems($value, fn($item) => $this->items->serialize($item));
     }
 
     protected function deserializeValue(mixed $value): mixed
     {
+        return $this->mapItems($value, fn($item) => $this->items->deserialize($item));
+    }
+
+    public function deserializeQueryValue(mixed $value): mixed
+    {
+        if ($this->commaSeparated) {
+            $value = $this->splitCommaSeparated($value);
+        }
+
+        if ($value === null) {
+            return null;
+        }
+
+        if (!is_array($value)) {
+            $value = [$value];
+        }
+
+        if ($this->items) {
+            foreach ($value as $key => $item) {
+                $value[$key] = $this->deserializeNestedQueryValue($this->items, $item, $key);
+            }
+        }
+
+        return $value;
+    }
+
+    private function splitCommaSeparated(mixed $value): mixed
+    {
+        if (is_string($value)) {
+            return explode(',', $value);
+        }
+
+        if (!is_array($value)) {
+            return $value;
+        }
+
+        $result = [];
+
+        foreach ($value as $item) {
+            if (!is_string($item)) {
+                $result[] = $item;
+                continue;
+            }
+
+            foreach (explode(',', $item) as $part) {
+                $result[] = $part;
+            }
+        }
+
+        return $result;
+    }
+
+    private function mapItems(mixed $value, callable $callback): mixed
+    {
+        if (!is_array($value) || !$this->items) {
+            return $value;
+        }
+
+        foreach ($value as $key => $item) {
+            $value[$key] = $callback($item);
+        }
+
         return $value;
     }
 
@@ -43,22 +106,16 @@ class Arr extends AbstractType
             $fail(new RangeViolationException('maxItems', $this->maxItems, count($value)));
         }
 
-        if ($this->uniqueItems && count($value) !== count(array_unique($value))) {
+        if ($this->uniqueItems && count($value) !== count(array_unique($value, SORT_REGULAR))) {
             $fail(new UniqueViolationException());
         }
 
-        if ($this->items) {
-            foreach ($value as $i => $item) {
-                $itemErrors = [];
+        if (!$this->items) {
+            return;
+        }
 
-                $this->items->validate($item, function ($error) use (&$itemErrors) {
-                    $itemErrors[] = $error;
-                });
-
-                foreach ($itemErrors as $itemError) {
-                    $fail($itemError->prependSource(['pointer' => "/$i"]));
-                }
-            }
+        foreach ($value as $i => $item) {
+            $this->validateNestedValue($this->items, $item, $i, $fail);
         }
     }
 
@@ -76,6 +133,10 @@ class Arr extends AbstractType
 
         if ($this->uniqueItems) {
             $schema['uniqueItems'] = $this->uniqueItems;
+        }
+
+        if ($this->commaSeparated) {
+            $schema['x-jsonapi-filter-comma-separated'] = true;
         }
 
         if ($this->items) {
@@ -102,6 +163,13 @@ class Arr extends AbstractType
     public function uniqueItems(bool $uniqueItems = true): static
     {
         $this->uniqueItems = $uniqueItems;
+
+        return $this;
+    }
+
+    public function commaSeparated(bool $commaSeparated = true): static
+    {
+        $this->commaSeparated = $commaSeparated;
 
         return $this;
     }

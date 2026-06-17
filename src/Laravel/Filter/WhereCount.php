@@ -22,14 +22,21 @@ class WhereCount extends Filter
         'gte' => '>=',
     ];
 
+    public function __construct(string $name)
+    {
+        parent::__construct($name);
+
+        $this->operators(static::SUPPORTED_OPERATORS);
+    }
+
     public static function make(string $name): static
     {
         return new static($name);
     }
 
-    public function apply(object $query, array|string $value, Context $context): void
+    protected function applyValue(object $query, mixed $value, Context $context): void
     {
-        foreach ($this->resolveOperators($value) as $operator => $val) {
+        foreach ($value as $operator => $val) {
             if (!is_scalar($val)) {
                 throw new InvalidFilterValueException();
             }

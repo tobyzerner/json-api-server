@@ -5,6 +5,7 @@ namespace Tobyz\JsonApiServer\Laravel\Filter;
 use Closure;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Schema\Filter;
+use Tobyz\JsonApiServer\Schema\Type;
 
 class Scope extends Filter
 {
@@ -14,7 +15,13 @@ class Scope extends Filter
 
     protected null|string|Closure $scope = null;
     protected bool $asBoolean = false;
-    protected bool $commaSeparated = false;
+
+    public function __construct(string $name)
+    {
+        parent::__construct($name);
+
+        $this->operators(static::SUPPORTED_OPERATORS);
+    }
 
     public static function make(string $name): static
     {
@@ -32,17 +39,27 @@ class Scope extends Filter
     {
         $this->asBoolean = $asBoolean;
 
-        return $this;
+        if (!$asBoolean) {
+            $this->type = null;
+
+            return $this->operators(static::SUPPORTED_OPERATORS);
+        }
+
+        return $this->type(Type\Boolean::make())->operators([]);
     }
 
-    public function commaSeparated(): static
+    public function commaSeparated(?Type\Type $items = null): static
     {
-        $this->commaSeparated = true;
+        if ($items === null && $this->type instanceof Type\Arr) {
+            $this->type->commaSeparated();
 
-        return $this;
+            return $this;
+        }
+
+        return $this->type(Type\Arr::make()->items($items ?? $this->type)->commaSeparated());
     }
 
-    public function apply(object $query, array|string $value, Context $context): void
+    protected function applyValue(object $query, mixed $value, Context $context): void
     {
         $scope = $this->scope ?: $this->name;
 
@@ -53,7 +70,7 @@ class Scope extends Filter
         }
 
         if ($this->asBoolean) {
-            if (filter_var($value, FILTER_VALIDATE_BOOL)) {
+            if ($value) {
                 $scope($query);
             } else {
                 $query->whereNot(fn($query) => $scope($query));
@@ -61,23 +78,12 @@ class Scope extends Filter
             return;
         }
 
-        foreach ($this->resolveOperators($value) as $operator => $val) {
-            $val = $this->splitCommaSeparated($val);
-
+        foreach ($value as $operator => $val) {
             if ($operator === 'ne') {
                 $query->whereNot(fn($query) => $scope($query, $val));
             } else {
                 $scope($query, $val);
             }
         }
-    }
-
-    private function splitCommaSeparated(array|string $value): array|string
-    {
-        if ($this->commaSeparated && is_string($value)) {
-            return explode(',', $value);
-        }
-
-        return $value;
     }
 }

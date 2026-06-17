@@ -135,7 +135,7 @@ trait MutatesResource
             try {
                 $this->assertFieldWritable($context, $field, $creating);
             } catch (Sourceable $e) {
-                throw $e->prependSource(['pointer' => '/data' . field_path($field)]);
+                throw $e->prependSourcePointer('/data' . field_path($field));
             }
         }
     }
@@ -169,7 +169,7 @@ trait MutatesResource
             try {
                 set_value($context->data, $field, $field->deserializeValue($value, $context));
             } catch (Sourceable $e) {
-                throw $e->prependSource(['pointer' => '/data' . field_path($field)]);
+                throw $e->prependSourcePointer('/data' . field_path($field));
             }
         }
     }
@@ -218,7 +218,7 @@ trait MutatesResource
                 );
             }
 
-            $errors[] = $error->source(['pointer' => '/data' . field_path($field)]);
+            $errors[] = $error->prependSourcePointer('/data' . field_path($field));
         };
 
         $field->validateValue($value, $fail, $context->withField($field));

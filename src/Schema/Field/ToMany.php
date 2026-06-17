@@ -70,7 +70,7 @@ class ToMany extends Relationship
             try {
                 $models[] = $this->resourceForIdentifier($identifier, $context);
             } catch (Sourceable $e) {
-                throw $e->prependSource(['pointer' => "/$i"]);
+                throw $e->prependSourcePath($i);
             }
         }
 

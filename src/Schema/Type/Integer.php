@@ -16,6 +16,13 @@ class Integer extends Number
         return (int) $value;
     }
 
+    public function deserializeQueryValue(mixed $value): mixed
+    {
+        $normalized = filter_var($value, FILTER_VALIDATE_INT);
+
+        return $normalized === false ? $value : $normalized;
+    }
+
     protected function validateValue(mixed $value, callable $fail): void
     {
         if (filter_var($value, FILTER_VALIDATE_INT) === false) {

@@ -3,6 +3,7 @@
 namespace Tobyz\Tests\JsonApiServer\unit;
 
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tobyz\JsonApiServer\Schema\Type\Date;
 use Tobyz\JsonApiServer\Schema\Type\Integer;
 use Tobyz\JsonApiServer\Schema\Type\Obj;
 use Tobyz\JsonApiServer\Schema\Type\Str;
@@ -36,6 +37,26 @@ class ObjectTest extends AbstractTestCase
     public function test_serialization(Type $type, mixed $value, mixed $expected)
     {
         $this->assertEquals($expected, $type->serialize($value));
+    }
+
+    public static function deserializationProvider(): array
+    {
+        return [
+            [
+                Obj::make()
+                    ->property('birthday', Date::make())
+                    ->additionalProperties(Date::make()),
+                ['birthday' => '1993-04-04', 'joined' => '2024-01-01'],
+                ['birthday' => new \DateTime('1993-04-04'), 'joined' => new \DateTime('2024-01-01')],
+            ],
+            [Obj::make()->nullable(), null, null],
+        ];
+    }
+
+    #[DataProvider('deserializationProvider')]
+    public function test_deserialization(Type $type, mixed $value, mixed $expected)
+    {
+        $this->assertEquals($expected, $type->deserialize($value));
     }
 
     public static function validationProvider(): array
@@ -84,6 +105,43 @@ class ObjectTest extends AbstractTestCase
         }
 
         $type->validate($value, $fail);
+    }
+
+    public function test_nested_validation_passes_through_plain_errors(): void
+    {
+        $type = Obj::make()->property(
+            'name',
+            new class implements Type {
+                public function serialize(mixed $value): mixed
+                {
+                    return $value;
+                }
+
+                public function deserialize(mixed $value): mixed
+                {
+                    return $value;
+                }
+
+                public function deserializeQueryValue(mixed $value): mixed
+                {
+                    return $this->deserialize($value);
+                }
+
+                public function validate(mixed $value, callable $fail): void
+                {
+                    $fail('invalid');
+                }
+
+                public function schema(): array
+                {
+                    return [];
+                }
+            },
+        );
+
+        $type->validate(['name' => 'Toby'], function ($error) {
+            $this->assertSame('invalid', $error);
+        });
     }
 
     public static function schemaProvider(): array

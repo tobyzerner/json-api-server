@@ -64,7 +64,7 @@ class Atomic extends Extension implements ProvidesRootSchema
                     default => throw new InvalidAtomicOperationException($operation['op'] ?? null),
                 };
             } catch (Sourceable $e) {
-                throw $e->prependSource(['pointer' => "/atomic:operations/$i"]);
+                throw $e->prependSourcePointer("/atomic:operations/$i");
             }
 
             $results[] = json_decode($response->getBody(), true);

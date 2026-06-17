@@ -27,15 +27,26 @@ trait ResolvesList
         $params = [];
 
         if ($filters = $collection->filters()) {
-            $params[] = Parameter::make('filter')->type(Type\Obj::make());
+            $filterProperties = [];
 
-            // TODO: properties of above?
             foreach ($filters as $filter) {
-                $params[] = Parameter::make("filter[{$filter->name}]")->type(Type\Any::make());
+                $filterProperties[$filter->name] = $filter->getSchema();
             }
+
+            $params[] = Parameter::make('filter')
+                ->type(Type\Obj::make())
+                ->schema([
+                    'style' => 'deepObject',
+                    'explode' => true,
+                    'schema' => [
+                        'type' => 'object',
+                        'additionalProperties' => true,
+                        'properties' => $filterProperties,
+                    ],
+                ]);
         }
 
-        if ($sorts = $collection->sorts()) {
+        if ($collection->sorts()) {
             $params[] = Parameter::make('sort')
                 ->type(Type\Str::make())
                 ->default($defaultSort ?? $collection->defaultSort());
@@ -115,7 +126,7 @@ trait ResolvesList
         try {
             apply_filters($query, $filters, $collection, $context);
         } catch (Sourceable $e) {
-            throw $e->prependSource(['parameter' => 'filter']);
+            throw $e->prependSourceParameter('filter');
         }
     }
 }

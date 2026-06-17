@@ -93,10 +93,15 @@ error object from the context in which it is thrown:
 
 ```php
 throw (new UnknownFieldException('email'))
-    ->source(['pointer' => '/data/attributes/email'])
+    ->prependSourcePointer('/data/attributes/email')
     ->meta(['suggestion' => 'Did you mean "emailAddress"?'])
     ->links(['about' => 'https://example.com/docs/fields']);
 ```
+
+Use `prependSourcePointer()` for request body locations and
+`prependSourceParameter()` for query parameters. If an error comes from nested validation, use
+`prependSourcePath()` to accumulate relative path segments before anchoring it to
+a pointer or parameter.
 
 ## Multiple Errors
 
@@ -111,7 +116,7 @@ use Tobyz\JsonApiServer\Exception\InvalidFieldValueException;
 throw new JsonApiErrorsException([
     new RequiredFieldException(),
     new InvalidFieldValueException('Must be a valid email address'),
-])->prependSource(['pointer' => '/data/attributes/email']);
+])->prependSourcePointer('/data/attributes/email');
 ```
 
 This will return a JSON:API error response with multiple error objects:

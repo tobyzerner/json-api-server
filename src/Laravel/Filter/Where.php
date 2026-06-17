@@ -4,6 +4,7 @@ namespace Tobyz\JsonApiServer\Laravel\Filter;
 
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\Filter\UnsupportedFilterOperatorException;
+use Tobyz\JsonApiServer\Schema\Type;
 
 class Where extends ColumnFilter
 {
@@ -25,7 +26,13 @@ class Where extends ColumnFilter
     ];
 
     protected bool $asBoolean = false;
-    protected bool $commaSeparated = false;
+
+    public function __construct(string $name)
+    {
+        parent::__construct($name);
+
+        $this->operators(static::SUPPORTED_OPERATORS);
+    }
 
     public static function make(string $name): static
     {
@@ -36,58 +43,66 @@ class Where extends ColumnFilter
     {
         $this->asBoolean = true;
 
-        return $this;
+        return $this->type(Type\Boolean::make())->operators([]);
     }
 
-    public function commaSeparated(): static
+    public function commaSeparated(?Type\Type $items = null): static
     {
-        $this->commaSeparated = true;
+        if ($items === null && $this->type instanceof Type\Arr) {
+            $this->type->commaSeparated();
 
-        return $this;
-    }
-
-    public function apply(object $query, array|string $value, Context $context): void
-    {
-        if ($this->asBoolean) {
-            $query->where($this->getColumn(), filter_var($value, FILTER_VALIDATE_BOOLEAN));
-            return;
+            return $this;
         }
 
-        $value = $this->resolveOperators($value);
+        return $this->type(Type\Arr::make()->items($items ?? $this->type)->commaSeparated());
+    }
+
+    protected function applyValue(object $query, mixed $value, Context $context): void
+    {
+        $column = $this->getColumn($query);
+
+        if ($this->asBoolean) {
+            $query->where($column, $value);
+            return;
+        }
 
         foreach ($value as $operator => $v) {
             switch ($operator) {
                 case 'eq':
                 case 'in':
-                    $this->applyEquals($query, $v);
+                    $query->whereIn($column, $this->arrayValue($v));
                     break;
 
                 case 'ne':
                 case 'notin':
-                    $this->applyNotEquals($query, $v);
+                    $query->whereNotIn($column, $this->arrayValue($v));
                     break;
 
                 case 'lt':
                 case 'lte':
                 case 'gt':
                 case 'gte':
-                    $this->applyComparison($query, $operator, $v);
+                    $query->where(
+                        $column,
+                        ['lt' => '<', 'lte' => '<=', 'gt' => '>', 'gte' => '>='][$operator],
+                        $this->firstValue($v),
+                    );
                     break;
 
                 case 'like':
-                    $this->applyLike($query, $v);
-                    break;
-
                 case 'notlike':
-                    $this->applyNotLike($query, $v);
+                    $query->where(
+                        $column,
+                        $operator === 'like' ? 'like' : 'not like',
+                        $this->firstValue($v),
+                    );
                     break;
 
                 case 'null':
                 case 'notnull':
-                    $this->applyNull(
-                        $query,
-                        $operator === 'null' xor !filter_var($v, FILTER_VALIDATE_BOOLEAN),
-                    );
+                    $matchesNull = $operator === 'null' ? $v : !$v;
+
+                    $query->{$matchesNull ? 'whereNull' : 'whereNotNull'}($column);
                     break;
 
                 default:
@@ -96,60 +111,12 @@ class Where extends ColumnFilter
         }
     }
 
-    private function splitCommaSeparated(array|string $value): array|string
+    private function arrayValue(mixed $value): array
     {
-        if ($this->commaSeparated && is_string($value)) {
-            return explode(',', $value);
-        }
-
-        return $value;
+        return is_array($value) ? $value : [$value];
     }
 
-    private function applyEquals(object $query, array|string $value): void
-    {
-        $value = $this->splitCommaSeparated($value);
-
-        $query->whereIn($this->getColumn(), (array) $value);
-    }
-
-    private function applyNotEquals(object $query, array|string $value): void
-    {
-        $value = $this->splitCommaSeparated($value);
-
-        $query->whereNotIn($this->getColumn(), (array) $value);
-    }
-
-    private function applyComparison(object $query, string $operator, array|string $value): void
-    {
-        $value = $this->firstValue($value);
-
-        $query->where(
-            $this->getColumn(),
-            ['lt' => '<', 'lte' => '<=', 'gt' => '>', 'gte' => '>='][$operator],
-            $value,
-        );
-    }
-
-    private function applyLike(object $query, array|string $value): void
-    {
-        $value = $this->firstValue($value);
-
-        $query->where($this->getColumn(), 'like', $value);
-    }
-
-    private function applyNotLike(object $query, array|string $value): void
-    {
-        $value = $this->firstValue($value);
-
-        $query->where($this->getColumn(), 'not like', $value);
-    }
-
-    private function applyNull(object $query, bool $value): void
-    {
-        $query->{$value ? 'whereNull' : 'whereNotNull'}($this->getColumn());
-    }
-
-    private function firstValue(array|string $value): mixed
+    private function firstValue(mixed $value): mixed
     {
         if (is_array($value)) {
             return $value[0] ?? null;

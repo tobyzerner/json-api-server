@@ -28,17 +28,25 @@ class OneOf extends AbstractType
         return $value;
     }
 
+    public function deserializeQueryValue(mixed $value): mixed
+    {
+        foreach ($this->types as $type) {
+            $candidate = $type->deserializeQueryValue($value);
+
+            if ($this->isValidFor($type, $candidate)) {
+                return $candidate;
+            }
+        }
+
+        return $value;
+    }
+
     protected function validateValue(mixed $value, callable $fail): void
     {
         $passedCount = 0;
 
         foreach ($this->types as $type) {
-            $typeFailed = false;
-            $type->validate($value, function () use (&$typeFailed) {
-                $typeFailed = true;
-            });
-
-            if (!$typeFailed) {
+            if ($this->isValidFor($type, $value)) {
                 $passedCount++;
             }
         }
@@ -46,6 +54,17 @@ class OneOf extends AbstractType
         if ($passedCount !== 1) {
             $fail(new InvalidSchemaException('oneOf', $passedCount));
         }
+    }
+
+    private function isValidFor(Type $type, mixed $value): bool
+    {
+        $failed = false;
+
+        $type->validate($value, function () use (&$failed) {
+            $failed = true;
+        });
+
+        return !$failed;
     }
 
     protected function getSchema(): array

@@ -2,20 +2,22 @@
 
 namespace Tobyz\JsonApiServer\Laravel\Filter;
 
+use Illuminate\Contracts\Database\Query\Expression;
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Schema\Filter;
+use Tobyz\JsonApiServer\Schema\Type\Arr;
+use Tobyz\JsonApiServer\Schema\Type\Str;
 
-class WhereBelongsTo extends Filter
+class WhereBelongsTo extends Where
 {
-    use SupportsOperators;
-
     public const SUPPORTED_OPERATORS = ['eq', 'in', 'ne', 'notin', 'null', 'notnull'];
 
     protected ?string $relationship = null;
 
-    public static function make(string $name): static
+    public function __construct(string $name)
     {
-        return new static($name);
+        parent::__construct($name);
+
+        $this->type(Arr::make()->items(Str::make())->commaSeparated());
     }
 
     public function relationship(?string $relationship): static
@@ -25,15 +27,24 @@ class WhereBelongsTo extends Filter
         return $this;
     }
 
-    public function apply(object $query, array|string $value, Context $context): void
+    protected function applyValue(object $query, mixed $value, Context $context): void
     {
-        $relationship = $query->getModel()->{$this->relationship ?: $this->name}();
-        $column = $relationship->getQualifiedForeignKeyName();
+        if ($this->asBoolean) {
+            $query->{$value ? 'whereNotNull' : 'whereNull'}($this->getColumn($query));
+            return;
+        }
 
-        Where::make($this->name)
-            ->column($column)
-            ->operators($this->operators)
-            ->commaSeparated()
-            ->apply($query, $value, $context);
+        parent::applyValue($query, $value, $context);
+    }
+
+    protected function getColumn(object $query): string|Expression
+    {
+        if ($this->column) {
+            return $this->column;
+        }
+
+        $relationship = $query->getModel()->{$this->relationship ?: $this->name}();
+
+        return $relationship->getQualifiedForeignKeyName();
     }
 }

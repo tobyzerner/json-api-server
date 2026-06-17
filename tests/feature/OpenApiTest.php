@@ -11,6 +11,7 @@ use Tobyz\JsonApiServer\Endpoint\UpdateRelationship;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\OpenApi\OpenApiGenerator;
 use Tobyz\JsonApiServer\Pagination\OffsetPagination;
+use Tobyz\JsonApiServer\Schema\CustomFilter;
 use Tobyz\JsonApiServer\Schema\Field\Attribute;
 use Tobyz\JsonApiServer\Schema\Field\ToMany;
 use Tobyz\JsonApiServer\Schema\Field\ToOne;
@@ -1168,5 +1169,99 @@ class OpenApiTest extends AbstractTestCase
             'Manage pet relationships',
             $definition['paths']['/users/{id}/relationships/pets']['delete']['summary'],
         );
+    }
+
+    public function test_filter_types_are_included_in_openapi_parameters()
+    {
+        $api = new JsonApi();
+
+        $api->resource(
+            new MockResource(
+                'users',
+                endpoints: [Index::make()],
+                filters: [
+                    CustomFilter::make('active', fn() => null)->type(Type\Boolean::make()),
+                    CustomFilter::make('ids', fn() => null)
+                        ->type(Type\Arr::make()->items(Type\Integer::make())->commaSeparated()),
+                    CustomFilter::make('score', fn() => null)
+                        ->type(Type\Number::make())
+                        ->operators(['eq', 'gt']),
+                    CustomFilter::make('range', fn() => null)
+                        ->type(
+                            Type\Obj::make()
+                                ->property('min', Type\Integer::make())
+                                ->property('max', Type\Integer::make()),
+                        )
+                        ->operators(['eq', 'gt']),
+                    CustomFilter::make('raw', fn() => null)
+                        ->operators(['eq', 'gt']),
+                ],
+            ),
+        );
+
+        $definition = (new OpenApiGenerator())->generate($api);
+        $parameters = $definition['paths']['/users']['get']['parameters'];
+
+        $byName = [];
+        foreach ($parameters as $parameter) {
+            $byName[$parameter['name']] = $parameter;
+        }
+
+        $this->assertSame(['filter'], array_values(array_filter(
+            array_keys($byName),
+            fn($name) => $name === 'filter' || str_starts_with($name, 'filter['),
+        )));
+
+        $this->assertSame('deepObject', $byName['filter']['style']);
+        $this->assertTrue($byName['filter']['explode']);
+
+        $filterProperties = $byName['filter']['schema']['properties'];
+
+        $this->assertSame(['type' => 'boolean'], $filterProperties['active']);
+        $this->assertSame(
+            [
+                'type' => 'array',
+                'x-jsonapi-filter-comma-separated' => true,
+                'items' => ['type' => 'integer'],
+            ],
+            $filterProperties['ids'],
+        );
+        $this->assertSame(['eq', 'gt'], $filterProperties['score']['x-jsonapi-filter-operators']);
+
+        $rangeSchema = $filterProperties['range'];
+        $rangeOperatorSchema = $rangeSchema['oneOf'][1];
+
+        $this->assertSame('object', $rangeOperatorSchema['type']);
+        $this->assertSame(1, $rangeOperatorSchema['minProperties']);
+        $this->assertFalse($rangeOperatorSchema['additionalProperties']);
+        $this->assertSame(
+            [
+                'type' => 'object',
+                'properties' => [
+                    'min' => ['type' => 'integer'],
+                    'max' => ['type' => 'integer'],
+                ],
+            ],
+            $rangeOperatorSchema['properties']['gt'],
+        );
+        $this->assertSame(
+            $rangeOperatorSchema,
+            $rangeSchema['oneOf'][0]['allOf'][1]['not'],
+        );
+
+        $rawSchema = $filterProperties['raw'];
+
+        $this->assertSame(
+            ['not' => ['type' => 'object']],
+            $rawSchema['oneOf'][0],
+        );
+        $rawOperatorSchema = $rawSchema['oneOf'][1];
+
+        $this->assertSame('object', $rawOperatorSchema['type']);
+        $this->assertSame(1, $rawOperatorSchema['minProperties']);
+        $this->assertFalse($rawOperatorSchema['additionalProperties']);
+        $this->assertInstanceOf(\stdClass::class, $rawOperatorSchema['properties']['eq']);
+        $this->assertInstanceOf(\stdClass::class, $rawOperatorSchema['properties']['gt']);
+        $this->assertSame('{}', json_encode($rawOperatorSchema['properties']['eq']));
     }
 }

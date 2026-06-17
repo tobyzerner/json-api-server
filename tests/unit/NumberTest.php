@@ -26,6 +26,22 @@ class NumberTest extends AbstractTestCase
         $this->assertSame($expected, $type->serialize($value));
     }
 
+    public static function queryDeserializationProvider(): array
+    {
+        return [
+            ['1', 1.0],
+            ['1.5', 1.5],
+            ['nope', 'nope'],
+            [null, null],
+        ];
+    }
+
+    #[DataProvider('queryDeserializationProvider')]
+    public function test_query_deserialization(mixed $value, mixed $expected)
+    {
+        $this->assertSame($expected, Number::make()->deserializeQueryValue($value));
+    }
+
     public static function validationProvider(): array
     {
         return [

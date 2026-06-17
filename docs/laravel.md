@@ -180,6 +180,7 @@ WhereNull::make('draft')->column('published_at');
 WhereNotNull::make('published')->column('published_at');
 Scope::make('withTrashed')->asBoolean();
 Scope::make('trashed')->scope('onlyTrashed');
+Scope::make('ids')->commaSeparated();
 ```
 
 ### Boolean Filters

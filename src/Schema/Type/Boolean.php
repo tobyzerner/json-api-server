@@ -21,6 +21,17 @@ class Boolean extends AbstractType
         return $value;
     }
 
+    public function deserializeQueryValue(mixed $value): mixed
+    {
+        if ($value === null || is_bool($value)) {
+            return $value;
+        }
+
+        $normalized = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+
+        return $normalized === null ? $value : $normalized;
+    }
+
     protected function validateValue(mixed $value, callable $fail): void
     {
         if (!is_bool($value)) {

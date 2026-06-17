@@ -3,11 +3,10 @@
 namespace Tobyz\JsonApiServer\Laravel\Filter;
 
 use InvalidArgumentException;
+use Tobyz\JsonApiServer\Schema\Type;
 
 trait SupportsOperators
 {
-    protected array $operators = self::SUPPORTED_OPERATORS;
-
     public function operators(array $only): static
     {
         $invalid = array_diff($only, static::SUPPORTED_OPERATORS);
@@ -18,31 +17,26 @@ trait SupportsOperators
             );
         }
 
-        $this->operators = $only;
-
-        return $this;
+        return parent::operators($only);
     }
 
-    protected function resolveOperators(array|string $value): array
+    protected function operatorPayloadType(string $operator): ?Type\Type
     {
-        $default = $this->operators[0];
-
-        if (is_string($value) || array_is_list($value)) {
-            return [$default => $value];
+        if (in_array($operator, ['null', 'notnull'], true)) {
+            return Type\Boolean::make();
         }
 
-        $result = [];
+        $type = parent::operatorPayloadType($operator);
+        $listOperator = in_array($operator, ['eq', 'ne', 'in', 'notin'], true);
 
-        foreach ($value as $key => $val) {
-            if (in_array($key, $this->operators)) {
-                $result[$key] = $val;
-            } elseif (is_array($result[$default] ?? [])) {
-                $result[$default][$key] = $val;
-            } else {
-                $result[$default] = [$result[$default], $val];
-            }
+        if (!$listOperator && $type instanceof Type\Arr) {
+            return $type->items ?? Type\Any::make();
         }
 
-        return $result;
+        if (!$listOperator || !$type || $type instanceof Type\Arr) {
+            return $type;
+        }
+
+        return Type\OneOf::make([$type, Type\Arr::make()->items($type)]);
     }
 }

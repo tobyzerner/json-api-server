@@ -8,6 +8,8 @@ interface Type
 
     public function deserialize(mixed $value): mixed;
 
+    public function deserializeQueryValue(mixed $value): mixed;
+
     public function validate(mixed $value, callable $fail): void;
 
     public function schema(): array;

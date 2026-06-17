@@ -7,7 +7,7 @@ use Tobyz\JsonApiServer\Context;
 
 class CustomFilter extends Filter
 {
-    public function __construct(public string $name, private readonly Closure $apply)
+    public function __construct(string $name, private readonly Closure $apply)
     {
         parent::__construct($name);
     }
@@ -17,7 +17,7 @@ class CustomFilter extends Filter
         return new static($name, $apply);
     }
 
-    public function apply(object $query, string|array $value, Context $context): void
+    protected function applyValue(object $query, mixed $value, Context $context): void
     {
         ($this->apply)($query, $value, $context);
     }

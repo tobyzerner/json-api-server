@@ -2,20 +2,12 @@
 
 namespace Tobyz\JsonApiServer\Laravel\Filter;
 
-use Tobyz\JsonApiServer\Context;
-
-class WhereNull extends ColumnFilter
+class WhereNull extends Where
 {
-    public static function make(string $name): static
+    public function __construct(string $name)
     {
-        return new static($name);
-    }
+        parent::__construct($name);
 
-    public function apply(object $query, array|string $value, Context $context): void
-    {
-        Where::make($this->name)
-            ->column($this->getColumn())
-            ->operators(['null'])
-            ->apply($query, $value, $context);
+        $this->operators(['null']);
     }
 }

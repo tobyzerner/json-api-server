@@ -22,7 +22,7 @@ abstract class ColumnFilter extends Filter
         return $this;
     }
 
-    protected function getColumn(): string|Expression
+    protected function getColumn(object $query): string|Expression
     {
         return $this->column ?: Str::snake($this->name);
     }

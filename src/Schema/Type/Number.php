@@ -30,6 +30,15 @@ class Number extends AbstractType
         return $value;
     }
 
+    public function deserializeQueryValue(mixed $value): mixed
+    {
+        if (!is_numeric($value)) {
+            return $value;
+        }
+
+        return (float) $value;
+    }
+
     protected function validateValue(mixed $value, callable $fail): void
     {
         if (!is_numeric($value)) {

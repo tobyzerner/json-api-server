@@ -2,6 +2,7 @@
 
 namespace Tobyz\JsonApiServer\Schema\Type;
 
+use Tobyz\JsonApiServer\Exception\Sourceable;
 use Tobyz\JsonApiServer\Exception\Type\NullViolationException;
 
 abstract class AbstractType implements Type
@@ -33,6 +34,11 @@ abstract class AbstractType implements Type
         return $this->deserializeValue($value);
     }
 
+    public function deserializeQueryValue(mixed $value): mixed
+    {
+        return $this->deserialize($value);
+    }
+
     public function validate(mixed $value, callable $fail): void
     {
         if ($value === null) {
@@ -61,6 +67,31 @@ abstract class AbstractType implements Type
     abstract protected function deserializeValue(mixed $value): mixed;
 
     abstract protected function validateValue(mixed $value, callable $fail): void;
+
+    protected function validateNestedValue(
+        Type $type,
+        mixed $value,
+        int|string $segment,
+        callable $fail,
+    ): void {
+        $type->validate($value, function ($error) use ($segment, $fail) {
+            $fail(
+                $error instanceof Sourceable ? $error->prependSourcePath($segment) : $error,
+            );
+        });
+    }
+
+    protected function deserializeNestedQueryValue(
+        Type $type,
+        mixed $value,
+        int|string $segment,
+    ): mixed {
+        try {
+            return $type->deserializeQueryValue($value);
+        } catch (Sourceable $e) {
+            throw $e->prependSourcePath($segment);
+        }
+    }
 
     abstract protected function getSchema(): array;
 }

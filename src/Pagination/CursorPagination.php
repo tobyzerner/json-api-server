@@ -64,7 +64,7 @@ class CursorPagination implements
         try {
             $page = $collection->cursorPaginate($query, $size, $after, $before, $context);
         } catch (Sourceable $e) {
-            throw $e->prependSource(['parameter' => 'page']);
+            throw $e->prependSourceParameter('page');
         }
 
         foreach ($page->results as $model) {

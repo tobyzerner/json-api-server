@@ -186,7 +186,7 @@ abstract class Relationship extends Field
         try {
             $resolved = $this->deserializeData($value['data'], $context);
         } catch (Sourceable $e) {
-            throw $e->prependSource(['pointer' => '/data']);
+            throw $e->prependSourcePointer('/data');
         }
 
         if ($this->deserializer) {

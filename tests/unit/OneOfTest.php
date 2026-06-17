@@ -3,6 +3,7 @@
 namespace Tobyz\Tests\JsonApiServer\unit;
 
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tobyz\JsonApiServer\Schema\Type\Arr;
 use Tobyz\JsonApiServer\Schema\Type\Integer;
 use Tobyz\JsonApiServer\Schema\Type\OneOf;
 use Tobyz\JsonApiServer\Schema\Type\Str;
@@ -25,6 +26,26 @@ class OneOfTest extends AbstractTestCase
     public function test_serialization(Type $type, mixed $value, mixed $expected)
     {
         $this->assertSame($expected, $type->serialize($value));
+    }
+
+    public static function queryDeserializationProvider(): array
+    {
+        return [
+            [OneOf::make([Integer::make(), Arr::make()->items(Integer::make())]), '1', 1],
+            [
+                OneOf::make([Integer::make(), Arr::make()->items(Integer::make())]),
+                ['1', '2'],
+                [1, 2],
+            ],
+            [OneOf::make([Integer::make(), Str::make()]), 'hello', 'hello'],
+            [OneOf::make([Integer::make(), Str::make()]), '1', 1],
+        ];
+    }
+
+    #[DataProvider('queryDeserializationProvider')]
+    public function test_query_deserialization(OneOf $type, mixed $value, mixed $expected)
+    {
+        $this->assertSame($expected, $type->deserializeQueryValue($value));
     }
 
     public static function validationProvider(): array

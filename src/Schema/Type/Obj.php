@@ -18,37 +18,34 @@ class Obj extends AbstractType
 
     protected function serializeValue(mixed $value): mixed
     {
-        if (!is_array($value)) {
-            return $value;
-        }
-
-        $result = [];
-        foreach ($this->properties as $name => $config) {
-            if (array_key_exists($name, $value)) {
-                $result[$name] = $config['type']->serialize($value[$name]);
-            }
-        }
-
-        // Serialize additional properties if they're typed
-        if ($this->additionalProperties instanceof Type) {
-            foreach ($value as $key => $val) {
-                if (!isset($this->properties[$key])) {
-                    $result[$key] = $this->additionalProperties->serialize($val);
-                }
-            }
-        } else {
-            // Include untyped additional properties as-is
-            foreach ($value as $key => $val) {
-                if (!isset($this->properties[$key])) {
-                    $result[$key] = $val;
-                }
-            }
-        }
-
-        return $result;
+        return $this->mapValue($value, 'serialize');
     }
 
     protected function deserializeValue(mixed $value): mixed
+    {
+        return $this->mapValue($value, 'deserialize');
+    }
+
+    public function deserializeQueryValue(mixed $value): mixed
+    {
+        if (!is_array($value)) {
+            return $this->deserializeValue($value);
+        }
+
+        foreach ($value as $key => $item) {
+            $propertyType = $this->properties[$key]['type'] ?? $this->additionalProperties;
+
+            if (!$propertyType instanceof Type) {
+                continue;
+            }
+
+            $value[$key] = $this->deserializeNestedQueryValue($propertyType, $item, $key);
+        }
+
+        return $value;
+    }
+
+    private function mapValue(mixed $value, string $method): mixed
     {
         if (!is_array($value)) {
             return $value;
@@ -57,24 +54,19 @@ class Obj extends AbstractType
         $result = [];
         foreach ($this->properties as $name => $config) {
             if (array_key_exists($name, $value)) {
-                $result[$name] = $config['type']->deserialize($value[$name]);
+                $result[$name] = $config['type']->$method($value[$name]);
             }
         }
 
-        // Deserialize additional properties if they're typed
-        if ($this->additionalProperties instanceof Type) {
-            foreach ($value as $key => $val) {
-                if (!isset($this->properties[$key])) {
-                    $result[$key] = $this->additionalProperties->deserialize($val);
-                }
+        foreach ($value as $key => $val) {
+            if (isset($this->properties[$key])) {
+                continue;
             }
-        } else {
-            // Include untyped additional properties as-is
-            foreach ($value as $key => $val) {
-                if (!isset($this->properties[$key])) {
-                    $result[$key] = $val;
-                }
-            }
+
+            $result[$key] =
+                $this->additionalProperties instanceof Type
+                    ? $this->additionalProperties->$method($val)
+                    : $val;
         }
 
         return $result;
@@ -96,20 +88,26 @@ class Obj extends AbstractType
 
         foreach ($this->properties as $name => $config) {
             if (array_key_exists($name, $value)) {
-                $config['type']->validate($value[$name], $fail);
+                $this->validateNestedValue($config['type'], $value[$name], $name, $fail);
             }
         }
 
-        if ($this->additionalProperties !== null) {
-            foreach ($value as $key => $val) {
-                if (!isset($this->properties[$key])) {
-                    if ($this->additionalProperties === false) {
-                        $fail(new AdditionalPropertyException($key));
-                        return;
-                    } elseif ($this->additionalProperties instanceof Type) {
-                        $this->additionalProperties->validate($val, $fail);
-                    }
-                }
+        if ($this->additionalProperties === null) {
+            return;
+        }
+
+        foreach ($value as $key => $val) {
+            if (isset($this->properties[$key])) {
+                continue;
+            }
+
+            if ($this->additionalProperties === false) {
+                $fail(new AdditionalPropertyException($key));
+                return;
+            }
+
+            if ($this->additionalProperties instanceof Type) {
+                $this->validateNestedValue($this->additionalProperties, $val, $key, $fail);
             }
         }
     }

@@ -4,6 +4,7 @@ namespace Tobyz\JsonApiServer;
 
 use Tobyz\JsonApiServer\Exception\Filter\InvalidFilterStructureException;
 use Tobyz\JsonApiServer\Exception\Filter\UnknownFilterException;
+use Tobyz\JsonApiServer\Exception\Sourceable;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Resource\SupportsBooleanFilters;
@@ -73,7 +74,13 @@ class Filterer
                 throw $this->badRequest(new UnknownFilterException($key), $keyPath);
             }
 
-            $clauses[] = fn($query) => $filter->apply($query, $value, $this->context);
+            $clauses[] = function ($query) use ($filter, $value, $keyPath) {
+                try {
+                    $filter->apply($query, $value, $this->context);
+                } catch (Sourceable $e) {
+                    throw $e->prependSourcePath(...$keyPath);
+                }
+            };
         }
 
         if (!$clauses) {
@@ -116,9 +123,6 @@ class Filterer
         InvalidFilterStructureException|UnknownFilterException $exception,
         array $path,
     ): InvalidFilterStructureException|UnknownFilterException {
-        return $exception->source([
-            'parameter' =>
-                '[' . implode('][', array_map(fn($segment) => (string) $segment, $path)) . ']',
-        ]);
+        return $exception->prependSourcePath(...$path);
     }
 }

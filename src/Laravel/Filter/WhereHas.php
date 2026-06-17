@@ -20,6 +20,13 @@ class WhereHas extends Filter
 
     public const SUPPORTED_OPERATORS = ['eq', 'in', 'ne', 'notin', 'null', 'notnull'];
 
+    public function __construct(string $name)
+    {
+        parent::__construct($name);
+
+        $this->operators(static::SUPPORTED_OPERATORS);
+    }
+
     public static function make(string $name): static
     {
         return new static($name);
@@ -32,7 +39,7 @@ class WhereHas extends Filter
         return $this;
     }
 
-    public function apply(object $query, array|string $value, Context $context): void
+    protected function applyValue(object $query, mixed $value, Context $context): void
     {
         $resource = $context->collection;
 
@@ -57,8 +64,6 @@ class WhereHas extends Filter
         }
 
         $relatedCollection = $context->api->getCollection($field->collections[0]);
-
-        $value = $this->resolveOperators($value);
 
         foreach ($value as $operator => $v) {
             $method = match ($operator) {
@@ -104,16 +109,40 @@ class WhereHas extends Filter
         }
     }
 
-    private function extractIds(array|string $value): ?array
+    private function extractIds(mixed $value): ?array
     {
         if (is_string($value)) {
             return explode(',', $value);
         }
 
-        if (array_is_list($value)) {
+        if (is_scalar($value)) {
+            return [$value];
+        }
+
+        if (is_array($value) && array_is_list($value)) {
             return $value;
         }
 
         return null;
+    }
+
+    protected function operatorDefaultValueSchema(
+        array $defaultValueSchema,
+        array $operatorSchema,
+    ): array {
+        if ($defaultValueSchema === []) {
+            return ['not' => $operatorSchema];
+        }
+
+        return parent::operatorDefaultValueSchema($defaultValueSchema, $operatorSchema);
+    }
+
+    protected function isOperatorValue(mixed $value, array $operators): bool
+    {
+        // Relation filters may receive nested filter objects at the operator level;
+        // only treat the value as operators when every top-level key is supported.
+        return is_array($value) &&
+            !array_is_list($value) &&
+            array_diff(array_keys($value), $operators) === [];
     }
 }
