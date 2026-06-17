@@ -28,12 +28,7 @@ class NumberTest extends AbstractTestCase
 
     public static function queryDeserializationProvider(): array
     {
-        return [
-            ['1', 1.0],
-            ['1.5', 1.5],
-            ['nope', 'nope'],
-            [null, null],
-        ];
+        return [['1', 1.0], ['1.5', 1.5], ['nope', 'nope'], [null, null]];
     }
 
     #[DataProvider('queryDeserializationProvider')]

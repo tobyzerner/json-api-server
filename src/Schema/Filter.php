@@ -75,8 +75,7 @@ abstract class Filter
             $payloadSchema = $this->operatorPayloadSchema($operator, $valueSchema);
 
             $defaultValueSchema ??= $payloadSchema;
-            $operatorProperties[$operator] =
-                $payloadSchema === [] ? (object) [] : $payloadSchema;
+            $operatorProperties[$operator] = $payloadSchema === [] ? (object) [] : $payloadSchema;
         }
 
         $operatorSchema = [
@@ -88,10 +87,7 @@ abstract class Filter
 
         return $this->mergeSchema([
             'oneOf' => [
-                $this->operatorDefaultValueSchema(
-                    $defaultValueSchema,
-                    $operatorSchema,
-                ),
+                $this->operatorDefaultValueSchema($defaultValueSchema, $operatorSchema),
                 $operatorSchema,
             ],
             'x-jsonapi-filter-operators' => $operators,
@@ -108,10 +104,7 @@ abstract class Filter
 
         if (($defaultValueSchema['type'] ?? null) === 'object') {
             return [
-                'allOf' => [
-                    $defaultValueSchema,
-                    ['not' => $operatorSchema],
-                ],
+                'allOf' => [$defaultValueSchema, ['not' => $operatorSchema]],
             ];
         }
 

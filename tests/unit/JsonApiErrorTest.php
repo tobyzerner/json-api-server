@@ -57,9 +57,6 @@ class JsonApiErrorTest extends AbstractTestCase
             ->prependSourcePath('ids', 0)
             ->prependSource(['parameter' => 'filter']);
 
-        $this->assertSame(
-            'filter[ids][0]',
-            $error->getJsonApiError()['source']['parameter'],
-        );
+        $this->assertSame('filter[ids][0]', $error->getJsonApiError()['source']['parameter']);
     }
 }

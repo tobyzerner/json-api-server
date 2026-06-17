@@ -75,9 +75,7 @@ abstract class AbstractType implements Type
         callable $fail,
     ): void {
         $type->validate($value, function ($error) use ($segment, $fail) {
-            $fail(
-                $error instanceof Sourceable ? $error->prependSourcePath($segment) : $error,
-            );
+            $fail($error instanceof Sourceable ? $error->prependSourcePath($segment) : $error);
         });
     }
 

@@ -47,7 +47,10 @@ class ObjectTest extends AbstractTestCase
                     ->property('birthday', Date::make())
                     ->additionalProperties(Date::make()),
                 ['birthday' => '1993-04-04', 'joined' => '2024-01-01'],
-                ['birthday' => new \DateTime('1993-04-04'), 'joined' => new \DateTime('2024-01-01')],
+                [
+                    'birthday' => new \DateTime('1993-04-04'),
+                    'joined' => new \DateTime('2024-01-01'),
+                ],
             ],
             [Obj::make()->nullable(), null, null],
         ];

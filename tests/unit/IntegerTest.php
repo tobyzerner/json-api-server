@@ -28,13 +28,7 @@ class IntegerTest extends AbstractTestCase
 
     public static function queryDeserializationProvider(): array
     {
-        return [
-            ['1', 1],
-            ['0', 0],
-            ['nope', 'nope'],
-            ['1.5', '1.5'],
-            [null, null],
-        ];
+        return [['1', 1], ['0', 0], ['nope', 'nope'], ['1.5', '1.5'], [null, null]];
     }
 
     #[DataProvider('queryDeserializationProvider')]

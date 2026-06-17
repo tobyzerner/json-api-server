@@ -24,12 +24,16 @@ class JsonApiErrorsException extends DomainException implements Sourceable
 
     public function prependSourceParameter(string $parameter): static
     {
-        return $this->eachSourceable(fn(Sourceable $error) => $error->prependSourceParameter($parameter));
+        return $this->eachSourceable(
+            fn(Sourceable $error) => $error->prependSourceParameter($parameter),
+        );
     }
 
     public function prependSourcePointer(string $pointer): static
     {
-        return $this->eachSourceable(fn(Sourceable $error) => $error->prependSourcePointer($pointer));
+        return $this->eachSourceable(
+            fn(Sourceable $error) => $error->prependSourcePointer($pointer),
+        );
     }
 
     /** @deprecated Use prependSourcePath() and prependSourceParameter() or prependSourcePointer(). */

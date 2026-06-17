@@ -28,7 +28,10 @@ class LaravelFilterTest extends AbstractTestCase
     {
         $query = new RecordingQuery();
 
-        Where::make('active')->column('active')->asBoolean()->apply($query, '1', $this->context());
+        Where::make('active')
+            ->column('active')
+            ->asBoolean()
+            ->apply($query, '1', $this->context());
 
         $this->assertSame(['where', ['active', true]], $query->calls[0]);
     }
@@ -64,7 +67,9 @@ class LaravelFilterTest extends AbstractTestCase
     {
         $query = new RecordingQuery();
 
-        Where::make('name')->column('name')->apply($query, ['notlike' => 'T%'], $this->context());
+        Where::make('name')
+            ->column('name')
+            ->apply($query, ['notlike' => 'T%'], $this->context());
 
         $this->assertSame(['where', ['name', 'not like', 'T%']], $query->calls[0]);
     }
@@ -309,7 +314,11 @@ class LaravelFilterTest extends AbstractTestCase
     {
         $this->expectException(InvalidFilterValueException::class);
 
-        WhereCount::make('comments')->apply(new RecordingQuery(), ['gte' => ['2']], $this->context());
+        WhereCount::make('comments')->apply(
+            new RecordingQuery(),
+            ['gte' => ['2']],
+            $this->context(),
+        );
     }
 
     public function test_where_has_filter_applies_nested_filter_payloads(): void
@@ -362,14 +371,17 @@ class LaravelFilterTest extends AbstractTestCase
     private function relationshipContext(): Context
     {
         $api = new JsonApi();
-        $api->resource(new FakeEloquentResource('users', [
-            CustomFilter::make('name', function ($query, string $value): void {
-                $query->seen = ['name' => $value];
-            }),
-        ]));
-        $resource = new FakeEloquentResource('posts', fields: [
-            ToOne::make('author')->type('users'),
-        ]);
+        $api->resource(
+            new FakeEloquentResource('users', [
+                CustomFilter::make('name', function ($query, string $value): void {
+                    $query->seen = ['name' => $value];
+                }),
+            ]),
+        );
+        $resource = new FakeEloquentResource(
+            'posts',
+            fields: [ToOne::make('author')->type('users')],
+        );
         $api->resource($resource);
 
         return (new Context($api, new ServerRequest('GET', '/')))->withCollection($resource);

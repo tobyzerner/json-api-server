@@ -1181,8 +1181,11 @@ class OpenApiTest extends AbstractTestCase
                 endpoints: [Index::make()],
                 filters: [
                     CustomFilter::make('active', fn() => null)->type(Type\Boolean::make()),
-                    CustomFilter::make('ids', fn() => null)
-                        ->type(Type\Arr::make()->items(Type\Integer::make())->commaSeparated()),
+                    CustomFilter::make('ids', fn() => null)->type(
+                        Type\Arr::make()
+                            ->items(Type\Integer::make())
+                            ->commaSeparated(),
+                    ),
                     CustomFilter::make('score', fn() => null)
                         ->type(Type\Number::make())
                         ->operators(['eq', 'gt']),
@@ -1193,8 +1196,7 @@ class OpenApiTest extends AbstractTestCase
                                 ->property('max', Type\Integer::make()),
                         )
                         ->operators(['eq', 'gt']),
-                    CustomFilter::make('raw', fn() => null)
-                        ->operators(['eq', 'gt']),
+                    CustomFilter::make('raw', fn() => null)->operators(['eq', 'gt']),
                 ],
             ),
         );
@@ -1207,10 +1209,15 @@ class OpenApiTest extends AbstractTestCase
             $byName[$parameter['name']] = $parameter;
         }
 
-        $this->assertSame(['filter'], array_values(array_filter(
-            array_keys($byName),
-            fn($name) => $name === 'filter' || str_starts_with($name, 'filter['),
-        )));
+        $this->assertSame(
+            ['filter'],
+            array_values(
+                array_filter(
+                    array_keys($byName),
+                    fn($name) => $name === 'filter' || str_starts_with($name, 'filter['),
+                ),
+            ),
+        );
 
         $this->assertSame('deepObject', $byName['filter']['style']);
         $this->assertTrue($byName['filter']['explode']);
@@ -1244,17 +1251,11 @@ class OpenApiTest extends AbstractTestCase
             ],
             $rangeOperatorSchema['properties']['gt'],
         );
-        $this->assertSame(
-            $rangeOperatorSchema,
-            $rangeSchema['oneOf'][0]['allOf'][1]['not'],
-        );
+        $this->assertSame($rangeOperatorSchema, $rangeSchema['oneOf'][0]['allOf'][1]['not']);
 
         $rawSchema = $filterProperties['raw'];
 
-        $this->assertSame(
-            ['not' => ['type' => 'object']],
-            $rawSchema['oneOf'][0],
-        );
+        $this->assertSame(['not' => ['type' => 'object']], $rawSchema['oneOf'][0]);
         $rawOperatorSchema = $rawSchema['oneOf'][1];
 
         $this->assertSame('object', $rawOperatorSchema['type']);

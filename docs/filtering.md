@@ -69,9 +69,7 @@ CustomFilter::make('published', function ($query, bool $value) {
 
 CustomFilter::make('ids', function ($query, array $ids) {
     $query->whereKey($ids);
-})->type(
-    Type\Arr::make()->items(Type\Integer::make())
-);
+})->type(Type\Arr::make()->items(Type\Integer::make()));
 ```
 
 ### Arrays
@@ -84,7 +82,9 @@ items, use `commaSeparated()` on the array type:
 CustomFilter::make('ids', function ($query, array $ids) {
     $query->whereKey($ids);
 })->type(
-    Type\Arr::make()->items(Type\Integer::make())->commaSeparated()
+    Type\Arr::make()
+        ->items(Type\Integer::make())
+        ->commaSeparated(),
 );
 ```
 
@@ -103,13 +103,17 @@ You may also opt into operator syntax:
 ```php
 CustomFilter::make('views', function ($query, array $value) {
     foreach ($value as $operator => $views) {
-        $query->where('views', [
-            'eq' => '=',
-            'gt' => '>',
-            'gte' => '>=',
-            'lt' => '<',
-            'lte' => '<=',
-        ][$operator], $views);
+        $query->where(
+            'views',
+            [
+                'eq' => '=',
+                'gt' => '>',
+                'gte' => '>=',
+                'lt' => '<',
+                'lte' => '<=',
+            ][$operator],
+            $views,
+        );
     }
 })
     ->type(Type\Integer::make())
@@ -126,8 +130,8 @@ is specified, the first configured operator is used.
 
 ## Writing Filters
 
-If you need to reuse filter logic across resources, create your own filter
-class by extending `Tobyz\JsonApiServer\Schema\Filter` and implementing the
+If you need to reuse filter logic across resources, create your own filter class
+by extending `Tobyz\JsonApiServer\Schema\Filter` and implementing the
 `applyValue` method:
 
 ```php
@@ -149,8 +153,11 @@ class WhereIn extends Filter
         $this->type(Type\Arr::make()->items(Type\Str::make()));
     }
 
-    protected function applyValue(object $query, mixed $value, Context $context): void
-    {
+    protected function applyValue(
+        object $query,
+        mixed $value,
+        Context $context,
+    ): void {
         $query->whereIn($this->name, $value);
     }
 }

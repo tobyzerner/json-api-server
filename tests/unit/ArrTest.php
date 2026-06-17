@@ -17,11 +17,7 @@ class ArrTest extends AbstractTestCase
     {
         return [
             [Arr::make(), [1, 2, 3], [1, 2, 3]],
-            [
-                Arr::make()->items(Date::make()),
-                [new \DateTime('1993-04-04')],
-                ['1993-04-04'],
-            ],
+            [Arr::make()->items(Date::make()), [new \DateTime('1993-04-04')], ['1993-04-04']],
             [Arr::make(), [], []],
             [Arr::make()->nullable(), null, null],
         ];
@@ -62,7 +58,13 @@ class ArrTest extends AbstractTestCase
             [Arr::make(), null, null],
             [Arr::make()->nullable(), null, null],
             [Arr::make()->items(Integer::make()), null, null],
-            [Arr::make()->items(Integer::make())->commaSeparated(), null, null],
+            [
+                Arr::make()
+                    ->items(Integer::make())
+                    ->commaSeparated(),
+                null,
+                null,
+            ],
         ];
     }
 
@@ -87,12 +89,16 @@ class ArrTest extends AbstractTestCase
             [Arr::make()->uniqueItems(), [1, 2], true],
             [Arr::make()->uniqueItems(), [1, 1], false],
             [
-                Arr::make()->items(Date::make())->uniqueItems(),
+                Arr::make()
+                    ->items(Date::make())
+                    ->uniqueItems(),
                 [new \DateTime('1993-04-04'), new \DateTime('1993-04-05')],
                 true,
             ],
             [
-                Arr::make()->items(Date::make())->uniqueItems(),
+                Arr::make()
+                    ->items(Date::make())
+                    ->uniqueItems(),
                 [new \DateTime('1993-04-04'), new \DateTime('1993-04-04')],
                 false,
             ],

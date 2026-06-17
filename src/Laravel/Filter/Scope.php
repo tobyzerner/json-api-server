@@ -56,7 +56,11 @@ class Scope extends Filter
             return $this;
         }
 
-        return $this->type(Type\Arr::make()->items($items ?? $this->type)->commaSeparated());
+        return $this->type(
+            Type\Arr::make()
+                ->items($items ?? $this->type)
+                ->commaSeparated(),
+        );
     }
 
     protected function applyValue(object $query, mixed $value, Context $context): void

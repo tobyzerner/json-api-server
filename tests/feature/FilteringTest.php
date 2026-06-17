@@ -29,10 +29,7 @@ class FilteringTest extends AbstractTestCase
                     (object) ['id' => '3', 'active' => false, 'score' => 30],
                 ],
                 endpoints: [Index::make()],
-                fields: [
-                    Attribute::make('active'),
-                    Attribute::make('score'),
-                ],
+                fields: [Attribute::make('active'), Attribute::make('score')],
                 filters: [
                     CustomFilter::make('active', function ($query, bool $value): void {
                         $query->models = array_filter(
@@ -46,7 +43,11 @@ class FilteringTest extends AbstractTestCase
                             $query->models,
                             fn($model) => in_array((int) $model->id, $value, true),
                         );
-                    })->type(Type\Arr::make()->items(Type\Integer::make())->commaSeparated()),
+                    })->type(
+                        Type\Arr::make()
+                            ->items(Type\Integer::make())
+                            ->commaSeparated(),
+                    ),
 
                     CustomFilter::make('created', function ($query, array $value): void {
                         $query->seen = $value;

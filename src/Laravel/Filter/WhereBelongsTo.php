@@ -17,7 +17,11 @@ class WhereBelongsTo extends Where
     {
         parent::__construct($name);
 
-        $this->type(Arr::make()->items(Str::make())->commaSeparated());
+        $this->type(
+            Arr::make()
+                ->items(Str::make())
+                ->commaSeparated(),
+        );
     }
 
     public function relationship(?string $relationship): static

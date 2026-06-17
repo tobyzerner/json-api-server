@@ -99,9 +99,9 @@ throw (new UnknownFieldException('email'))
 ```
 
 Use `prependSourcePointer()` for request body locations and
-`prependSourceParameter()` for query parameters. If an error comes from nested validation, use
-`prependSourcePath()` to accumulate relative path segments before anchoring it to
-a pointer or parameter.
+`prependSourceParameter()` for query parameters. If an error comes from nested
+validation, use `prependSourcePath()` to accumulate relative path segments
+before anchoring it to a pointer or parameter.
 
 ## Multiple Errors
 
