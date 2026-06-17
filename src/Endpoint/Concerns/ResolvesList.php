@@ -30,7 +30,8 @@ trait ResolvesList
             $filterProperties = [];
 
             foreach ($filters as $filter) {
-                $filterProperties[$filter->name] = $filter->getSchema();
+                $schema = $filter->getSchema();
+                $filterProperties[$filter->name] = $schema === [] ? (object) [] : $schema;
             }
 
             $params[] = Parameter::make('filter')

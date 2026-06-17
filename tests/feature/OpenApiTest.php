@@ -1265,4 +1265,40 @@ class OpenApiTest extends AbstractTestCase
         $this->assertInstanceOf(\stdClass::class, $rawOperatorSchema['properties']['gt']);
         $this->assertSame('{}', json_encode($rawOperatorSchema['properties']['eq']));
     }
+
+    public function test_untyped_filter_schema_serializes_as_object()
+    {
+        $api = new JsonApi();
+
+        $api->resource(
+            new MockResource(
+                'users',
+                endpoints: [Index::make()],
+                filters: [
+                    CustomFilter::make('products', fn() => null),
+                    CustomFilter::make('mine', fn() => null),
+                ],
+            ),
+        );
+
+        $definition = (new OpenApiGenerator())->generate($api);
+        $parameters = $definition['paths']['/users']['get']['parameters'];
+
+        $filterParameter = null;
+        foreach ($parameters as $parameter) {
+            if ($parameter['name'] === 'filter') {
+                $filterParameter = $parameter;
+                break;
+            }
+        }
+
+        $filterProperties = $filterParameter['schema']['properties'];
+
+        $this->assertInstanceOf(\stdClass::class, $filterProperties['products']);
+        $this->assertInstanceOf(\stdClass::class, $filterProperties['mine']);
+        $this->assertSame(
+            '{"products":{},"mine":{}}',
+            json_encode($filterProperties),
+        );
+    }
 }
