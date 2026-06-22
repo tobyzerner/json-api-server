@@ -1,9 +1,9 @@
-name: Prettier
+name: Format
 
 on: [push, pull_request]
 
 jobs:
-  prettier:
+  format:
     runs-on: ubuntu-latest
 
     permissions:
@@ -16,12 +16,21 @@ jobs:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
 
-      - run: npm ci
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: json
+          coverage: none
 
-      - run: npm run prettier
+      - name: Install dependencies
+        run: composer install --prefer-dist
+
+      - name: Run Mago
+        run: vendor/bin/mago format
 
       - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          commit_message: Run Prettier
+          commit_message: Run Mago
           branch: ${{ github.head_ref }}

@@ -32,6 +32,7 @@
         }
     },
     "require-dev": {
+        "carthage-software/mago": "^1.30",
         "dms/phpunit-arraysubset-asserts": "^0.5.0",
         "phpbench/phpbench": "^1.2",
         "phpunit/phpunit": "^10.2.2"
