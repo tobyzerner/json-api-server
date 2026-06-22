@@ -145,6 +145,7 @@ trait SetsValue
     {
         if ($value === null && !$this->nullable) {
             $fail(new NullViolationException());
+            return;
         }
 
         foreach ($this->validators as $validator) {

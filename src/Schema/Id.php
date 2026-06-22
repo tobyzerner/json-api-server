@@ -4,13 +4,14 @@ namespace Tobyz\JsonApiServer\Schema;
 
 use Closure;
 use DomainException;
-use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Schema\Concerns\AppliesType;
 use Tobyz\JsonApiServer\Schema\Field\Field;
 use Tobyz\JsonApiServer\Schema\Type\Str;
-use Tobyz\JsonApiServer\SchemaContext;
 
 class Id extends Field
 {
+    use AppliesType;
+
     public Str $type;
 
     public function __construct()
@@ -31,32 +32,6 @@ class Id extends Field
         $this->type = $type;
 
         return $this;
-    }
-
-    public function serializeValue(mixed $value, Context $context): mixed
-    {
-        $value = parent::serializeValue($value, $context);
-
-        return $this->type->serialize($value);
-    }
-
-    public function deserializeValue(mixed $value, Context $context): mixed
-    {
-        $value = $this->type->deserialize($value);
-
-        return parent::deserializeValue($value, $context);
-    }
-
-    public function validateValue(mixed $value, callable $fail, Context $context): void
-    {
-        $this->type->validate($value, $fail);
-
-        parent::validateValue($value, $fail, $context);
-    }
-
-    public function getSchema(SchemaContext $context): array
-    {
-        return parent::getSchema($context) + ($this->type->schema() ?: []);
     }
 
     public function writable(?Closure $condition = null): static

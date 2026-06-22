@@ -7,6 +7,8 @@ use Tobyz\JsonApiServer\Endpoint\Update;
 use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Field\Attribute;
+use Tobyz\JsonApiServer\Schema\Type\Arr;
+use Tobyz\JsonApiServer\Schema\Type\Str;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockResource;
 
@@ -64,5 +66,67 @@ class FieldValidationTest extends AbstractTestCase
                 'data' => ['type' => 'users', 'id' => '1', 'attributes' => ['name' => 'Toby']],
             ]),
         );
+    }
+
+    public function test_validate_is_not_run_when_type_validation_fails()
+    {
+        $called = false;
+
+        $this->api->resource(
+            new MockResource(
+                'users',
+                endpoints: [Create::make()],
+                fields: [
+                    Attribute::make('aliases')
+                        ->type(Arr::make())
+                        ->writable()
+                        ->validate(function (array $value, callable $fail) use (&$called) {
+                            $called = true;
+                        }),
+                ],
+            ),
+        );
+
+        try {
+            $this->api->handle(
+                $this->buildRequest('POST', '/users')->withParsedBody([
+                    'data' => ['type' => 'users', 'attributes' => ['aliases' => 1]],
+                ]),
+            );
+            $this->fail('Expected validation to fail.');
+        } catch (JsonApiErrorsException) {
+            $this->assertFalse($called);
+        }
+    }
+
+    public function test_validate_is_not_run_when_non_nullable_value_is_null()
+    {
+        $called = false;
+
+        $this->api->resource(
+            new MockResource(
+                'users',
+                endpoints: [Create::make()],
+                fields: [
+                    Attribute::make('name')
+                        ->type(Str::make())
+                        ->writable()
+                        ->validate(function (string $value, callable $fail) use (&$called) {
+                            $called = true;
+                        }),
+                ],
+            ),
+        );
+
+        try {
+            $this->api->handle(
+                $this->buildRequest('POST', '/users')->withParsedBody([
+                    'data' => ['type' => 'users', 'attributes' => ['name' => null]],
+                ]),
+            );
+            $this->fail('Expected validation to fail.');
+        } catch (JsonApiErrorsException) {
+            $this->assertFalse($called);
+        }
     }
 }
