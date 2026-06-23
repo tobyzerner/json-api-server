@@ -1189,6 +1189,15 @@ class OpenApiTest extends AbstractTestCase
                     CustomFilter::make('score', fn() => null)
                         ->type(Type\Number::make())
                         ->operators(['eq', 'gt']),
+                    CustomFilter::make('createdAt', fn() => null)
+                        ->type(Type\Date::make())
+                        ->operators([
+                            'eq',
+                            'lt',
+                            'gt',
+                            'null' => Type\Boolean::make(),
+                            'notnull' => Type\Boolean::make(),
+                        ]),
                     CustomFilter::make('range', fn() => null)
                         ->type(
                             Type\Obj::make()
@@ -1234,6 +1243,21 @@ class OpenApiTest extends AbstractTestCase
             $filterProperties['ids'],
         );
         $this->assertSame(['eq', 'gt'], $filterProperties['score']['x-jsonapi-filter-operators']);
+
+        $createdAtOperatorSchema = $filterProperties['createdAt']['oneOf'][1];
+
+        $this->assertSame(
+            ['type' => 'string', 'format' => 'date'],
+            $createdAtOperatorSchema['properties']['gt'],
+        );
+        $this->assertSame(
+            ['type' => 'boolean'],
+            $createdAtOperatorSchema['properties']['null'],
+        );
+        $this->assertSame(
+            ['type' => 'boolean'],
+            $createdAtOperatorSchema['properties']['notnull'],
+        );
 
         $rangeSchema = $filterProperties['range'];
         $rangeOperatorSchema = $rangeSchema['oneOf'][1];

@@ -16,9 +16,9 @@ class WhereHas extends Filter
 {
     use SupportsOperators;
 
-    public Relationship|string|null $field = null;
+    protected const SUPPORTED_OPERATORS = ['eq', 'in', 'ne', 'notin', 'null', 'notnull'];
 
-    public const SUPPORTED_OPERATORS = ['eq', 'in', 'ne', 'notin', 'null', 'notnull'];
+    public Relationship|string|null $field = null;
 
     public function __construct(string $name)
     {

@@ -53,6 +53,18 @@ class FilteringTest extends AbstractTestCase
                         $query->seen = $value;
                     })->type(Type\Arr::make()->items(Type\Date::make())),
 
+                    CustomFilter::make('createdAt', function ($query, array $value): void {
+                        $query->seen = $value;
+                    })
+                        ->type(Type\Date::make())
+                        ->operators([
+                            'eq',
+                            'lt',
+                            'gt',
+                            'null' => Type\Boolean::make(),
+                            'notnull' => Type\Boolean::make(),
+                        ]),
+
                     CustomFilter::make('range', function ($query, array $value): void {
                         $query->seen = $value;
                     })->type(
@@ -71,6 +83,15 @@ class FilteringTest extends AbstractTestCase
                                 ->property('max', Type\Integer::make()),
                         )
                         ->operators(['eq', 'gt']),
+
+                    CustomFilter::make('typedRangeOperator', function ($query, array $value): void {
+                        $query->seen = $value;
+                    })->operators([
+                        'range' => Type\Obj::make()
+                            ->property('min', Type\Integer::make())
+                            ->property('max', Type\Integer::make()),
+                        'eq' => Type\Integer::make(),
+                    ]),
 
                     CustomFilter::make('score', function ($query, array $value): void {
                         if (isset($value['gt'])) {
@@ -174,6 +195,36 @@ class FilteringTest extends AbstractTestCase
         $this->assertSame(['gt' => ['min' => 1, 'max' => 2]], $query->seen);
     }
 
+    public function test_object_typed_default_operator_payload_accepts_bare_value(): void
+    {
+        $query = $this->query();
+
+        $this->applyFilters($query, [
+            'typedRangeOperator' => [
+                'min' => '1',
+                'max' => '2',
+            ],
+        ]);
+
+        $this->assertSame(['range' => ['min' => 1, 'max' => 2]], $query->seen);
+    }
+
+    public function test_object_typed_default_operator_payload_accepts_explicit_operator(): void
+    {
+        $query = $this->query();
+
+        $this->applyFilters($query, [
+            'typedRangeOperator' => [
+                'range' => [
+                    'min' => '1',
+                    'max' => '2',
+                ],
+            ],
+        ]);
+
+        $this->assertSame(['range' => ['min' => 1, 'max' => 2]], $query->seen);
+    }
+
     public function test_bare_operator_filter_value_uses_default_operator(): void
     {
         $response = $this->api->handle($this->buildRequest('GET', '/items?filter[score]=20'));
@@ -190,6 +241,22 @@ class FilteringTest extends AbstractTestCase
         $document = json_decode($response->getBody(), true);
 
         $this->assertSame(['3'], array_column($document['data'], 'id'));
+    }
+
+    public function test_operators_can_configure_individual_payload_types(): void
+    {
+        $query = $this->query();
+
+        $this->applyFilters($query, [
+            'createdAt' => [
+                'gt' => '2024-01-01',
+                'null' => 'false',
+            ],
+        ]);
+
+        $this->assertInstanceOf(\DateTime::class, $query->seen['gt']);
+        $this->assertSame('2024-01-01', $query->seen['gt']->format('Y-m-d'));
+        $this->assertFalse($query->seen['null']);
     }
 
     public function test_untyped_filter_receives_raw_value(): void
@@ -256,6 +323,25 @@ class FilteringTest extends AbstractTestCase
         }
 
         $this->fail('Expected a bad request exception.');
+    }
+
+    public function test_invalid_operator_typed_filter_value_returns_parameter_source(): void
+    {
+        try {
+            $this->api->handle($this->buildRequest('GET', '/items?filter[createdAt][gt]=nope'));
+        } catch (JsonApiErrorsException $e) {
+            $error = $e->errors[0];
+
+            $this->assertSame('Value must be date', $error->getMessage());
+            $this->assertSame(
+                'filter[createdAt][gt]',
+                $error->getJsonApiError()['source']['parameter'],
+            );
+
+            return;
+        }
+
+        $this->fail('Expected a JSON:API errors exception.');
     }
 
     private function applyFilters(object $query, array $filters): void

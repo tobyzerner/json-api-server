@@ -9,7 +9,9 @@ trait SupportsOperators
 {
     public function operators(array $only): static
     {
-        $invalid = array_diff($only, static::SUPPORTED_OPERATORS);
+        [$operators] = $this->parseOperators($only);
+
+        $invalid = array_diff($operators, static::SUPPORTED_OPERATORS);
 
         if (!empty($invalid)) {
             throw new InvalidArgumentException(
@@ -22,11 +24,16 @@ trait SupportsOperators
 
     protected function operatorPayloadType(string $operator): ?Type\Type
     {
-        if (in_array($operator, ['null', 'notnull'], true)) {
-            return Type\Boolean::make();
+        if (array_key_exists($operator, $this->operatorTypes)) {
+            return parent::operatorPayloadType($operator);
         }
 
-        $type = parent::operatorPayloadType($operator);
+        $type =
+            [
+                'null' => Type\Boolean::make(),
+                'notnull' => Type\Boolean::make(),
+            ][$operator] ?? parent::operatorPayloadType($operator);
+        
         $listOperator = in_array($operator, ['eq', 'ne', 'in', 'notin'], true);
 
         if (!$listOperator && $type instanceof Type\Arr) {

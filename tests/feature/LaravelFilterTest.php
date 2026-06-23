@@ -3,9 +3,11 @@
 namespace Tobyz\Tests\JsonApiServer\feature;
 
 use Closure;
+use InvalidArgumentException;
 use Nyholm\Psr7\ServerRequest;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\Filter\InvalidFilterValueException;
+use Tobyz\JsonApiServer\Exception\Filter\UnsupportedFilterOperatorException;
 use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Laravel\EloquentResource;
@@ -74,6 +76,122 @@ class LaravelFilterTest extends AbstractTestCase
         $this->assertSame(['where', ['name', 'not like', 'T%']], $query->calls[0]);
     }
 
+    public function test_where_filter_derives_default_operators_from_integer_type(): void
+    {
+        $schema = Where::make('age')
+            ->type(Type\Integer::make())
+            ->getSchema();
+
+        $this->assertSame(
+            ['eq', 'ne', 'in', 'notin', 'lt', 'lte', 'gt', 'gte', 'null', 'notnull'],
+            $schema['x-jsonapi-filter-operators'],
+        );
+        $this->assertArrayNotHasKey('like', $schema['oneOf'][1]['properties']);
+        $this->assertSame(['type' => 'boolean'], $schema['oneOf'][1]['properties']['null']);
+    }
+
+    public function test_where_filter_derives_default_operators_from_date_time_type(): void
+    {
+        $schema = Where::make('createdAt')
+            ->type(Type\DateTime::make())
+            ->getSchema();
+
+        $this->assertSame(
+            ['eq', 'ne', 'in', 'notin', 'lt', 'lte', 'gt', 'gte', 'null', 'notnull'],
+            $schema['x-jsonapi-filter-operators'],
+        );
+        $this->assertArrayNotHasKey('like', $schema['oneOf'][1]['properties']);
+    }
+
+    public function test_where_filter_derives_default_operators_from_string_type(): void
+    {
+        $schema = Where::make('name')
+            ->type(Type\Str::make())
+            ->getSchema();
+
+        $this->assertSame(
+            [
+                'eq',
+                'ne',
+                'in',
+                'notin',
+                'lt',
+                'lte',
+                'gt',
+                'gte',
+                'null',
+                'notnull',
+                'like',
+                'notlike',
+            ],
+            $schema['x-jsonapi-filter-operators'],
+        );
+    }
+
+    public function test_where_filter_derives_default_operators_from_boolean_type(): void
+    {
+        $query = new RecordingQuery();
+        $filter = Where::make('active')
+            ->column('active')
+            ->type(Type\Boolean::make());
+        $schema = $filter->getSchema();
+
+        $this->assertSame(
+            ['eq', 'ne', 'null', 'notnull'],
+            $schema['x-jsonapi-filter-operators'],
+        );
+
+        $filter->apply($query, ['eq' => 'false'], $this->context());
+
+        $this->assertSame(['whereIn', ['active', [false]]], $query->calls[0]);
+    }
+
+    public function test_where_filter_derives_default_operators_from_array_items(): void
+    {
+        $schema = Where::make('name')
+            ->type(Type\Arr::make()->items(Type\Str::make()))
+            ->getSchema();
+
+        $this->assertSame(
+            [
+                'eq',
+                'ne',
+                'in',
+                'notin',
+                'lt',
+                'lte',
+                'gt',
+                'gte',
+                'null',
+                'notnull',
+                'like',
+                'notlike',
+            ],
+            $schema['x-jsonapi-filter-operators'],
+        );
+        $this->assertSame(['type' => 'string'], $schema['oneOf'][1]['properties']['like']);
+    }
+
+    public function test_where_filter_rejects_non_default_operators_for_type(): void
+    {
+        $this->expectException(UnsupportedFilterOperatorException::class);
+
+        Where::make('createdAt')
+            ->type(Type\DateTime::make())
+            ->apply(new RecordingQuery(), ['like' => '2024-%'], $this->context());
+    }
+
+    public function test_where_filter_explicit_operators_can_opt_into_broader_supported_set(): void
+    {
+        $schema = Where::make('createdAt')
+            ->type(Type\DateTime::make())
+            ->operators(['like' => Type\Str::make()])
+            ->getSchema();
+
+        $this->assertSame(['like'], $schema['x-jsonapi-filter-operators']);
+        $this->assertSame(['type' => 'string'], $schema['oneOf'][1]['properties']['like']);
+    }
+
     public function test_where_filter_applies_null_operator_flags(): void
     {
         $query = new RecordingQuery();
@@ -104,6 +222,56 @@ class LaravelFilterTest extends AbstractTestCase
 
         $this->assertSame(['type' => 'boolean'], $schema['oneOf'][0]);
         $this->assertSame(['type' => 'boolean'], $schema['oneOf'][1]['properties']['null']);
+    }
+
+    public function test_where_filter_preserves_default_null_operator_type_when_narrowed(): void
+    {
+        $query = new RecordingQuery();
+        $filter = Where::make('publishedAt')
+            ->column('published_at')
+            ->type(Type\Date::make())
+            ->operators(['null']);
+
+        $schema = $filter->getSchema();
+
+        $this->assertSame(['type' => 'boolean'], $schema['oneOf'][1]['properties']['null']);
+
+        $filter->apply($query, ['null' => 'false'], $this->context());
+
+        $this->assertSame(['whereNotNull', ['published_at']], $query->calls[0]);
+    }
+
+    public function test_where_filter_explicit_operators_can_remove_null_operators(): void
+    {
+        $schema = Where::make('publishedAt')
+            ->type(Type\Date::make())
+            ->operators(['eq', 'gt'])
+            ->getSchema();
+
+        $this->assertSame(['eq', 'gt'], $schema['x-jsonapi-filter-operators']);
+        $this->assertArrayNotHasKey('null', $schema['oneOf'][1]['properties']);
+    }
+
+    public function test_where_filter_type_preserves_explicit_operators(): void
+    {
+        $schema = Where::make('publishedAt')
+            ->operators(['null' => Type\Str::make()])
+            ->type(Type\Date::make())
+            ->getSchema();
+
+        $this->assertSame(['null'], $schema['x-jsonapi-filter-operators']);
+        $this->assertSame(['type' => 'string'], $schema['oneOf'][1]['properties']['null']);
+    }
+
+    public function test_where_filter_comma_separated_preserves_explicit_operators(): void
+    {
+        $schema = Where::make('id')
+            ->operators(['eq'])
+            ->commaSeparated(Type\Integer::make())
+            ->getSchema();
+
+        $this->assertSame(['eq'], $schema['x-jsonapi-filter-operators']);
+        $this->assertArrayNotHasKey('gt', $schema['oneOf'][1]['properties']);
     }
 
     public function test_where_not_null_filter_defaults_to_not_null_operator(): void
@@ -198,6 +366,13 @@ class LaravelFilterTest extends AbstractTestCase
         $this->assertSame(['whereIn', ['posts.author_id', ['1', '2']]], $query->calls[0]);
     }
 
+    public function test_where_belongs_to_filter_keeps_specialized_operator_set(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        WhereBelongsTo::make('author')->operators(['like']);
+    }
+
     public function test_where_belongs_to_filter_applies_null_operator_flags(): void
     {
         $query = new BelongsToQuery();
@@ -264,6 +439,24 @@ class LaravelFilterTest extends AbstractTestCase
             ->apply($query, '1,2', $this->context());
 
         $this->assertSame(['withIds', [[1, 2]]], $query->calls[0]);
+    }
+
+    public function test_scope_filter_uses_operator_specific_types(): void
+    {
+        $query = new ScopeQuery();
+
+        Scope::make('createdAt')
+            ->scope('createdAt')
+            ->operators([
+                'eq' => Type\Date::make(),
+                'ne' => Type\Integer::make(),
+            ])
+            ->apply($query, ['eq' => '2024-01-01', 'ne' => '2'], $this->context());
+
+        $this->assertSame('createdAt', $query->calls[0][0]);
+        $this->assertInstanceOf(\DateTime::class, $query->calls[0][1][0]);
+        $this->assertSame('whereNot', $query->calls[1][0]);
+        $this->assertSame(['createdAt', [2]], $query->calls[2]);
     }
 
     public function test_scope_filter_uses_existing_type_for_comma_separated_arguments(): void

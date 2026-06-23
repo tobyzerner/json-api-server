@@ -11,7 +11,7 @@ class WhereCount extends Filter
     use UsesRelationship;
     use SupportsOperators;
 
-    public const SUPPORTED_OPERATORS = ['eq', 'ne', 'gt', 'lt', 'lte', 'gte'];
+    protected const SUPPORTED_OPERATORS = ['eq', 'ne', 'gt', 'lt', 'lte', 'gte'];
 
     private const OPERATOR_MAP = [
         'eq' => '=',

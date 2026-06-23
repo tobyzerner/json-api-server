@@ -8,6 +8,32 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- Add first-class typed filters. Filter values are now normalized according to
+  their configured type, including arrays, objects, booleans, numbers, integers,
+  dates, and `OneOf` values, before filter callbacks receive them.
+- Add first-class filter operators, such as `filter[score][gt]=100`, with
+  matching validation, OpenAPI schemas, normalized callback payloads, and
+  operator-specific payload types.
+- Add `EloquentResource` support for the `Attachable` contract
+
+### Changed
+
+- Improve serialization performance and readability
+  ([#123](https://github.com/tobyzerner/json-api-server/pull/123) by @mkszepp)
+- Replace Prettier with Mago for formatting
+
+### Fixed
+
+- Skip custom validators after filter type validation fails
+- Allow extensions to activate on `GET` requests without a request
+  `Content-Type`
+- Fix OpenAPI resource meta schema generation
+- Fix nested include path validation
+- Apply `EloquentResource` scopes when querying related resources
+- Fix PHP deprecation errors in include and resource serialization paths
+
 ## [1.0.0-rc.1] - 2026-01-01
 
 ### ⚠️ Breaking Changes

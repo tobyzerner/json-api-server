@@ -8,35 +8,67 @@ use Tobyz\JsonApiServer\Schema\Type;
 
 class Where extends ColumnFilter
 {
-    use SupportsOperators;
+    use SupportsOperators {
+        operators as private setOperators;
+    }
+
+    private const COMPARISON_OPERATORS = ['eq', 'ne', 'in', 'notin', 'lt', 'lte', 'gt', 'gte'];
+    private const NULL_OPERATORS = ['null', 'notnull'];
 
     public const SUPPORTED_OPERATORS = [
-        'eq',
-        'ne',
-        'in',
-        'notin',
-        'lt',
-        'lte',
-        'gt',
-        'gte',
+        ...self::COMPARISON_OPERATORS,
+        ...self::NULL_OPERATORS,
         'like',
         'notlike',
-        'null',
-        'notnull',
+    ];
+
+    private const DEFAULT_OPERATORS_BY_TYPE = [
+        Type\Boolean::class => ['eq', 'ne', ...self::NULL_OPERATORS],
+        Type\Date::class => [...self::COMPARISON_OPERATORS, ...self::NULL_OPERATORS],
+        Type\DateTime::class => [...self::COMPARISON_OPERATORS, ...self::NULL_OPERATORS],
+        Type\Number::class => [...self::COMPARISON_OPERATORS, ...self::NULL_OPERATORS],
     ];
 
     protected bool $asBoolean = false;
+    private bool $operatorsConfigured = false;
 
     public function __construct(string $name)
     {
         parent::__construct($name);
 
-        $this->operators(static::SUPPORTED_OPERATORS);
+        parent::operators($this->defaultOperators());
     }
 
-    public static function make(string $name): static
+    protected function defaultOperators(): array
     {
-        return new static($name);
+        $type = $this->type instanceof Type\Arr ? $this->type->items : $this->type;
+
+        foreach (self::DEFAULT_OPERATORS_BY_TYPE as $class => $operators) {
+            if ($type instanceof $class) {
+                return array_values(array_intersect(static::SUPPORTED_OPERATORS, $operators));
+            }
+        }
+
+        return static::SUPPORTED_OPERATORS;
+    }
+
+    public function type(Type\Type $type): static
+    {
+        parent::type($type);
+
+        if (!$this->operatorsConfigured) {
+            parent::operators($this->defaultOperators());
+        }
+
+        return $this;
+    }
+
+    public function operators(array $only): static
+    {
+        $this->setOperators($only);
+        $this->operatorsConfigured = true;
+
+        return $this;
     }
 
     public function asBoolean(): static

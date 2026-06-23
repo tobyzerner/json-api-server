@@ -18,6 +18,7 @@ abstract class Filter
 
     protected ?Type\Type $type = null;
     protected ?array $operators = null;
+    protected array $operatorTypes = [];
 
     public function __construct(public string $name)
     {
@@ -30,11 +31,32 @@ abstract class Filter
         return $this;
     }
 
+    /**
+     * @param array<int|string, string|Type\Type> $operators
+     */
     public function operators(array $operators): static
     {
-        $this->operators = $operators;
+        [$this->operators, $this->operatorTypes] = $this->parseOperators($operators);
 
         return $this;
+    }
+
+    protected function parseOperators(array $operators): array
+    {
+        $names = [];
+        $types = [];
+
+        foreach ($operators as $key => $operator) {
+            $name = $operator instanceof Type\Type ? $key : $operator;
+
+            $names[] = $name;
+
+            if ($operator instanceof Type\Type) {
+                $types[$name] = $operator;
+            }
+        }
+
+        return [$names, $types];
     }
 
     public function apply(object $query, string|array $value, Context $context): void
@@ -154,7 +176,7 @@ abstract class Filter
 
     protected function operatorPayloadType(string $operator): ?Type\Type
     {
-        return $this->type;
+        return $this->operatorTypes[$operator] ?? $this->type;
     }
 
     protected function isOperatorValue(mixed $value, array $operators): bool
@@ -163,9 +185,9 @@ abstract class Filter
             return false;
         }
 
-        // Object filters may receive property names at the operator level; those belong
-        // to the default operator payload unless all keys are known operators.
-        if ($this->type instanceof Type\Obj) {
+        // Object payloads may receive property names at the operator level; those
+        // belong to the default operator payload unless all keys are known operators.
+        if ($this->operatorPayloadType($operators[0]) instanceof Type\Obj) {
             return array_diff(array_keys($value), $operators) === [];
         }
 

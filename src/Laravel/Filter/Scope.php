@@ -11,7 +11,7 @@ class Scope extends Filter
 {
     use SupportsOperators;
 
-    public const SUPPORTED_OPERATORS = ['eq', 'ne'];
+    protected const SUPPORTED_OPERATORS = ['eq', 'ne'];
 
     protected null|string|Closure $scope = null;
     protected bool $asBoolean = false;

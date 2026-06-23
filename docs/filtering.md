@@ -128,6 +128,25 @@ GET /posts?filter[views][gt]=100
 The value passed to the callback is an array keyed by operator. When no operator
 is specified, the first configured operator is used.
 
+If some operators accept a different payload type, pass the type keyed by
+operator name:
+
+```php
+CustomFilter::make('createdAt', function ($query, array $value) {
+    // ...
+})
+    ->type(Type\Date::make())
+    ->operators([
+        'eq',
+        'lt',
+        'gt',
+        'null' => Type\Boolean::make(),
+        'notnull' => Type\Boolean::make(),
+    ]);
+```
+
+Operators without their own type continue to use the filter's base type.
+
 ## Writing Filters
 
 If you need to reuse filter logic across resources, create your own filter class
