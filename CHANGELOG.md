@@ -8,6 +8,15 @@ and this project adheres to
 
 ## [Unreleased]
 
+### ⚠️ Breaking Changes
+
+- Remove `Tobyz\JsonApiServer\Laravel\Filter\ColumnFilter`
+- Remove `Where::commaSeparated()` and `Scope::commaSeparated()`; configure
+  comma-separated query values with
+  `Type\Arr::make()->items(...)->commaSeparated()` instead
+- Add `deserializeQueryValue()` to the `Type` interface; custom type
+  implementations must implement this method
+
 ### Added
 
 - Add first-class typed filters. Filter values are now normalized according to
