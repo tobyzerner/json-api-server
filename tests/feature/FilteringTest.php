@@ -135,6 +135,38 @@ class FilteringTest extends AbstractTestCase
         $this->assertSame(['1'], array_column($document['data'], 'id'));
     }
 
+    public function test_custom_filter_handler_can_be_defined_after_type(): void
+    {
+        $query = $this->query();
+        $filter = CustomFilter::make('active')
+            ->type(Type\Boolean::make())
+            ->filter(function ($query, bool $value): void {
+                $query->seen = $value;
+            });
+
+        $filter->apply(
+            $query,
+            '1',
+            new \Tobyz\JsonApiServer\Context($this->api, $this->buildRequest('GET', '/')),
+        );
+
+        $this->assertTrue($query->seen);
+    }
+
+    public function test_custom_filter_without_handler_is_noop(): void
+    {
+        $query = $this->query();
+        $filter = CustomFilter::make('active')->type(Type\Boolean::make());
+
+        $filter->apply(
+            $query,
+            '1',
+            new \Tobyz\JsonApiServer\Context($this->api, $this->buildRequest('GET', '/')),
+        );
+
+        $this->assertObjectNotHasProperty('seen', $query);
+    }
+
     public function test_comma_separated_array_filters_are_normalized(): void
     {
         $response = $this->api->handle($this->buildRequest('GET', '/items?filter[ids]=1,3'));

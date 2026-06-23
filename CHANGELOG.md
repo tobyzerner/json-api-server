@@ -18,6 +18,8 @@ and this project adheres to
   operator-specific payload types.
 - Normalize configured string enum values to enum cases during deserialization.
 - Add `EloquentResource` support for the `Attachable` contract
+- Add `CustomFilter::filter()` for defining custom filter handlers after type
+  and schema configuration
 
 ### Changed
 

@@ -7,14 +7,25 @@ use Tobyz\JsonApiServer\Context;
 
 class CustomFilter extends Filter
 {
-    public function __construct(string $name, private readonly Closure $apply)
+    private Closure $apply;
+
+    public function __construct(string $name, ?Closure $apply = null)
     {
         parent::__construct($name);
+
+        $this->apply = $apply ?? fn() => null;
     }
 
-    public static function make(string $name, Closure $apply): static
+    public static function make(string $name, ?Closure $apply = null): static
     {
         return new static($name, $apply);
+    }
+
+    public function filter(Closure $apply): static
+    {
+        $this->apply = $apply;
+
+        return $this;
     }
 
     protected function applyValue(object $query, mixed $value, Context $context): void

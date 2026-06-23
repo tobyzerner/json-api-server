@@ -67,6 +67,12 @@ CustomFilter::make('published', function ($query, bool $value) {
     $query->where('published', $value);
 })->type(Type\Boolean::make());
 
+CustomFilter::make('published')
+    ->type(Type\Boolean::make())
+    ->filter(function ($query, bool $value) {
+        $query->where('published', $value);
+    });
+
 CustomFilter::make('ids', function ($query, array $ids) {
     $query->whereKey($ids);
 })->type(Type\Arr::make()->items(Type\Integer::make()));
