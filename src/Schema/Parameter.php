@@ -2,6 +2,7 @@
 
 namespace Tobyz\JsonApiServer\Schema;
 
+use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Schema\Concerns\HasType;
 use Tobyz\JsonApiServer\Schema\Field\Field;
 use Tobyz\JsonApiServer\SchemaContext;
@@ -22,6 +23,22 @@ class Parameter extends Field
         $this->in = $in;
 
         return $this;
+    }
+
+    public function deserializeValue(mixed $value, Context $context): mixed
+    {
+        if ($this->nullable && $value === null) {
+            return null;
+        }
+
+        if ($this->type) {
+            $value =
+                $this->in === 'query'
+                    ? $this->type->deserializeQueryValue($value)
+                    : $this->type->deserialize($value);
+        }
+
+        return parent::deserializeValue($value, $context);
     }
 
     public function getSchema(SchemaContext $context): array

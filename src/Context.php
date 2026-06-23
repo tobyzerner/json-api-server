@@ -396,7 +396,7 @@ class Context extends SchemaContext
                     );
                 }
 
-                $errors[] = $error->source(['parameter' => $parameter->name]);
+                $errors[] = $error->prependSourceParameter($parameter->name);
             };
 
             $parameter->validateValue($value, $fail, $paramContext);

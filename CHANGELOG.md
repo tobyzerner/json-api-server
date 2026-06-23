@@ -26,6 +26,8 @@ and this project adheres to
 
 ### Fixed
 
+- Use query-string type deserialization for typed query parameters and preserve
+  nested parameter error sources, matching filter behavior.
 - Skip custom validators after filter type validation fails
 - Allow extensions to activate on `GET` requests without a request
   `Content-Type`
