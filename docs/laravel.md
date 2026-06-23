@@ -191,6 +191,33 @@ Scope::make('ids')->type(
 );
 ```
 
+The `column` method can also accept a raw column expression with bindings. This
+is useful when the filter should still use the standard `Where` operators, but
+the filtered value is derived from an SQL expression:
+
+```php
+Where::make('date')
+    ->type(Type\Date::make())
+    ->column([
+        'DATE(CONVERT_TZ(finalized_at, ?, ?))',
+        ['UTC', 'Australia/Adelaide'],
+    ]);
+```
+
+If the expression depends on the current request context, pass a closure. The
+returned bindings are added for every generated where clause:
+
+```php
+use Tobyz\JsonApiServer\Context;
+
+Where::make('date')
+    ->type(Type\Date::make())
+    ->column(fn(Context $context) => [
+        'DATE(CONVERT_TZ(finalized_at, ?, ?))',
+        [config('app.timezone'), $context->parameter('userTimezone')],
+    ]);
+```
+
 ### Boolean Filters
 
 `EloquentResource` implements

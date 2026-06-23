@@ -20,6 +20,8 @@ and this project adheres to
 - Add `EloquentResource` support for the `Attachable` contract
 - Add `CustomFilter::filter()` for defining custom filter handlers after type
   and schema configuration
+- Laravel: Allow `Where` filter column expressions to include bindings and
+  request-aware callbacks
 
 ### Changed
 

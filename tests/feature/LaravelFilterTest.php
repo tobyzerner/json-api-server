@@ -76,6 +76,101 @@ class LaravelFilterTest extends AbstractTestCase
         $this->assertSame(['where', ['name', 'not like', 'T%']], $query->calls[0]);
     }
 
+    public function test_where_filter_applies_static_bound_column_expressions(): void
+    {
+        $query = new RecordingQuery();
+
+        Where::make('date')
+            ->column(['DATE(CONVERT_TZ(finalized_at, ?, ?))', ['UTC', 'Australia/Adelaide']])
+            ->apply($query, '2024-01-01', $this->context());
+
+        $this->assertSame(['addBinding', [['UTC', 'Australia/Adelaide'], 'where']], $query->calls[0]);
+        $this->assertSame(
+            ['whereIn', ['DATE(CONVERT_TZ(finalized_at, ?, ?))', ['2024-01-01']]],
+            $query->calls[1],
+        );
+    }
+
+    public function test_where_filter_applies_contextual_bound_column_expressions(): void
+    {
+        $query = new RecordingQuery();
+        $seenContext = null;
+        $context = $this->context();
+
+        Where::make('date')
+            ->column(function (Context $context) use (&$seenContext) {
+                $seenContext = $context;
+
+                return ['DATE(CONVERT_TZ(finalized_at, ?, ?))', ['UTC', 'Australia/Adelaide']];
+            })
+            ->apply($query, ['like' => '2024-%'], $context);
+
+        $this->assertSame($context, $seenContext);
+        $this->assertSame(['addBinding', [['UTC', 'Australia/Adelaide'], 'where']], $query->calls[0]);
+        $this->assertSame(
+            ['where', ['DATE(CONVERT_TZ(finalized_at, ?, ?))', 'like', '2024-%']],
+            $query->calls[1],
+        );
+    }
+
+    public function test_where_filter_repeats_column_expression_bindings_for_each_operator(): void
+    {
+        $query = new RecordingQuery();
+
+        Where::make('date')
+            ->column(['DATE(CONVERT_TZ(finalized_at, ?, ?))', ['UTC', 'Australia/Adelaide']])
+            ->apply($query, ['gte' => '2024-01-01', 'notnull' => 'true'], $this->context());
+
+        $this->assertSame(['addBinding', [['UTC', 'Australia/Adelaide'], 'where']], $query->calls[0]);
+        $this->assertSame(
+            ['where', ['DATE(CONVERT_TZ(finalized_at, ?, ?))', '>=', '2024-01-01']],
+            $query->calls[1],
+        );
+        $this->assertSame(['addBinding', [['UTC', 'Australia/Adelaide'], 'where']], $query->calls[2]);
+        $this->assertSame(
+            ['whereNotNull', ['DATE(CONVERT_TZ(finalized_at, ?, ?))']],
+            $query->calls[3],
+        );
+    }
+
+    public function test_where_filter_applies_bound_column_expressions_in_boolean_mode(): void
+    {
+        $query = new RecordingQuery();
+
+        Where::make('active')
+            ->column(['COALESCE(active, ?)', [false]])
+            ->asBoolean()
+            ->apply($query, 'true', $this->context());
+
+        $this->assertSame(['addBinding', [[false], 'where']], $query->calls[0]);
+        $this->assertSame(['where', ['COALESCE(active, ?)', true]], $query->calls[1]);
+    }
+
+    public function test_where_filter_applies_bound_column_expressions_on_forwarding_builders(): void
+    {
+        $innerQuery = new RecordingQuery();
+        $query = new ForwardingQuery($innerQuery);
+
+        Where::make('date')
+            ->column(['DATE(CONVERT_TZ(finalized_at, ?, ?))', ['UTC', 'Australia/Adelaide']])
+            ->apply($query, '2024-01-01', $this->context());
+
+        $this->assertSame(['addBinding', [['UTC', 'Australia/Adelaide'], 'where']], $innerQuery->calls[0]);
+        $this->assertSame(
+            ['whereIn', ['DATE(CONVERT_TZ(finalized_at, ?, ?))', ['2024-01-01']]],
+            $innerQuery->calls[1],
+        );
+    }
+
+    public function test_where_filter_requires_binding_support_for_bound_column_expressions(): void
+    {
+        $this->expectException(\LogicException::class);
+
+        Where::make('date')
+            ->column(['DATE(CONVERT_TZ(finalized_at, ?, ?))', ['UTC', 'Australia/Adelaide']])
+            ->apply(new QueryWithoutBindings(), '2024-01-01', $this->context());
+    }
+
     public function test_where_filter_derives_default_operators_from_integer_type(): void
     {
         $schema = Where::make('age')
@@ -378,6 +473,19 @@ class LaravelFilterTest extends AbstractTestCase
         $this->assertSame(['whereIn', ['custom_author_id', ['1']]], $query->calls[0]);
     }
 
+    public function test_where_belongs_to_filter_applies_bound_column_expressions_in_boolean_mode(): void
+    {
+        $query = new BelongsToQuery();
+
+        WhereBelongsTo::make('author')
+            ->column(['custom_author_id + ?', [0]])
+            ->asBoolean()
+            ->apply($query, 'false', $this->context());
+
+        $this->assertSame(['addBinding', [[0], 'where']], $query->calls[0]);
+        $this->assertSame(['whereNull', ['custom_author_id + ?']], $query->calls[1]);
+    }
+
     public function test_scope_filter_applies_eq_and_ne_values(): void
     {
         $query = new ScopeQuery();
@@ -536,6 +644,11 @@ class RecordingQuery
 {
     public array $calls = [];
 
+    public function addBinding(...$arguments): void
+    {
+        $this->calls[] = [__FUNCTION__, $arguments];
+    }
+
     public function where(...$arguments): void
     {
         $this->calls[] = [__FUNCTION__, $arguments];
@@ -569,6 +682,27 @@ class RecordingQuery
     public function whereDoesntHave(...$arguments): void
     {
         $this->calls[] = [__FUNCTION__, $arguments];
+    }
+}
+
+class ForwardingQuery
+{
+    public function __construct(private RecordingQuery $innerQuery)
+    {
+    }
+
+    public function __call(string $method, array $arguments): static
+    {
+        $this->innerQuery->$method(...$arguments);
+
+        return $this;
+    }
+}
+
+class QueryWithoutBindings
+{
+    public function whereIn(...$arguments): void
+    {
     }
 }
 
