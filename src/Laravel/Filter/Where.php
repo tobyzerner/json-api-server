@@ -78,21 +78,6 @@ class Where extends ColumnFilter
         return $this->type(Type\Boolean::make())->operators([]);
     }
 
-    public function commaSeparated(?Type\Type $items = null): static
-    {
-        if ($items === null && $this->type instanceof Type\Arr) {
-            $this->type->commaSeparated();
-
-            return $this;
-        }
-
-        return $this->type(
-            Type\Arr::make()
-                ->items($items ?? $this->type)
-                ->commaSeparated(),
-        );
-    }
-
     protected function applyValue(object $query, mixed $value, Context $context): void
     {
         $column = $this->getColumn($query);

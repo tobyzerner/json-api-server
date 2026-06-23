@@ -170,7 +170,11 @@ resources.
 
 ```php
 Where::make('name');
-Where::make('id')->commaSeparated();
+Where::make('id')->type(
+    Type\Arr::make()
+        ->items(Type\Integer::make())
+        ->commaSeparated(),
+);
 Where::make('isConfirmed')->asBoolean();
 WhereBelongsTo::make('author')->relationship('user');
 WhereExists::make('comments');
@@ -180,7 +184,11 @@ WhereNull::make('draft')->column('published_at');
 WhereNotNull::make('published')->column('published_at');
 Scope::make('withTrashed')->asBoolean();
 Scope::make('trashed')->scope('onlyTrashed');
-Scope::make('ids')->commaSeparated();
+Scope::make('ids')->type(
+    Type\Arr::make()
+        ->items(Type\Integer::make())
+        ->commaSeparated(),
+);
 ```
 
 ### Boolean Filters

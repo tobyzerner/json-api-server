@@ -267,7 +267,11 @@ class LaravelFilterTest extends AbstractTestCase
     {
         $schema = Where::make('id')
             ->operators(['eq'])
-            ->commaSeparated(Type\Integer::make())
+            ->type(
+                Type\Arr::make()
+                    ->items(Type\Integer::make())
+                    ->commaSeparated(),
+            )
             ->getSchema();
 
         $this->assertSame(['eq'], $schema['x-jsonapi-filter-operators']);
@@ -292,33 +296,11 @@ class LaravelFilterTest extends AbstractTestCase
 
         Where::make('id')
             ->column('id')
-            ->commaSeparated(Type\Integer::make())
-            ->apply($query, '1,2', $this->context());
-
-        $this->assertSame(['whereIn', ['id', [1, 2]]], $query->calls[0]);
-    }
-
-    public function test_where_filter_uses_existing_type_for_comma_separated_items(): void
-    {
-        $query = new RecordingQuery();
-
-        Where::make('id')
-            ->column('id')
-            ->type(Type\Integer::make())
-            ->commaSeparated()
-            ->apply($query, '1,2', $this->context());
-
-        $this->assertSame(['whereIn', ['id', [1, 2]]], $query->calls[0]);
-    }
-
-    public function test_where_filter_preserves_existing_array_items_for_comma_separated_values(): void
-    {
-        $query = new RecordingQuery();
-
-        Where::make('id')
-            ->column('id')
-            ->type(Type\Arr::make()->items(Type\Integer::make()))
-            ->commaSeparated()
+            ->type(
+                Type\Arr::make()
+                    ->items(Type\Integer::make())
+                    ->commaSeparated(),
+            )
             ->apply($query, '1,2', $this->context());
 
         $this->assertSame(['whereIn', ['id', [1, 2]]], $query->calls[0]);
@@ -329,21 +311,12 @@ class LaravelFilterTest extends AbstractTestCase
         $this->expectException(JsonApiErrorsException::class);
 
         Where::make('id')
-            ->type(Type\Integer::make())
-            ->commaSeparated()
+            ->type(
+                Type\Arr::make()
+                    ->items(Type\Integer::make())
+                    ->commaSeparated(),
+            )
             ->apply(new RecordingQuery(), '1,nope', $this->context());
-    }
-
-    public function test_where_filter_preserves_comma_separated_scalar_operator_values(): void
-    {
-        $query = new RecordingQuery();
-
-        Where::make('name')
-            ->column('name')
-            ->commaSeparated(Type\Str::make())
-            ->apply($query, ['like' => 'a,b'], $this->context());
-
-        $this->assertSame(['where', ['name', 'like', 'a,b']], $query->calls[0]);
     }
 
     public function test_where_belongs_to_filter_uses_relationship_foreign_key(): void
@@ -435,7 +408,11 @@ class LaravelFilterTest extends AbstractTestCase
 
         Scope::make('withIds')
             ->scope('withIds')
-            ->commaSeparated(Type\Integer::make())
+            ->type(
+                Type\Arr::make()
+                    ->items(Type\Integer::make())
+                    ->commaSeparated(),
+            )
             ->apply($query, '1,2', $this->context());
 
         $this->assertSame(['withIds', [[1, 2]]], $query->calls[0]);
@@ -457,32 +434,6 @@ class LaravelFilterTest extends AbstractTestCase
         $this->assertInstanceOf(\DateTime::class, $query->calls[0][1][0]);
         $this->assertSame('whereNot', $query->calls[1][0]);
         $this->assertSame(['createdAt', [2]], $query->calls[2]);
-    }
-
-    public function test_scope_filter_uses_existing_type_for_comma_separated_arguments(): void
-    {
-        $query = new ScopeQuery();
-
-        Scope::make('withIds')
-            ->scope('withIds')
-            ->type(Type\Integer::make())
-            ->commaSeparated()
-            ->apply($query, '1,2', $this->context());
-
-        $this->assertSame(['withIds', [[1, 2]]], $query->calls[0]);
-    }
-
-    public function test_scope_filter_preserves_existing_array_items_for_comma_separated_arguments(): void
-    {
-        $query = new ScopeQuery();
-
-        Scope::make('withIds')
-            ->scope('withIds')
-            ->type(Type\Arr::make()->items(Type\Integer::make()))
-            ->commaSeparated()
-            ->apply($query, '1,2', $this->context());
-
-        $this->assertSame(['withIds', [[1, 2]]], $query->calls[0]);
     }
 
     public function test_where_exists_filter_applies_boolean_values(): void
