@@ -16,6 +16,7 @@ and this project adheres to
 - Add first-class filter operators, such as `filter[score][gt]=100`, with
   matching validation, OpenAPI schemas, normalized callback payloads, and
   operator-specific payload types.
+- Normalize configured string enum values to enum cases during deserialization.
 - Add `EloquentResource` support for the `Attachable` contract
 
 ### Changed

@@ -115,6 +115,27 @@ class EndpointParametersTest extends AbstractTestCase
         $this->assertSame(3, $parameters['count']);
     }
 
+    public function test_enum_query_parameter_is_normalized_to_case(): void
+    {
+        $seen = null;
+
+        $parameters = $this->parameterValues(
+            [
+                Parameter::make('status')
+                    ->type(Type\Str::make()->enum(EndpointParameterStatus::cases()))
+                    ->deserialize(function ($value) use (&$seen) {
+                        $seen = $value;
+
+                        return $value->value;
+                    }),
+            ],
+            ['status' => 'active'],
+        );
+
+        $this->assertSame(EndpointParameterStatus::Active, $seen);
+        $this->assertSame('active', $parameters['status']);
+    }
+
     public function test_invalid_array_query_parameter_item_reports_nested_source(): void
     {
         $this->assertInvalidParameterSource(
@@ -206,4 +227,10 @@ class EndpointParametersTest extends AbstractTestCase
 
         return $api;
     }
+}
+
+enum EndpointParameterStatus: string
+{
+    case Active = 'active';
+    case Inactive = 'inactive';
 }

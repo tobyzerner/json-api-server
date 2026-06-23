@@ -112,4 +112,45 @@ class StrTest extends AbstractTestCase
             true,
         );
     }
+
+    public function test_deserializes_enum_case_for_writable_attribute()
+    {
+        $seen = null;
+
+        $this->api->resource(
+            new MockResource(
+                'users',
+                endpoints: [Create::make()],
+                fields: [
+                    Attribute::make('type')
+                        ->type(Str::make()->enum(StrFeatureTestEnum::cases()))
+                        ->deserialize(function ($value) use (&$seen) {
+                            $seen = $value;
+
+                            return $value;
+                        })
+                        ->writable(),
+                ],
+            ),
+        );
+
+        $response = $this->api->handle(
+            $this->buildRequest('POST', '/users')->withParsedBody([
+                'data' => ['type' => 'users', 'attributes' => ['type' => 'A']],
+            ]),
+        );
+
+        $this->assertSame(StrFeatureTestEnum::A, $seen);
+        $this->assertJsonApiDocumentSubset(
+            ['data' => ['attributes' => ['type' => 'A']]],
+            $response->getBody(),
+            true,
+        );
+    }
+}
+
+enum StrFeatureTestEnum: string
+{
+    case A = 'A';
+    case B = 'B';
 }

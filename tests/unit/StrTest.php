@@ -27,6 +27,23 @@ class StrTest extends AbstractTestCase
         $this->assertSame($expected, $type->serialize($value));
     }
 
+    public static function deserializationProvider(): array
+    {
+        return [
+            [Str::make(), 'string', 'string'],
+            [Str::make()->enum(['a', 'b']), 'a', 'a'],
+            [Str::make()->enum(StrTestEnum::cases()), 'a', StrTestEnum::A],
+            [Str::make()->enum(StrTestPureEnum::cases()), 'A', StrTestPureEnum::A],
+            [Str::make()->enum(StrTestEnum::cases()), 'c', 'c'],
+        ];
+    }
+
+    #[DataProvider('deserializationProvider')]
+    public function test_deserialization(Type $type, mixed $value, mixed $expected)
+    {
+        $this->assertSame($expected, $type->deserialize($value));
+    }
+
     public static function validationProvider(): array
     {
         return [
@@ -43,6 +60,8 @@ class StrTest extends AbstractTestCase
             [Str::make()->enum(['a', 'b']), 'a', true],
             [Str::make()->enum(['a', 'b']), 'c', false],
             [Str::make()->enum(StrTestEnum::cases()), 'a', true],
+            [Str::make()->enum(StrTestEnum::cases()), StrTestEnum::A, true],
+            [Str::make()->enum(StrTestPureEnum::cases()), StrTestPureEnum::A, true],
             [Str::make()->enum(StrTestEnum::cases()), 'c', false],
         ];
     }
@@ -86,4 +105,10 @@ enum StrTestEnum: string
 {
     case A = 'a';
     case B = 'b';
+}
+
+enum StrTestPureEnum
+{
+    case A;
+    case B;
 }

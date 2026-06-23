@@ -65,6 +65,13 @@ class FilteringTest extends AbstractTestCase
                             'notnull' => Type\Boolean::make(),
                         ]),
 
+                    CustomFilter::make('status', function (
+                        $query,
+                        FilteringTestStatus $value,
+                    ): void {
+                        $query->seen = $value;
+                    })->type(Type\Str::make()->enum(FilteringTestStatus::cases())),
+
                     CustomFilter::make('range', function ($query, array $value): void {
                         $query->seen = $value;
                     })->type(
@@ -146,6 +153,15 @@ class FilteringTest extends AbstractTestCase
         $this->assertCount(1, $query->seen);
         $this->assertInstanceOf(\DateTime::class, $query->seen[0]);
         $this->assertSame('2024-01-01', $query->seen[0]->format('Y-m-d'));
+    }
+
+    public function test_enum_filter_value_is_normalized_to_case(): void
+    {
+        $query = $this->query();
+
+        $this->applyFilters($query, ['status' => 'published']);
+
+        $this->assertSame(FilteringTestStatus::Published, $query->seen);
     }
 
     public function test_object_filter_properties_are_normalized(): void
@@ -358,4 +374,10 @@ class FilteringTest extends AbstractTestCase
     {
         return (object) ['models' => []];
     }
+}
+
+enum FilteringTestStatus: string
+{
+    case Draft = 'draft';
+    case Published = 'published';
 }

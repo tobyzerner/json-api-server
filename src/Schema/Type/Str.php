@@ -33,11 +33,23 @@ class Str extends AbstractType
 
     protected function deserializeValue(mixed $value): mixed
     {
+        if ($this->enum !== null && is_string($value)) {
+            foreach ($this->enum as $case) {
+                if ($case instanceof UnitEnum && $this->getEnumValue($case) === $value) {
+                    return $case;
+                }
+            }
+        }
+
         return $value;
     }
 
     protected function validateValue(mixed $value, callable $fail): void
     {
+        if ($value instanceof UnitEnum && $this->enum !== null) {
+            $value = $this->getEnumValue($value);
+        }
+
         if (!is_string($value)) {
             $fail(new TypeMismatchException('string', gettype($value)));
             return;
