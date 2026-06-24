@@ -343,6 +343,22 @@ class FilteringTest extends AbstractTestCase
         $this->fail('Expected a JSON:API errors exception.');
     }
 
+    public function test_falsy_scalar_filter_parameter_is_invalid(): void
+    {
+        try {
+            $this->api->handle($this->buildRequest('GET', '/items')->withQueryParams(['filter' => '0']));
+        } catch (JsonApiErrorsException $e) {
+            $error = $e->errors[0];
+
+            $this->assertSame('Value must be object', $error->getMessage());
+            $this->assertSame('filter', $error->getJsonApiError()['source']['parameter']);
+
+            return;
+        }
+
+        $this->fail('Expected a JSON:API errors exception.');
+    }
+
     public function test_invalid_typed_array_item_returns_parameter_source(): void
     {
         try {

@@ -116,7 +116,9 @@ trait ResolvesList
         Collection&Listable $collection,
         Context $context,
     ): void {
-        if (!($filters = $context->parameter('filter'))) {
+        $filters = $context->parameter('filter');
+
+        if ($filters === null || $filters === []) {
             return;
         }
 
