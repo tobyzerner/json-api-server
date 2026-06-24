@@ -3,8 +3,8 @@
 namespace Tobyz\JsonApiServer\Laravel\Filter;
 
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Exception\Filter\InvalidFilterValueException;
 use Tobyz\JsonApiServer\Schema\Filter;
+use Tobyz\JsonApiServer\Schema\Type;
 
 class WhereCount extends Filter
 {
@@ -26,6 +26,7 @@ class WhereCount extends Filter
     {
         parent::__construct($name);
 
+        $this->type(Type\Integer::make());
         $this->operators(static::SUPPORTED_OPERATORS);
     }
 
@@ -37,10 +38,6 @@ class WhereCount extends Filter
     protected function applyValue(object $query, mixed $value, Context $context): void
     {
         foreach ($value as $operator => $val) {
-            if (!is_scalar($val)) {
-                throw new InvalidFilterValueException();
-            }
-
             $query->whereHas(
                 $this->relationship ?: $this->name,
                 $this->scope ? fn($query) => ($this->scope)($query, $context) : null,

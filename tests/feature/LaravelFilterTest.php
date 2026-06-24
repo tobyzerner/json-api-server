@@ -6,7 +6,6 @@ use Closure;
 use InvalidArgumentException;
 use Nyholm\Psr7\ServerRequest;
 use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Exception\Filter\InvalidFilterValueException;
 use Tobyz\JsonApiServer\Exception\Filter\UnsupportedFilterOperatorException;
 use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
 use Tobyz\JsonApiServer\JsonApi;
@@ -559,16 +558,16 @@ class LaravelFilterTest extends AbstractTestCase
 
         WhereCount::make('comments')->apply($query, ['gte' => '2'], $this->context());
 
-        $this->assertSame(['whereHas', ['comments', null, '>=', '2']], $query->calls[0]);
+        $this->assertSame(['whereHas', ['comments', null, '>=', 2]], $query->calls[0]);
     }
 
-    public function test_where_count_filter_rejects_non_scalar_values(): void
+    public function test_where_count_filter_rejects_non_integer_values(): void
     {
-        $this->expectException(InvalidFilterValueException::class);
+        $this->expectException(JsonApiErrorsException::class);
 
         WhereCount::make('comments')->apply(
             new RecordingQuery(),
-            ['gte' => ['2']],
+            ['gte' => '2.5'],
             $this->context(),
         );
     }
