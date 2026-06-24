@@ -954,6 +954,12 @@ class OpenApiTest extends AbstractTestCase
                                     ],
                                     'relationships' => [
                                         'type' => 'object',
+                                        'properties' => [
+                                            'pet' => [
+                                                '$ref' =>
+                                                    '#/components/schemas/users_relationship_pet',
+                                            ],
+                                        ],
                                     ],
                                     'id' => (object) [
                                         'type' => 'string',

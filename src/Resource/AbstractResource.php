@@ -90,7 +90,7 @@ abstract class AbstractResource extends AbstractCollection implements Resource
                 );
             }
 
-            if ($field->writableOnCreate) {
+            if ($field->writable || $field->writableOnCreate) {
                 $schemas["{$type}_create"] = $this->withFieldSchema(
                     $schemas["{$type}_create"],
                     $field,
