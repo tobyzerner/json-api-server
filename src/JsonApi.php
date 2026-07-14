@@ -267,7 +267,9 @@ class JsonApi implements RequestHandlerInterface
             $replacements = [];
 
             foreach ($error['meta'] as $key => $value) {
-                $replacements[':' . $key] = (string) $value;
+                if (is_scalar($value) || $value instanceof \Stringable) {
+                    $replacements[':' . $key] = (string) $value;
+                }
             }
 
             $error['detail'] = strtr($error['detail'], $replacements);

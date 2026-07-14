@@ -4,6 +4,7 @@ namespace Tobyz\Tests\JsonApiServer\feature;
 
 use Exception;
 use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
+use Tobyz\JsonApiServer\Exception\Type\EnumViolationException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockErrorException;
@@ -56,15 +57,15 @@ class ErrorTest extends AbstractTestCase
     public function test_error_customization_with_placeholder_replacement()
     {
         $this->api->errors([
-            MockErrorException::class => [
+            EnumViolationException::class => [
                 'code' => 'custom_code',
                 'title' => 'Custom Title',
-                'detail' => 'Custom detail :foo',
+                'detail' => 'Invalid value :actual',
                 'meta' => ['customMeta' => 'test'],
             ],
         ]);
 
-        $response = $this->api->error((new MockErrorException())->meta(['foo' => 'bar']));
+        $response = $this->api->error(new EnumViolationException(['A', 'B'], 'C'));
 
         $this->assertEquals(400, $response->getStatusCode());
         $this->assertJsonApiDocumentSubset(
@@ -74,9 +75,10 @@ class ErrorTest extends AbstractTestCase
                         'status' => '400',
                         'code' => 'custom_code',
                         'title' => 'Custom Title',
-                        'detail' => 'Custom detail bar',
+                        'detail' => 'Invalid value C',
                         'meta' => [
-                            'foo' => 'bar',
+                            'allowed' => ['A', 'B'],
+                            'actual' => 'C',
                             'customMeta' => 'test',
                         ],
                     ],
