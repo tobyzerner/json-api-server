@@ -65,6 +65,12 @@ class Context
     // Get the value of a validated query parameter or header
     public function parameter(string $name): mixed;
 
+    // Get the filters for the collection currently being processed
+    public function filters(): array;
+
+    // Return a copy with an active collection-level filter bag
+    public function withFilters(array $filters): static;
+
     // Get the URL of the current request, optionally with query parameter overrides
     public function currentUrl(array $queryParams = []): string;
 
