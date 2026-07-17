@@ -423,6 +423,14 @@ class Context extends SchemaContext
     }
 
     /**
+     * Get a top-level filter for the collection currently being processed.
+     */
+    public function filter(string $name): mixed
+    {
+        return $this->filters()[$name] ?? null;
+    }
+
+    /**
      * Get the filters for the collection currently being processed, which may
      * differ from the request's top-level filter parameter.
      */

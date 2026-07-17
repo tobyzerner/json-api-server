@@ -65,6 +65,9 @@ class Context
     // Get the value of a validated query parameter or header
     public function parameter(string $name): mixed;
 
+    // Get a top-level filter for the collection currently being processed
+    public function filter(string $name): mixed;
+
     // Get the filters for the collection currently being processed
     public function filters(): array;
 

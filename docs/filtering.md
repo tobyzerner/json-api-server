@@ -53,21 +53,6 @@ GET /posts?filter[name]=Toby
 GET /posts?filter[name][]=Toby&filter[name][]=Franz
 ```
 
-The context's `filters()` method returns the complete filter bag for the
-collection currently being processed. This lets visibility checks and filter
-callbacks inspect sibling filters:
-
-```php
-CustomFilter::make('name', function ($query, string $value, Context $context) {
-    $status = $context->filters()['status'] ?? null;
-
-    // ...
-});
-```
-
-This collection-level bag may differ from the request's top-level `filter`
-parameter when filters are delegated or applied to a related collection.
-
 ### Typed Values
 
 Filters receive raw query string values by default. If you want a filter to

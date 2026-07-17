@@ -142,6 +142,8 @@ class FilteringTest extends AbstractTestCase
         $context = $this->filterContext(['request' => 'value']);
 
         $this->assertSame(['request' => 'value'], $context->filters());
+        $this->assertSame('value', $context->filter('request'));
+        $this->assertNull($context->filter('missing'));
     }
 
     public function test_delegated_filter_visibility_and_callbacks_see_complete_bag(): void
@@ -161,7 +163,8 @@ class FilteringTest extends AbstractTestCase
             'grouped',
             filters: [
                 CustomFilter::make('active', $capture)->visible(
-                    fn(Context $context) => $context->filters() === $filters,
+                    fn(Context $context) => $context->filters() === $filters &&
+                        $context->filter('active') === true,
                 ),
                 CustomFilter::make('ids', $capture),
             ],
@@ -180,8 +183,10 @@ class FilteringTest extends AbstractTestCase
     public function test_explicit_empty_active_filters_do_not_fall_back_to_request_filter(): void
     {
         $context = $this->filterContext(['request' => 'value']);
+        $context = $context->withFilters([]);
 
-        $this->assertSame([], $context->withFilters([])->filters());
+        $this->assertSame([], $context->filters());
+        $this->assertNull($context->filter('request'));
     }
 
     public function test_replacing_request_or_parameters_clears_active_filters(): void
