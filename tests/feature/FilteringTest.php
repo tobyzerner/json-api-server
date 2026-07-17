@@ -2,12 +2,14 @@
 
 namespace Tobyz\Tests\JsonApiServer\feature;
 
+use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Index;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\CustomFilter;
 use Tobyz\JsonApiServer\Schema\Field\Attribute;
+use Tobyz\JsonApiServer\Schema\Parameter;
 use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockResource;
@@ -133,6 +135,70 @@ class FilteringTest extends AbstractTestCase
         $document = json_decode($response->getBody(), true);
 
         $this->assertSame(['1'], array_column($document['data'], 'id'));
+    }
+
+    public function test_context_filters_fall_back_to_validated_request_filter(): void
+    {
+        $context = $this->filterContext(['request' => 'value']);
+
+        $this->assertSame(['request' => 'value'], $context->filters());
+    }
+
+    public function test_delegated_filter_visibility_and_callbacks_see_complete_bag(): void
+    {
+        $seen = [];
+        $filters = [
+            'active' => true,
+            'or' => [
+                ['ids' => [1]],
+                ['not' => ['active' => false]],
+            ],
+        ];
+        $capture = function ($query, $value, Context $context) use (&$seen): void {
+            $seen[] = $context->filters();
+        };
+        $resource = new MockResource(
+            'grouped',
+            filters: [
+                CustomFilter::make('active', $capture)->visible(
+                    fn(Context $context) => $context->filters() === $filters,
+                ),
+                CustomFilter::make('ids', $capture),
+            ],
+        );
+
+        \Tobyz\JsonApiServer\apply_filters(
+            $this->query(),
+            $filters,
+            $resource,
+            $this->filterContext(['request' => 'value']),
+        );
+
+        $this->assertSame([$filters, $filters, $filters], $seen);
+    }
+
+    public function test_explicit_empty_active_filters_do_not_fall_back_to_request_filter(): void
+    {
+        $context = $this->filterContext(['request' => 'value']);
+
+        $this->assertSame([], $context->withFilters([])->filters());
+    }
+
+    public function test_replacing_request_or_parameters_clears_active_filters(): void
+    {
+        $requestFilters = ['request' => 'value'];
+        $context = $this->filterContext($requestFilters)->withFilters([
+            'delegated' => 'value',
+        ]);
+
+        $this->assertSame(
+            $requestFilters,
+            $context->withRequest(clone $context->request)->filters(),
+        );
+        $this->assertSame(
+            $requestFilters,
+            $context->withParameters([$this->filterParameter()])->filters(),
+        );
     }
 
     public function test_custom_filter_handler_can_be_defined_after_type(): void
@@ -416,6 +482,21 @@ class FilteringTest extends AbstractTestCase
             $this->api->getResource('items'),
             new \Tobyz\JsonApiServer\Context($this->api, $this->buildRequest('GET', '/')),
         );
+    }
+
+    private function filterContext(array $filters): Context
+    {
+        return (
+            new Context(
+                $this->api,
+                $this->buildRequest('GET', '/')->withQueryParams(['filter' => $filters]),
+            )
+        )->withParameters([$this->filterParameter()]);
+    }
+
+    private function filterParameter(): Parameter
+    {
+        return Parameter::make('filter')->type(Type\Obj::make());
     }
 
     private function query(): object

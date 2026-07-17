@@ -20,6 +20,8 @@ class Filterer
 
     public function apply($query, array $filters): void
     {
+        $this->context = $this->context->withFilters($filters);
+
         $this->applyGroup($query, $filters, 'and', [], $this->resolveAvailableFilters());
     }
 

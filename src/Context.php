@@ -40,6 +40,7 @@ class Context extends SchemaContext
     private ?array $requestedExtensions = null;
     private ?array $requestedProfiles = null;
     private array $parameters = [];
+    private ?array $activeFilters = null;
 
     private WeakMap $resourceIds;
     private WeakMap $modelIds;
@@ -285,6 +286,7 @@ class Context extends SchemaContext
     {
         $new = clone $this;
         $new->request = $request;
+        $new->activeFilters = null;
         $new->sparseFields = new WeakMap();
         $new->body = null;
         $new->path = null;
@@ -368,6 +370,7 @@ class Context extends SchemaContext
     {
         $context = clone $this;
         $context->parameters = [];
+        $context->activeFilters = null;
 
         $this->validateQueryParameters(
             array_filter($parameters, fn(Parameter $p) => $p->in === 'query'),
@@ -417,6 +420,26 @@ class Context extends SchemaContext
     public function parameter(string $name): mixed
     {
         return $this->parameters[$name] ?? null;
+    }
+
+    /**
+     * Get the filters for the collection currently being processed, which may
+     * differ from the request's top-level filter parameter.
+     */
+    public function filters(): array
+    {
+        return $this->activeFilters ?? (array) $this->parameter('filter');
+    }
+
+    /**
+     * Set the filters for the collection currently being processed.
+     */
+    public function withFilters(array $filters): static
+    {
+        $new = clone $this;
+        $new->activeFilters = $filters;
+
+        return $new;
     }
 
     private function validateQueryParameters(array $parameters): void

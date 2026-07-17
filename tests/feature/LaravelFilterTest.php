@@ -572,16 +572,24 @@ class LaravelFilterTest extends AbstractTestCase
         );
     }
 
-    public function test_where_has_filter_applies_nested_filter_payloads(): void
+    public function test_where_has_filter_uses_parent_and_nested_filter_bags(): void
     {
-        $context = $this->relationshipContext();
+        $parentFilters = [
+            'author' => ['name' => 'Toby'],
+            'published' => true,
+        ];
+        $context = $this->relationshipContext()->withFilters($parentFilters);
         $query = new RelationshipQuery();
 
         WhereHas::make('author')->apply($query, ['name' => 'Toby'], $context);
 
         $this->assertSame('whereHas', $query->calls[0][0]);
         $this->assertSame('author', $query->calls[0][1][0]);
-        $this->assertSame(['name' => 'Toby'], $query->relatedQuery->seen);
+        $this->assertSame(
+            ['Toby', ['name' => 'Toby']],
+            $query->relatedQuery->seen,
+        );
+        $this->assertSame($parentFilters, $query->relatedQuery->scopeFilters);
     }
 
     public function test_where_has_filter_applies_typed_id_operator_payloads(): void
@@ -624,8 +632,12 @@ class LaravelFilterTest extends AbstractTestCase
         $api = new JsonApi();
         $api->resource(
             new FakeEloquentResource('users', [
-                CustomFilter::make('name', function ($query, string $value): void {
-                    $query->seen = ['name' => $value];
+                CustomFilter::make('name', function (
+                    $query,
+                    string $value,
+                    Context $context,
+                ): void {
+                    $query->seen = [$value, $context->filters()];
                 }),
             ]),
         );
@@ -776,6 +788,7 @@ class RelatedQuery
 {
     public ?array $keys = null;
     public ?array $seen = null;
+    public ?array $scopeFilters = null;
 
     public function whereKey(array $ids): void
     {
@@ -814,5 +827,6 @@ class FakeEloquentResource extends EloquentResource
 
     public function scope($query, Context $context): void
     {
+        $query->scopeFilters = $context->filters();
     }
 }
