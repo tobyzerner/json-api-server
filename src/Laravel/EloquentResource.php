@@ -96,6 +96,10 @@ abstract class EloquentResource extends AbstractResource implements
         // the ID is stored in a column directly on the model. We will mock up a
         // related model with the value of the ID filled.
         if ($relation instanceof BelongsTo && $context->include === null) {
+            if ($model->relationLoaded($method)) {
+                return $model->getRelation($method);
+            }
+
             if ($key = $model->getAttribute($relation->getForeignKeyName())) {
                 if ($relation instanceof MorphTo) {
                     $morphType = $model->{$relation->getMorphType()};
