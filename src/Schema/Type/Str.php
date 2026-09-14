@@ -62,12 +62,14 @@ class Str extends AbstractType
             }
         }
 
-        if (strlen($value) < $this->minLength) {
-            $fail(new RangeViolationException('minLength', $this->minLength, strlen($value)));
+        $length = mb_strlen($value, 'UTF-8');
+
+        if ($length < $this->minLength) {
+            $fail(new RangeViolationException('minLength', $this->minLength, $length));
         }
 
-        if ($this->maxLength !== null && strlen($value) > $this->maxLength) {
-            $fail(new RangeViolationException('maxLength', $this->maxLength, strlen($value)));
+        if ($this->maxLength !== null && $length > $this->maxLength) {
+            $fail(new RangeViolationException('maxLength', $this->maxLength, $length));
         }
 
         if (
