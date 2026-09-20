@@ -240,7 +240,58 @@ The `POST` method is used by default, but you can customize this using the
 Endpoint\CollectionAction::make(...)->method('PUT');
 ```
 
-### Custom Headers
+### Request Parameters
+
+Define custom query parameters with an endpoint's `parameters()` method. Each
+`Parameter` defines how a request value is parsed, validated, and made available
+to your resource implementation.
+
+For example, allow a locale to be selected when fetching a resource:
+
+```php
+use Tobyz\JsonApiServer\Endpoint\ShowResource;
+use Tobyz\JsonApiServer\Schema\Parameter;
+use Tobyz\JsonApiServer\Schema\Type;
+
+ShowResource::make()->parameters([
+    Parameter::make('locale')
+        ->type(Type\Str::make()->enum(['en', 'fr']))
+        ->default('en'),
+]);
+```
+
+A request such as `GET /posts/1?locale=fr` makes `fr` available as the validated
+locale. Omitting `locale` uses `en`, and an unsupported value produces a
+validation error. Your resource implementation decides how to use the locale.
+
+Parameters read from the query string by default. Use `in('header')` to read
+an HTTP header instead. You can require a value with `required()`, transform it
+with `deserialize()`, or add a custom validator with `validate()`:
+
+```php
+use Tobyz\JsonApiServer\Context;
+
+Parameter::make('locale')
+    ->default('en')
+    ->deserialize(fn($value) => strtolower($value))
+    ->validate(function ($value, $fail, Context $context) {
+        if (!in_array($value, ['en', 'fr'], true)) {
+            $fail('Unsupported locale.');
+        }
+    });
+```
+
+On the aggregate `Show` endpoint, `parameters()` configures the single-resource
+endpoint. To configure relationship requests, use `showRelated()` or
+`showRelationship()` to configure the corresponding endpoint.
+
+Read a validated value through the [Context](context.md) object:
+
+```php
+$locale = $context->parameter('locale');
+```
+
+### Response Headers
 
 Use the `headers()` method to define custom headers for endpoint responses.
 Headers can be static or dynamic based on the model data:

@@ -2,7 +2,9 @@
 
 namespace Tobyz\Tests\JsonApiServer\specification;
 
+use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Show;
+use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Field\Attribute;
 use Tobyz\JsonApiServer\Schema\Field\ToOne;
@@ -29,7 +31,7 @@ class SparseFieldsetsTest extends AbstractTestCase
         );
 
         $this->api->resource(
-            new MockResource(
+            new class (
                 'articles',
                 models: [
                     '1' => (object) [
@@ -49,7 +51,20 @@ class SparseFieldsetsTest extends AbstractTestCase
                         ->type('users')
                         ->includable(),
                 ],
-            ),
+            ) extends MockResource {
+                public function find(string $id, Context $context): ?object
+                {
+                    $model = parent::find($id, $context);
+
+                    foreach (['title', 'body', 'exclude'] as $field) {
+                        if (!$context->fieldRequested('articles', $field)) {
+                            unset($model->$field);
+                        }
+                    }
+
+                    return $model;
+                }
+            },
         );
     }
 
@@ -58,7 +73,7 @@ class SparseFieldsetsTest extends AbstractTestCase
         $response = $this->api->handle(
             $this->buildRequest(
                 'GET',
-                '/articles/1?include=author&fields[articles]=title,body,author&fields[users]=name',
+                '/articles/1?include=author&fields[articles]=title,exclude,author&fields[users]=name',
             ),
         );
 
@@ -67,7 +82,7 @@ class SparseFieldsetsTest extends AbstractTestCase
                 'data' => [
                     'type' => 'articles',
                     'id' => '1',
-                    'attributes' => ['title' => 'foo', 'body' => 'bar'],
+                    'attributes' => ['title' => 'foo', 'exclude' => 'baz'],
                     'relationships' => [
                         'author' => [
                             'data' => ['type' => 'users', 'id' => '1'],
@@ -87,7 +102,7 @@ class SparseFieldsetsTest extends AbstractTestCase
 
         $document = json_decode($body, true);
 
-        $this->assertArrayNotHasKey('exclude', $document['data']['attributes']);
+        $this->assertArrayNotHasKey('body', $document['data']['attributes']);
         $this->assertArrayNotHasKey('color', $document['included'][0]['attributes']);
     }
 
@@ -97,6 +112,28 @@ class SparseFieldsetsTest extends AbstractTestCase
 
         $document = json_decode($response->getBody(), true);
 
-        $this->assertArrayNotHasKey('exclude', $document['data']['attributes']);
+        $this->assertSame(['title' => 'foo', 'body' => 'bar'], $document['data']['attributes']);
+    }
+
+    public function test_empty_fieldset(): void
+    {
+        $response = $this->api->handle(
+            $this->buildRequest('GET', '/articles/1?fields[articles]='),
+        );
+
+        $document = json_decode($response->getBody(), true);
+        $this->assertSame('1', $document['data']['id']);
+        $this->assertArrayNotHasKey('attributes', $document['data']);
+        $this->assertArrayNotHasKey('relationships', $document['data']);
+    }
+
+    public function test_invalid_fieldset(): void
+    {
+        try {
+            $this->api->handle($this->buildRequest('GET', '/articles/1?fields[articles][invalid]=title'));
+            $this->fail('Expected invalid fields to be rejected.');
+        } catch (JsonApiErrorsException $e) {
+            $this->assertSame('fields[articles]', $e->errors[0]->getJsonApiError()['source']['parameter']);
+        }
     }
 }

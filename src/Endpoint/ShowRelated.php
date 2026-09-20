@@ -52,6 +52,12 @@ class ShowRelated implements Endpoint, ProvidesRootSchema, ProvidesRelationshipL
 
         [$id, $relationshipName] = $segments;
 
+        // Relationship-specific parameters are loaded after resolving the parent.
+        $context = $context->withParameters(
+            [...$this->resourceDocumentParameters(), ...$this->parameters],
+            allowUnknown: true,
+        );
+
         $context = $this->resolveModel($context, $id);
 
         $field = $this->resolveRelationshipField($context, $relationshipName);

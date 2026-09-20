@@ -57,13 +57,13 @@ class ResourceAction implements Endpoint, ProvidesRootSchema
             throw new MethodNotAllowedException();
         }
 
+        $context = $context->withParameters($this->getParameters());
+
         $context = $this->resolveModel($context, $segments[0]);
 
         if (!$this->isVisible($context)) {
             throw new ForbiddenException();
         }
-
-        $context = $context->withParameters($this->getParameters());
 
         if ($response = ($this->handler)($context->model, $context)) {
             return $this->applyResponseHooks($response, $context);

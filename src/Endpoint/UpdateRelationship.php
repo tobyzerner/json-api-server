@@ -59,6 +59,8 @@ class UpdateRelationship implements Endpoint, ProvidesRootSchema, ProvidesRelati
             throw new MethodNotAllowedException();
         }
 
+        $context = $context->withParameters($this->parameters);
+
         $context = $this->resolveModel($context, $segments[0]);
 
         if (!($context->resource instanceof Updatable)) {
@@ -72,8 +74,6 @@ class UpdateRelationship implements Endpoint, ProvidesRootSchema, ProvidesRelati
         );
 
         $this->assertFieldWritable($context, $field);
-
-        $context = $context->withParameters($this->parameters);
 
         $value = $field->deserializeValue($context->body() ?? [], $context);
 

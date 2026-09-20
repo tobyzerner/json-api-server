@@ -42,6 +42,8 @@ class Delete implements Endpoint, ProvidesRootSchema, ProvidesResourceLinks
             throw new MethodNotAllowedException();
         }
 
+        $context = $context->withParameters($this->parameters);
+
         $context = $this->resolveModel($context, $segments[0]);
 
         if (!$context->resource instanceof Deletable) {
@@ -49,8 +51,6 @@ class Delete implements Endpoint, ProvidesRootSchema, ProvidesResourceLinks
                 sprintf('%s must implement %s', get_class($context->resource), Deletable::class),
             );
         }
-
-        $context = $context->withParameters($this->parameters);
 
         $context->resource->delete($context->model, $context);
 

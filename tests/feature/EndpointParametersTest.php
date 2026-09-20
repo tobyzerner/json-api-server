@@ -2,6 +2,7 @@
 
 namespace Tobyz\Tests\JsonApiServer\feature;
 
+use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
 use Tobyz\JsonApiServer\JsonApi;
@@ -21,6 +22,16 @@ class EndpointParametersTest extends AbstractTestCase
         );
 
         $this->assertSame(['testParameter' => 'value'], $parameters);
+    }
+
+    public function test_endpoint_parameter_default(): void
+    {
+        $parameters = $this->parameterValues(
+            [Parameter::make('locale')->default('en')],
+            [],
+        );
+
+        $this->assertSame(['locale' => 'en'], $parameters);
     }
 
     public function test_boolean_query_parameter_is_normalized(): void
@@ -169,6 +180,11 @@ class EndpointParametersTest extends AbstractTestCase
         );
         $document = json_decode($response->getBody(), true);
 
+        $this->assertSame(
+            $document['data']['attributes']['parameters'],
+            $document['data']['attributes']['lookupParameters'],
+        );
+
         return $document['data']['attributes']['parameters'];
     }
 
@@ -201,11 +217,12 @@ class EndpointParametersTest extends AbstractTestCase
         $api = new JsonApi();
 
         $api->resource(
-            new MockResource(
+            $resource = new class (
                 'users',
                 models: [(object) ['id' => '1']],
                 endpoints: [Show::make()->parameters($parameters)],
                 fields: [
+                    Attribute::make('lookupParameters'),
                     Attribute::make('parameters')->get(function ($model, $context) use (
                         $parameters,
                     ) {
@@ -222,8 +239,26 @@ class EndpointParametersTest extends AbstractTestCase
                         return $values;
                     }),
                 ],
-            ),
+            ) extends MockResource {
+                public array $parameterDefinitions;
+
+                public function find(string $id, Context $context): ?object
+                {
+                    $model = parent::find($id, $context);
+                    $model->lookupParameters = [];
+
+                    foreach ($this->parameterDefinitions as $parameter) {
+                        if (($value = $context->parameter($parameter->name)) !== null) {
+                            $model->lookupParameters[$parameter->name] = $value;
+                        }
+                    }
+
+                    return $model;
+                }
+            },
         );
+
+        $resource->parameterDefinitions = $parameters;
 
         return $api;
     }

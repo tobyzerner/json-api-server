@@ -2,12 +2,19 @@
 
 namespace Tobyz\Tests\JsonApiServer\feature;
 
+use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Create;
+use Tobyz\JsonApiServer\Endpoint\Endpoint;
 use Tobyz\JsonApiServer\Endpoint\Show;
+use Tobyz\JsonApiServer\Endpoint\ShowRelated;
+use Tobyz\JsonApiServer\Endpoint\ShowRelationship;
 use Tobyz\JsonApiServer\Exception\Data\UnsupportedTypeException;
 use Tobyz\JsonApiServer\Exception\Request\InvalidIncludeException;
+use Tobyz\JsonApiServer\Exception\Request\InvalidQueryParameterException;
 use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\Pagination\OffsetPagination;
 use Tobyz\JsonApiServer\Schema\Field\ToMany;
+use Tobyz\JsonApiServer\Schema\Parameter;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockCollection;
 use Tobyz\Tests\JsonApiServer\MockResource;
@@ -287,5 +294,70 @@ class RelationshipToManyTest extends AbstractTestCase
         );
 
         $this->assertEquals(201, $response->getStatusCode());
+    }
+
+    public function test_related_resource_query_parameters(): void
+    {
+        $api = $this->apiWithRelationshipParameters(ShowRelated::make());
+        $response = $api->handle(
+            $this->buildRequest('GET', '/users/1/friends?locale=fr&page[offset]=1&page[limit]=1'),
+        );
+
+        $document = json_decode($response->getBody(), true);
+        $this->assertSame(['3'], array_column($document['data'], 'id'));
+    }
+
+    public function test_relationship_query_parameters(): void
+    {
+        $api = $this->apiWithRelationshipParameters(ShowRelationship::make());
+        $response = $api->handle(
+            $this->buildRequest('GET', '/users/1/relationships/friends?locale=fr&page[offset]=1&page[limit]=1'),
+        );
+
+        $document = json_decode($response->getBody(), true);
+        $this->assertSame(['3'], array_column($document['data'], 'id'));
+    }
+
+    public function test_unknown_query_parameter(): void
+    {
+        $api = $this->apiWithRelationshipParameters(ShowRelated::make());
+
+        $this->expectException(InvalidQueryParameterException::class);
+        $api->handle($this->buildRequest('GET', '/users/1/friends?locale=fr&unknown=value'));
+    }
+
+    private function apiWithRelationshipParameters(Endpoint $endpoint): JsonApi
+    {
+        $api = new JsonApi();
+        $api->resource(new class (
+            'users',
+            models: [(object) ['id' => '1', 'locale' => 'fr', 'friends' => [
+                (object) ['id' => '1', 'locale' => 'en'],
+                (object) ['id' => '2', 'locale' => 'fr'],
+                (object) ['id' => '3', 'locale' => 'fr'],
+            ]]],
+            endpoints: [$endpoint->parameters([Parameter::make('locale')])],
+            fields: [
+                ToMany::make('friends')->type('users')->pagination(new OffsetPagination()),
+            ],
+        ) extends MockResource {
+            public function find(string $id, Context $context): ?object
+            {
+                $model = parent::find($id, $context);
+                return $model->locale === $context->parameter('locale') ? $model : null;
+            }
+
+            public function relatedQuery(object $model, ToMany $relationship, Context $context): ?object
+            {
+                $query = parent::relatedQuery($model, $relationship, $context);
+                $query->models = array_filter(
+                    $query->models,
+                    fn($friend) => $friend->locale === $context->parameter('locale'),
+                );
+                return $query;
+            }
+        });
+
+        return $api;
     }
 }

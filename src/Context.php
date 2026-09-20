@@ -286,6 +286,7 @@ class Context extends SchemaContext
     {
         $new = clone $this;
         $new->request = $request;
+        $new->parameters = [];
         $new->activeFilters = null;
         $new->sparseFields = new WeakMap();
         $new->body = null;
@@ -362,23 +363,32 @@ class Context extends SchemaContext
     }
 
     /**
-     * Load and validate parameters from the request.
+     * Load and validate parameters that have not already been loaded from the request.
+     *
+     * With allowUnknown, validate only the supplied definitions without rejecting other
+     * query parameters. Call again with the full definitions to validate those too.
      *
      * @param Parameter[] $parameters
      */
-    public function withParameters(array $parameters): static
+    public function withParameters(array $parameters, bool $allowUnknown = false): static
     {
         $context = clone $this;
-        $context->parameters = [];
         $context->activeFilters = null;
+        $context->sparseFields = new WeakMap();
 
-        $this->validateQueryParameters(
-            array_filter($parameters, fn(Parameter $p) => $p->in === 'query'),
-        );
+        if (!$allowUnknown) {
+            $this->validateQueryParameters(
+                array_filter($parameters, fn(Parameter $p) => $p->in === 'query'),
+            );
+        }
 
         $errors = [];
 
         foreach ($parameters as $parameter) {
+            if (array_key_exists($parameter->name, $this->parameters)) {
+                continue;
+            }
+
             $value = $this->extractParameterValue($parameter);
             $paramContext = $context->withField($parameter);
 
@@ -389,6 +399,7 @@ class Context extends SchemaContext
             $value = $parameter->deserializeValue($value, $paramContext);
 
             if ($value === null && !$parameter->required) {
+                $context->parameters[$parameter->name] = null;
                 continue;
             }
 

@@ -47,6 +47,8 @@ class UpdateResource implements Endpoint, ProvidesRootSchema, ProvidesResourceLi
             throw new MethodNotAllowedException();
         }
 
+        $context = $context->withParameters($this->getParameters());
+
         $context = $this->resolveModel($context, $segments[0]);
 
         if (!$context->resource instanceof Updatable) {
@@ -54,8 +56,6 @@ class UpdateResource implements Endpoint, ProvidesRootSchema, ProvidesResourceLi
                 sprintf('%s must implement %s', get_class($context->resource), Updatable::class),
             );
         }
-
-        $context = $context->withParameters($this->getParameters());
 
         $data = $this->parseData($context);
 

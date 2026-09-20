@@ -196,10 +196,15 @@ class FilteringTest extends AbstractTestCase
             'delegated' => 'value',
         ]);
 
-        $this->assertSame(
-            $requestFilters,
-            $context->withRequest(clone $context->request)->filters(),
+        $replaced = $context->withRequest(
+            $context->request->withQueryParams(['filter' => ['new' => 'value']]),
         );
+        $this->assertSame([], $replaced->filters());
+        $this->assertSame(
+            ['new' => 'value'],
+            $replaced->withParameters([$this->filterParameter()])->filters(),
+        );
+        $this->assertSame(['delegated' => 'value'], $context->filters());
         $this->assertSame(
             $requestFilters,
             $context->withParameters([$this->filterParameter()])->filters(),

@@ -41,9 +41,9 @@ class ShowResource implements Endpoint, ProvidesRootSchema, ProvidesResourceLink
             throw new MethodNotAllowedException();
         }
 
-        $context = $this->resolveModel($context, $segments[0]);
-
         $context = $context->withParameters($this->getParameters());
+
+        $context = $this->resolveModel($context, $segments[0]);
 
         return $this->createResponse(
             $this->serializeResourceDocument($context->model, $context),
