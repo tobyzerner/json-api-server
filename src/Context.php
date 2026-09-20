@@ -43,6 +43,7 @@ class Context extends SchemaContext
     private ?array $activeFilters = null;
 
     private WeakMap $resourceIds;
+    /** @var WeakMap<Resource, WeakMap<object, string>> */
     private WeakMap $modelIds;
     private WeakMap $sparseFields;
 
@@ -140,13 +141,15 @@ class Context extends SchemaContext
 
     public function id(Resource $resource, $model): string
     {
-        if (isset($this->modelIds[$model])) {
-            return $this->modelIds[$model];
+        $modelIds = $this->modelIds[$resource] ??= new WeakMap();
+
+        if (isset($modelIds[$model])) {
+            return $modelIds[$model];
         }
 
         $id = $this->resourceIds[$resource] ??= $resource->id();
 
-        return $this->modelIds[$model] = $id->serializeValue($id->getValue($this), $this);
+        return $modelIds[$model] = $id->serializeValue($id->getValue($this), $this);
     }
 
     /**
