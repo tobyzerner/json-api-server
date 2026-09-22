@@ -19,6 +19,7 @@ use Tobyz\JsonApiServer\Extension\Extension;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Resource;
 use Tobyz\JsonApiServer\Schema\Concerns\HasMeta;
+use Tobyz\JsonApiServer\Schema\Parameter;
 
 class JsonApi implements RequestHandlerInterface
 {
@@ -46,6 +47,11 @@ class JsonApi implements RequestHandlerInterface
     public array $errors = [];
 
     /**
+     * @var Parameter[]
+     */
+    protected array $parameters = [];
+
+    /**
      * @var array<string, Collection[]>
      */
     private array $collectionsByResource = [];
@@ -53,6 +59,46 @@ class JsonApi implements RequestHandlerInterface
     public function __construct(public string $basePath = '')
     {
         $this->basePath = rtrim($this->basePath, '/');
+    }
+
+    /**
+     * Define shared request parameters. Built-in query families belong to endpoints.
+     *
+     * @param Parameter[] $parameters
+     */
+    public function parameters(array $parameters): static
+    {
+        foreach ($parameters as $parameter) {
+            if (
+                $parameter->in === 'query' &&
+                preg_match('/^(page|filter|sort|include|fields)(\[|$)/', $parameter->name)
+            ) {
+                throw new InvalidArgumentException(
+                    "Query parameter '$parameter->name' is reserved for endpoint configuration.",
+                );
+            }
+        }
+
+        $this->parameters = array_merge($this->parameters, $parameters);
+
+        return $this;
+    }
+
+    /**
+     * Merge API and endpoint parameters by location and name, with later definitions winning.
+     *
+     * @param Parameter[] $parameters
+     * @return Parameter[]
+     */
+    public function getParameters(array $parameters = []): array
+    {
+        $merged = [];
+
+        foreach ([...$this->parameters, ...$parameters] as $parameter) {
+            $merged[$parameter->in . ':' . $parameter->name] = $parameter;
+        }
+
+        return array_values($merged);
     }
 
     /**

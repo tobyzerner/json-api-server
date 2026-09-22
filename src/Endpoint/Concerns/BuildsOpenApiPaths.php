@@ -3,6 +3,7 @@
 namespace Tobyz\JsonApiServer\Endpoint\Concerns;
 
 use Tobyz\JsonApiServer\Schema\Parameter;
+use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\JsonApiServer\SchemaContext;
 
 trait BuildsOpenApiPaths
@@ -12,7 +13,10 @@ trait BuildsOpenApiPaths
      */
     private function openApiParameters(SchemaContext $context, array $parameters): array
     {
-        return array_map(fn(Parameter $parameter) => $parameter->getSchema($context), $parameters);
+        return array_map(
+            fn(Parameter $parameter) => $parameter->getSchema($context),
+            $context->api->getParameters($parameters),
+        );
     }
 
     /**
@@ -22,17 +26,13 @@ trait BuildsOpenApiPaths
         SchemaContext $context,
         array $parameters = [],
     ): array {
-        return [$this->openApiIdParameter(), ...$this->openApiParameters($context, $parameters)];
-    }
-
-    private function openApiIdParameter(): array
-    {
-        return [
-            'name' => 'id',
-            'in' => 'path',
-            'required' => true,
-            'schema' => ['type' => 'string'],
-        ];
+        return $this->openApiParameters($context, [
+            Parameter::make('id')
+                ->in('path')
+                ->required()
+                ->type(Type\Str::make()),
+            ...$parameters,
+        ]);
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace Tobyz\JsonApiServer\Endpoint\Concerns;
 
+use InvalidArgumentException;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\ProvidesParameters;
 use Tobyz\JsonApiServer\Exception\Filter\InvalidFilterParameterException;
@@ -56,7 +57,19 @@ trait ResolvesList
         $pagination ??= $collection->pagination();
 
         if ($pagination instanceof ProvidesParameters) {
-            $params = array_merge($params, $pagination->parameters());
+            foreach ($pagination->parameters() as $parameter) {
+                if (
+                    $parameter->in !== 'query' ||
+                    !str_starts_with($parameter->name, 'page[') ||
+                    !str_ends_with($parameter->name, ']')
+                ) {
+                    throw new InvalidArgumentException(
+                        "Pagination parameter '$parameter->name' must be a page[...] query parameter.",
+                    );
+                }
+
+                $params[] = $parameter;
+            }
         }
 
         return $params;

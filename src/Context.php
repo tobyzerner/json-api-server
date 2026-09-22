@@ -368,13 +368,15 @@ class Context extends SchemaContext
     /**
      * Load and validate parameters that have not already been loaded from the request.
      *
-     * With allowUnknown, validate only the supplied definitions without rejecting other
+     * With allowUnknown, load inherited and supplied definitions without rejecting other
      * query parameters. Call again with the full definitions to validate those too.
      *
      * @param Parameter[] $parameters
      */
     public function withParameters(array $parameters, bool $allowUnknown = false): static
     {
+        $parameters = $this->api->getParameters($parameters);
+
         $context = clone $this;
         $context->activeFilters = null;
         $context->sparseFields = new WeakMap();
@@ -388,7 +390,7 @@ class Context extends SchemaContext
         $errors = [];
 
         foreach ($parameters as $parameter) {
-            if (array_key_exists($parameter->name, $this->parameters)) {
+            if (array_key_exists($parameter->name, $context->parameters[$parameter->in] ?? [])) {
                 continue;
             }
 
@@ -402,7 +404,7 @@ class Context extends SchemaContext
             $value = $parameter->deserializeValue($value, $paramContext);
 
             if ($value === null && !$parameter->required) {
-                $context->parameters[$parameter->name] = null;
+                $context->parameters[$parameter->in][$parameter->name] = null;
                 continue;
             }
 
@@ -418,7 +420,7 @@ class Context extends SchemaContext
 
             $parameter->validateValue($value, $fail, $paramContext);
 
-            $context->parameters[$parameter->name] = $value;
+            $context->parameters[$parameter->in][$parameter->name] = $value;
         }
 
         if ($errors) {
@@ -431,9 +433,9 @@ class Context extends SchemaContext
     /**
      * Get a validated parameter value.
      */
-    public function parameter(string $name): mixed
+    public function parameter(string $name, string $in = 'query'): mixed
     {
-        return $this->parameters[$name] ?? null;
+        return $this->parameters[$in][$name] ?? null;
     }
 
     /**

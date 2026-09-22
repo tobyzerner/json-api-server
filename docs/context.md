@@ -63,7 +63,7 @@ class Context
     public function pathSegments(): array;
 
     // Get the value of a validated query parameter or header
-    public function parameter(string $name): mixed;
+    public function parameter(string $name, string $in = 'query'): mixed;
 
     // Get a top-level filter for the collection currently being processed
     public function filter(string $name): mixed;

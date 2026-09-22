@@ -242,54 +242,49 @@ Endpoint\CollectionAction::make(...)->method('PUT');
 
 ### Request Parameters
 
-Define custom query parameters with an endpoint's `parameters()` method. Each
-`Parameter` defines how a request value is parsed, validated, and made available
-to your resource implementation.
-
-For example, allow a locale to be selected when fetching a resource:
+Use `$api->parameters()` to define custom parameters shared by all endpoints:
 
 ```php
-use Tobyz\JsonApiServer\Endpoint\ShowResource;
 use Tobyz\JsonApiServer\Schema\Parameter;
 use Tobyz\JsonApiServer\Schema\Type;
 
-ShowResource::make()->parameters([
+$api->parameters([
     Parameter::make('locale')
         ->type(Type\Str::make()->enum(['en', 'fr']))
         ->default('en'),
 ]);
 ```
 
-A request such as `GET /posts/1?locale=fr` makes `fr` available as the validated
-locale. Omitting `locale` uses `en`, and an unsupported value produces a
-validation error. Your resource implementation decides how to use the locale.
-
-Parameters read from the query string by default. Use `in('header')` to read
-an HTTP header instead. You can require a value with `required()`, transform it
-with `deserialize()`, or add a custom validator with `validate()`:
-
-```php
-use Tobyz\JsonApiServer\Context;
-
-Parameter::make('locale')
-    ->default('en')
-    ->deserialize(fn($value) => strtolower($value))
-    ->validate(function ($value, $fail, Context $context) {
-        if (!in_array($value, ['en', 'fr'], true)) {
-            $fail('Unsupported locale.');
-        }
-    });
-```
-
-On the aggregate `Show` endpoint, `parameters()` configures the single-resource
-endpoint. To configure relationship requests, use `showRelated()` or
-`showRelationship()` to configure the corresponding endpoint.
-
-Read a validated value through the [Context](context.md) object:
+`?locale=fr` selects `fr`; omitting it uses `en`. Other values produce a validation
+error. Read the validated value through [Context](context.md):
 
 ```php
 $locale = $context->parameter('locale');
 ```
+
+Use an endpoint's `parameters()` method for definitions specific to that endpoint.
+Definitions merge by location and name: endpoint definitions override API
+definitions, and the last definition at each level wins. Both appear in generated
+OpenAPI operations.
+
+Parameters read from the query string by default. Use `in('header')` for headers,
+`required()` to require a value, `deserialize()` to transform it, and `validate()`
+for [custom validation](fields.md#validation). Parameter lookup also defaults to
+the query string; always specify `'header'` to read a validated header:
+
+```php
+$headerLocale = $context->parameter('locale', 'header');
+```
+
+Custom parameters are processed once per request, before model lookup, and remain
+available when serializing included resources. Their defaults, deserializers,
+and validators must not depend on `$context->model`.
+
+API definitions cannot use the query families `page`, `filter`, `sort`, `include`,
+or `fields`, including bracketed names such as `page[limit]`. These belong to
+endpoint configuration; registering them on the API throws `InvalidArgumentException`.
+Headers are unaffected. Use [pagination objects](pagination.md) for shared pagination
+settings and custom pagination parameters.
 
 ### Response Headers
 

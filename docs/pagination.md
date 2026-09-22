@@ -182,3 +182,9 @@ class PostsResource extends AbstractResource implements
     }
 }
 ```
+
+### Custom Pagination Parameters
+
+Pagination providers implementing `ProvidesParameters` must define query parameters
+within `page[...]`, such as `page[size]`. Other names or locations cause an
+`InvalidArgumentException` during request handling or OpenAPI generation.

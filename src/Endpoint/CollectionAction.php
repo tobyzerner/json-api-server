@@ -5,6 +5,8 @@ namespace Tobyz\JsonApiServer\Endpoint;
 use Closure;
 use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
+use Tobyz\JsonApiServer\Endpoint\Concerns\HasParameters;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
 use Tobyz\JsonApiServer\Endpoint\Concerns\SerializesDocument;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
@@ -16,6 +18,8 @@ use Tobyz\JsonApiServer\SchemaContext;
 
 class CollectionAction implements Endpoint, ProvidesRootSchema
 {
+    use BuildsOpenApiPaths;
+    use HasParameters;
     use HasVisibility;
     use HasResponse;
     use HasSchema;
@@ -51,6 +55,8 @@ class CollectionAction implements Endpoint, ProvidesRootSchema
             throw new MethodNotAllowedException();
         }
 
+        $context = $context->withParameters($this->parameters);
+
         if (!$this->isVisible($context)) {
             throw new ForbiddenException();
         }
@@ -71,6 +77,7 @@ class CollectionAction implements Endpoint, ProvidesRootSchema
                 "/$type/$this->name" => [
                     strtolower($this->method) => $this->mergeSchema([
                         'tags' => [$type],
+                        'parameters' => $this->openApiParameters($context, $this->parameters),
                         'responses' => [
                             '204' => [
                                 'description' => 'Action performed successfully.',
