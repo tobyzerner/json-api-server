@@ -159,6 +159,8 @@ trait MutatesResource
      */
     private function deserializeValues(Context $context, bool $creating = false): void
     {
+        $errors = [];
+
         foreach ($this->getFields($context, $creating) as $field) {
             if (!has_value($context->data, $field)) {
                 continue;
@@ -168,9 +170,15 @@ trait MutatesResource
 
             try {
                 set_value($context->data, $field, $field->deserializeValue($value, $context));
+            } catch (JsonApiErrorsException $e) {
+                array_push($errors, ...$e->prependSourcePointer('/data' . field_path($field))->errors);
             } catch (Sourceable $e) {
                 throw $e->prependSourcePointer('/data' . field_path($field));
             }
+        }
+
+        if ($errors) {
+            throw new JsonApiErrorsException($errors);
         }
     }
 

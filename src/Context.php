@@ -13,10 +13,12 @@ use RuntimeException;
 use Tobyz\JsonApiServer\Exception\Data\InvalidJsonException;
 use Tobyz\JsonApiServer\Exception\ErrorProvider;
 use Tobyz\JsonApiServer\Exception\Field\InvalidFieldValueException;
+use Tobyz\JsonApiServer\Exception\Field\RequiredFieldException;
 use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
 use Tobyz\JsonApiServer\Exception\NotAcceptableException;
 use Tobyz\JsonApiServer\Exception\Request\InvalidQueryParameterException;
 use Tobyz\JsonApiServer\Exception\Request\InvalidSparseFieldsetsException;
+use Tobyz\JsonApiServer\Exception\Sourceable;
 use Tobyz\JsonApiServer\Resource\Resource;
 use Tobyz\JsonApiServer\Schema\Field\Field;
 use Tobyz\JsonApiServer\Schema\Parameter;
@@ -394,18 +396,30 @@ class Context extends SchemaContext
                 continue;
             }
 
-            $value = $this->extractParameterValue($parameter);
+            [$present, $value] = $this->extractParameterValue($parameter);
             $paramContext = $context->withField($parameter);
 
-            if ($value === null && $parameter->default) {
+            if (!$present && $parameter->default) {
                 $value = ($parameter->default)($paramContext);
+                $present = true;
             }
 
-            $value = $parameter->deserializeValue($value, $paramContext);
-
-            if ($value === null && !$parameter->required) {
-                $context->parameters[$parameter->in][$parameter->name] = null;
+            if (!$present) {
+                if ($parameter->required) {
+                    $errors[] = (new RequiredFieldException())->prependSourceParameter($parameter->name);
+                } else {
+                    $context->parameters[$parameter->in][$parameter->name] = null;
+                }
                 continue;
+            }
+
+            try {
+                $value = $parameter->deserializeValue($value, $paramContext);
+            } catch (JsonApiErrorsException $e) {
+                array_push($errors, ...$e->prependSourceParameter($parameter->name)->errors);
+                continue;
+            } catch (Sourceable $e) {
+                throw $e->prependSourceParameter($parameter->name);
             }
 
             $fail = function ($error = []) use (&$errors, $parameter) {
@@ -509,26 +523,30 @@ class Context extends SchemaContext
         return $result;
     }
 
-    private function extractParameterValue(Parameter $param): mixed
+    /**
+     * @return array{bool, mixed} Whether the parameter is present, and its value.
+     */
+    private function extractParameterValue(Parameter $param): array
     {
-        return match ($param->in) {
-            'query' => $this->getNestedQueryParam($param->name),
-            'header' => $this->request->getHeaderLine($param->name) ?: null,
-            default => null,
-        };
-    }
-
-    private function getNestedQueryParam(string $name): mixed
-    {
-        $value = $this->request->getQueryParams();
-
-        preg_match_all('/[^\[\]]+/', $name, $matches);
-
-        foreach ($matches[0] ?? [] as $segment) {
-            $value = $value[$segment] ?? null;
+        if ($param->in === 'header') {
+            return [$this->request->hasHeader($param->name), $this->request->getHeaderLine($param->name)];
         }
 
-        return $value;
+        if ($param->in !== 'query') {
+            return [false, null];
+        }
+
+        $value = $this->request->getQueryParams();
+        preg_match_all('/[^\[\]]+/', $param->name, $matches);
+
+        foreach ($matches[0] ?? [] as $segment) {
+            if (!is_array($value) || !array_key_exists($segment, $value)) {
+                return [false, null];
+            }
+            $value = $value[$segment];
+        }
+
+        return [true, $value];
     }
 
     public function forModel(array $collections, ?object $model): static

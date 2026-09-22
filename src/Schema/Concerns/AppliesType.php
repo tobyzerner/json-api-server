@@ -3,6 +3,10 @@
 namespace Tobyz\JsonApiServer\Schema\Concerns;
 
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Exception\ErrorProvider;
+use Tobyz\JsonApiServer\Exception\Field\InvalidFieldValueException;
+use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
+use Tobyz\JsonApiServer\Exception\Type\NullViolationException;
 use Tobyz\JsonApiServer\SchemaContext;
 
 trait AppliesType
@@ -28,29 +32,32 @@ trait AppliesType
             return null;
         }
 
+        if ($value === null) {
+            throw new JsonApiErrorsException([new NullViolationException()]);
+        }
+
         if ($this->type) {
-            $value = $this->type->deserialize($value);
+            $value = $this->deserializeTypeValue($value);
+            $errors = [];
+
+            // The schema describes the input, before custom deserialization changes its type.
+            $this->type->validate($value, function ($error = []) use (&$errors) {
+                $errors[] = $error instanceof ErrorProvider
+                    ? $error
+                    : new InvalidFieldValueException(is_scalar($error) ? ['detail' => (string) $error] : $error);
+            });
+
+            if ($errors) {
+                throw new JsonApiErrorsException($errors);
+            }
         }
 
         return parent::deserializeValue($value, $context);
     }
 
-    public function validateValue(mixed $value, callable $fail, Context $context): void
+    protected function deserializeTypeValue(mixed $value): mixed
     {
-        if ($value !== null && $this->type) {
-            $valid = true;
-
-            $this->type->validate($value, function ($error = []) use ($fail, &$valid) {
-                $valid = false;
-                $fail($error);
-            });
-
-            if (!$valid) {
-                return;
-            }
-        }
-
-        parent::validateValue($value, $fail, $context);
+        return $this->type->deserialize($value);
     }
 
     public function getSchema(SchemaContext $context): array

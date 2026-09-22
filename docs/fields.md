@@ -228,14 +228,20 @@ Attribute::make('color')
 
 ### Deserialization
 
-If you want to perform any conversion on the data provided for a field before it
-is validated and saved, you can use the `deserialize` method:
+Use `deserialize` to convert a request value into the value your application
+works with:
 
 ```php
 Attribute::make('firstName')->deserialize(
     fn($value, Context $context) => ucfirst($value),
 );
 ```
+
+For typed attributes, the schema describes the input to this conversion. The
+server parses and checks that input before calling your deserializer, so an integer
+ID can become a model object without that object being checked against the integer
+schema. Custom validators receive the converted value and can check application
+rules, such as whether the model is available for use.
 
 ### Validation
 

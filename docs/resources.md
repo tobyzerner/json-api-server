@@ -262,29 +262,16 @@ error. Read the validated value through [Context](context.md):
 $locale = $context->parameter('locale');
 ```
 
-Use an endpoint's `parameters()` method for definitions specific to that endpoint.
-Definitions merge by location and name: endpoint definitions override API
-definitions, and the last definition at each level wins. Both appear in generated
-OpenAPI operations.
+Use an endpoint's `parameters()` method for endpoint-specific definitions; these
+override API parameters with the same name and location.
 
-Parameters read from the query string by default. Use `in('header')` for headers,
-`required()` to require a value, `deserialize()` to transform it, and `validate()`
-for [custom validation](fields.md#validation). Parameter lookup also defaults to
-the query string; always specify `'header'` to read a validated header:
+For headers, specify the location in both the definition and the lookup:
 
 ```php
+Parameter::make('locale')->in('header');
+
 $headerLocale = $context->parameter('locale', 'header');
 ```
-
-Custom parameters are processed once per request, before model lookup, and remain
-available when serializing included resources. Their defaults, deserializers,
-and validators must not depend on `$context->model`.
-
-API definitions cannot use the query families `page`, `filter`, `sort`, `include`,
-or `fields`, including bracketed names such as `page[limit]`. These belong to
-endpoint configuration; registering them on the API throws `InvalidArgumentException`.
-Headers are unaffected. Use [pagination objects](pagination.md) for shared pagination
-settings and custom pagination parameters.
 
 ### Response Headers
 

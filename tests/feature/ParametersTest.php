@@ -20,6 +20,105 @@ use Tobyz\Tests\JsonApiServer\MockResource;
 
 class ParametersTest extends AbstractTestCase
 {
+    public function test_integer_parameter_can_deserialize_to_a_model(): void
+    {
+        $product = (object) ['id' => 2];
+        $parameter = Parameter::make('product')
+            ->type(Type\Integer::make())
+            ->default(2)
+            ->deserialize(function ($id) use ($product) {
+                $this->assertSame(2, $id);
+                return $product;
+            })
+            ->validate(function ($value) use ($product) {
+                $this->assertSame($product, $value);
+            });
+
+        $this->assertSame(['product' => ['id' => 2]], $this->parameterValues([$parameter], ['product' => '2']));
+        $this->assertSame(['product' => ['id' => 2]], $this->parameterValues([$parameter], []));
+    }
+
+    public function test_invalid_parameter_input_does_not_reach_custom_callbacks(): void
+    {
+        $parameter = Parameter::make('product')
+            ->type(Type\Integer::make()->minimum(1))
+            ->deserialize(fn() => $this->fail('Invalid input reached the deserializer.'))
+            ->validate(fn() => $this->fail('Invalid input reached the validator.'));
+
+        $this->assertInvalidParameterSource([$parameter], ['product' => '0'], 'product');
+    }
+
+    public function test_omitted_parameter_skips_custom_callbacks(): void
+    {
+        $parameter = Parameter::make('product')
+            ->type(Type\Integer::make())
+            ->deserialize(fn() => $this->fail('Omitted input reached the deserializer.'))
+            ->validate(fn() => $this->fail('Omitted input reached the validator.'));
+
+        $this->assertSame([], $this->parameterValues([$parameter], []));
+    }
+
+    public function test_explicit_null_does_not_use_the_parameter_default(): void
+    {
+        $parameter = Parameter::make('product')
+            ->type(Type\Integer::make())
+            ->default(2);
+
+        $this->assertInvalidParameterSource([$parameter], ['product' => null], 'product');
+    }
+
+    public function test_null_parameter_default_requires_nullable_and_runs_custom_validation(): void
+    {
+        $parameter = Parameter::make('product')
+            ->type(Type\Integer::make())
+            ->default(null)
+            ->deserialize(fn() => $this->fail('Null reached the deserializer.'));
+
+        $this->assertInvalidParameterSource([$parameter], [], 'product');
+
+        $parameter->nullable();
+        $this->assertSame([], $this->parameterValues([$parameter], []));
+
+        $parameter->validate(function ($value, $fail) {
+            $this->assertNull($value);
+            $fail('A product must be selected.');
+        });
+        $this->assertInvalidParameterSource([$parameter], [], 'product');
+        $this->assertInvalidParameterSource([$parameter], ['product' => null], 'product');
+    }
+
+    public function test_required_nullable_parameter_must_be_present(): void
+    {
+        $parameter = Parameter::make('product')->required()->nullable();
+
+        $this->assertInvalidParameterSource([$parameter], [], 'product');
+        $this->assertSame([], $this->parameterValues([$parameter], ['product' => null]));
+    }
+
+    public function test_custom_validator_can_reject_a_deserialized_model(): void
+    {
+        $parameter = Parameter::make('product')
+            ->type(Type\Integer::make())
+            ->deserialize(fn(int $id) => (object) ['id' => $id])
+            ->validate(function (object $product, $fail) {
+                $this->assertSame(2, $product->id);
+                $fail('Product is unavailable.');
+            });
+
+        $this->assertInvalidParameterSource([$parameter], ['product' => '2'], 'product');
+    }
+
+    public function test_deserialized_null_is_not_treated_as_an_omitted_parameter(): void
+    {
+        $parameter = Parameter::make('product')
+            ->type(Type\Integer::make())
+            ->deserialize(fn(int $id) => null);
+
+        $this->assertInvalidParameterSource([$parameter], ['product' => '2'], 'product');
+        $parameter->nullable()->validate(fn($value, $fail) => $fail('Product was not found.'));
+        $this->assertInvalidParameterSource([$parameter], ['product' => '2'], 'product');
+    }
+
     public function test_endpoint_parameter()
     {
         $parameters = $this->parameterValues(
@@ -28,16 +127,6 @@ class ParametersTest extends AbstractTestCase
         );
 
         $this->assertSame(['testParameter' => 'value'], $parameters);
-    }
-
-    public function test_endpoint_parameter_default(): void
-    {
-        $parameters = $this->parameterValues(
-            [Parameter::make('locale')->default('en')],
-            [],
-        );
-
-        $this->assertSame(['locale' => 'en'], $parameters);
     }
 
     public function test_boolean_query_parameter_is_normalized(): void
@@ -111,24 +200,6 @@ class ParametersTest extends AbstractTestCase
         $this->assertSame(['min' => 1, 'max' => 2], $parameters['range']);
     }
 
-    public function test_custom_query_parameter_deserializer_receives_normalized_typed_value(): void
-    {
-        $parameters = $this->parameterValues(
-            [
-                Parameter::make('count')
-                    ->type(Type\Integer::make())
-                    ->deserialize(function ($value) {
-                        $this->assertSame(2, $value);
-
-                        return $value + 1;
-                    }),
-            ],
-            ['count' => '2'],
-        );
-
-        $this->assertSame(3, $parameters['count']);
-    }
-
     public function test_enum_query_parameter_is_normalized_to_case(): void
     {
         $parameters = $this->parameterValues(
@@ -185,41 +256,34 @@ class ParametersTest extends AbstractTestCase
         $this->assertSame('en', $document['included'][0]['attributes']['locale']);
     }
 
-    public function test_relationship_parameters_are_processed_once_per_request(): void
+    public function test_relationship_parameters_are_reused_within_each_request(): void
     {
-        $deserialized = $validated = $defaulted = $optional = 0;
-        $api = $this->api();
+        $assertParameterReused = function ($response, $model, Context $context) {
+            $this->assertSame($model->lookupLocale, $context->parameter('locale'));
+        };
+        $api = $this->api(
+            Show::make()
+                ->showRelated(fn($endpoint) => $endpoint->response($assertParameterReused))
+                ->showRelationship(fn($endpoint) => $endpoint->response($assertParameterReused)),
+        );
         $api->parameters([
             Parameter::make('locale')
-                ->default(function () use (&$defaulted) {
-                    $defaulted++;
-                    return 'EN';
-                })
-                ->deserialize(function ($value) use (&$deserialized) {
-                    $deserialized++;
-                    return strtolower($value);
-                })
-                ->validate(function ($value, $fail) use (&$validated) {
-                    $validated++;
-                    if ($value !== 'en') {
-                        $fail('Unsupported locale.');
-                    }
-                }),
-            Parameter::make('optional')->deserialize(function ($value) use (&$optional) {
-                $optional++;
-                return $value;
-            }),
+                ->default('EN')
+                ->deserialize(fn($value) => (object) ['code' => strtolower($value)]),
+            Parameter::make('optional')->deserialize(
+                fn() => $this->fail('Omitted input reached the deserializer.'),
+            ),
         ]);
 
-        foreach (['/users/1/pets', '/users/1/relationships/pets'] as $index => $path) {
+        $previousLocale = null;
+        foreach (['/users/1/pets', '/users/1/relationships/pets'] as $path) {
             $response = $api->handle($this->buildRequest('GET', $path));
             $document = json_decode($response->getBody(), true);
             $this->assertSame('2', $document['data'][0]['id']);
-            $this->assertSame('en', $api->getResource('users')->models[0]->lookupLocale);
-            $this->assertSame($index + 1, $deserialized);
-            $this->assertSame($index + 1, $validated);
-            $this->assertSame($index + 1, $defaulted);
-            $this->assertSame($index + 1, $optional);
+            $locale = $api->getResource('users')->models[0]->lookupLocale;
+            $this->assertSame('en', $locale->code);
+            $this->assertNotSame($previousLocale, $locale);
+            $previousLocale = $locale;
         }
     }
 

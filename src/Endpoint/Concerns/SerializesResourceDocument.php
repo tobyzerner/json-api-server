@@ -16,12 +16,17 @@ trait SerializesResourceDocument
 
     protected function resourceDocumentParameters(): array
     {
+        $include = Parameter::make('include')
+            ->in('query')
+            ->description('Comma-separated list of relationship paths to include')
+            ->type(Type\Str::make());
+
+        if ($this->defaultInclude) {
+            $include->default(implode(',', $this->defaultInclude));
+        }
+
         return [
-            Parameter::make('include')
-                ->in('query')
-                ->description('Comma-separated list of relationship paths to include')
-                ->type(Type\Str::make())
-                ->default($this->defaultInclude ? implode(',', $this->defaultInclude) : null),
+            $include,
 
             Parameter::make('fields')
                 ->in('query')

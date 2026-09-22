@@ -49,9 +49,14 @@ trait ResolvesList
         }
 
         if ($collection->sorts()) {
-            $params[] = Parameter::make('sort')
-                ->type(Type\Str::make())
-                ->default($defaultSort ?? $collection->defaultSort());
+            $sort = Parameter::make('sort')->type(Type\Str::make());
+            $defaultSort ??= $collection->defaultSort();
+
+            if ($defaultSort !== null) {
+                $sort->default($defaultSort);
+            }
+
+            $params[] = $sort;
         }
 
         $pagination ??= $collection->pagination();
