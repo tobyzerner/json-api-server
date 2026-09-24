@@ -198,6 +198,94 @@ class InclusionOfRelatedResourcesTest extends AbstractTestCase
         }
     }
 
+    public function test_nested_inclusion_across_polymorphic_resources()
+    {
+        $team = (object) ['id' => '1', 'owner' => $this->api->getResource('users')->models[1]];
+        $announcement = (object) ['id' => '1', 'author' => $team];
+        $article = $this->api->getResource('articles')->models['1'];
+
+        $this->api->resource(
+            new MockResource(
+                'teams',
+                models: [$team],
+                fields: [
+                    ToOne::make('owner')->type('users')->includable(),
+                ],
+            ),
+        );
+
+        $this->api->resource(
+            new MockResource(
+                'announcements',
+                models: [$announcement],
+                fields: [
+                    ToOne::make('author')->type('teams')->includable(),
+                ],
+            ),
+        );
+
+        $this->api->collection(new MockCollection('subjects', [
+            'articles' => [$article],
+            'announcements' => [$announcement],
+        ]));
+
+        $this->api->resource(
+            new MockResource(
+                'notifications',
+                models: [
+                    (object) ['id' => '1', 'subject' => $article],
+                    (object) ['id' => '2', 'subject' => $announcement],
+                ],
+                endpoints: [Index::make()],
+                fields: [
+                    ToOne::make('subject')->collection('subjects')->includable(),
+                ],
+            ),
+        );
+
+        $response = $this->api->handle($this->buildRequest('GET', '/notifications?include=subject.author.owner'));
+        $document = json_decode($response->getBody(), true);
+
+        $this->assertEqualsCanonicalizing(
+            ['articles:1', 'announcements:1', 'users:1', 'teams:1', 'users:2'],
+            array_map(fn($resource) => $resource['type'] . ':' . $resource['id'], $document['included']),
+        );
+    }
+
+    public function test_recursive_polymorphic_includes_visit_each_resource_once_per_level(): void
+    {
+        $resources = [];
+
+        foreach (['posts', 'videos'] as $type) {
+            $resource = new class(
+                $type,
+                fields: [ToOne::make('subject')->collection('subjects')->includable()],
+            ) extends MockResource {
+                public int $fieldCalls = 0;
+
+                public function fields(): array
+                {
+                    $this->fieldCalls++;
+
+                    return parent::fields();
+                }
+            };
+            $resources[] = $resource;
+            $this->api->resource($resource);
+        }
+
+        $this->api->collection(
+            new MockCollection('subjects', ['posts' => [], 'videos' => []], endpoints: [Index::make()]),
+        );
+
+        $depth = 3;
+        $include = implode('.', array_fill(0, $depth, 'subject'));
+        $response = $this->api->handle($this->buildRequest('GET', '/subjects?include=' . $include));
+
+        $this->assertSame([], json_decode($response->getBody(), true)['data']);
+        $this->assertLessThanOrEqual(count($resources) * $depth, array_sum(array_column($resources, 'fieldCalls')));
+    }
+
     public function test_relationship_inclusion_for_polymorphic_relationship()
     {
         $api = new JsonApi();

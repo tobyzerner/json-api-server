@@ -4,7 +4,6 @@ namespace Tobyz\JsonApiServer\Endpoint\Concerns;
 
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\Request\InvalidIncludeException;
-use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
 
 trait IncludesData
@@ -61,6 +60,8 @@ trait IncludesData
         string $path = '',
     ): void {
         foreach ($include as $name => $nested) {
+            $relatedResources = null;
+
             foreach ($resources as $resource) {
                 $fields = $context->fields($resource);
 
@@ -72,33 +73,31 @@ trait IncludesData
                     continue;
                 }
 
-                $relatedResources = $this->getRelatedResources(
-                    array_map(
-                        fn($collection) => $context->api->getCollection($collection),
-                        $field->collections,
-                    ),
+                $relatedResources ??= [];
+                $relatedResources += $this->getRelatedResources(
+                    array_map($context->api->getCollection(...), $field->collections),
                     $context,
                 );
-
-                $this->validateInclude($context, $relatedResources, $nested, $path . $name . '.');
-
-                continue 2;
             }
 
-            throw (new InvalidIncludeException($path . $name))->source(['parameter' => 'include']);
+            if ($relatedResources === null) {
+                throw (new InvalidIncludeException($path . $name))->source(['parameter' => 'include']);
+            }
+
+            $this->validateInclude($context, $relatedResources, $nested, $path . $name . '.');
         }
     }
 
     private function getRelatedResources(array $collections, Context $context): array
     {
-        return array_merge(
-            ...array_map(
-                fn(Collection $collection) => array_map(
-                    fn($resource) => $context->api->getResource($resource),
-                    $collection->resources(),
-                ),
-                $collections,
-            ),
-        );
+        $resources = [];
+
+        foreach ($collections as $collection) {
+            foreach ($collection->resources() as $type) {
+                $resources[$type] = $context->api->getResource($type);
+            }
+        }
+
+        return $resources;
     }
 }
