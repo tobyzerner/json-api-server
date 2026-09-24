@@ -19,6 +19,7 @@ use Tobyz\JsonApiServer\Exception\NotAcceptableException;
 use Tobyz\JsonApiServer\Exception\Request\InvalidQueryParameterException;
 use Tobyz\JsonApiServer\Exception\Request\InvalidSparseFieldsetsException;
 use Tobyz\JsonApiServer\Exception\Sourceable;
+use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Resource\Resource;
 use Tobyz\JsonApiServer\Schema\Field\Field;
 use Tobyz\JsonApiServer\Schema\Parameter;
@@ -43,6 +44,7 @@ class Context extends SchemaContext
     private ?array $requestedProfiles = null;
     private array $parameters = [];
     private ?array $activeFilters = null;
+    private WeakMap $normalizedFilters;
 
     private WeakMap $resourceIds;
     /** @var WeakMap<Resource, WeakMap<object, string>> */
@@ -58,6 +60,7 @@ class Context extends SchemaContext
         $this->resourceIds = new WeakMap();
         $this->modelIds = new WeakMap();
         $this->sparseFields = new WeakMap();
+        $this->normalizedFilters = new WeakMap();
 
         $this->documentMeta = new ArrayObject();
         $this->documentLinks = new ArrayObject();
@@ -293,6 +296,7 @@ class Context extends SchemaContext
         $new->request = $request;
         $new->parameters = [];
         $new->activeFilters = null;
+        $new->normalizedFilters = new WeakMap();
         $new->sparseFields = new WeakMap();
         $new->body = null;
         $new->path = null;
@@ -381,6 +385,7 @@ class Context extends SchemaContext
 
         $context = clone $this;
         $context->activeFilters = null;
+        $context->normalizedFilters = new WeakMap();
         $context->sparseFields = new WeakMap();
 
         if (!$allowUnknown) {
@@ -453,7 +458,7 @@ class Context extends SchemaContext
     }
 
     /**
-     * Get a top-level filter for the collection currently being processed.
+     * Get a normalized top-level filter for the collection currently being processed.
      */
     public function filter(string $name): mixed
     {
@@ -461,12 +466,24 @@ class Context extends SchemaContext
     }
 
     /**
-     * Get the filters for the collection currently being processed, which may
+     * Get normalized filters for the current collection. Delegated filters may
      * differ from the request's top-level filter parameter.
      */
     public function filters(): array
     {
-        return $this->activeFilters ?? (array) $this->parameter('filter');
+        $filters = $this->activeFilters ?? (array) $this->parameter('filter');
+
+        if (!$filters || !$this->collection instanceof Listable) {
+            return $filters;
+        }
+
+        try {
+            return $this->normalizedFilters[$this->collection] ??=
+                (new Filterer($this->collection, $this))->normalize($filters);
+        } catch (Sourceable $e) {
+            // Delegated filters receive their outer path from the calling filter.
+            throw $this->activeFilters === null ? $e->prependSourceParameter('filter') : $e;
+        }
     }
 
     /**
@@ -476,6 +493,7 @@ class Context extends SchemaContext
     {
         $new = clone $this;
         $new->activeFilters = $filters;
+        $new->normalizedFilters = new WeakMap();
 
         return $new;
     }

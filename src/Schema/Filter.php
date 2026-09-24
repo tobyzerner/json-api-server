@@ -61,10 +61,10 @@ abstract class Filter
 
     public function apply(object $query, string|array $value, Context $context): void
     {
-        $this->applyValue($query, $this->normalizeValue($value), $context);
+        $this->applyValue($query, $this->deserializeValue($value), $context);
     }
 
-    protected function normalizeValue(mixed $value): mixed
+    public function deserializeValue(mixed $value): mixed
     {
         if ($this->operators) {
             return $this->normalizeOperatorValue($value, $this->operators);

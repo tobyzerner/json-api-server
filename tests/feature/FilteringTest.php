@@ -4,11 +4,14 @@ namespace Tobyz\Tests\JsonApiServer\feature;
 
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Index;
+use Tobyz\JsonApiServer\Endpoint\ShowRelated;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
+use Tobyz\JsonApiServer\Exception\Filter\UnknownFilterException;
 use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\CustomFilter;
 use Tobyz\JsonApiServer\Schema\Field\Attribute;
+use Tobyz\JsonApiServer\Schema\Field\ToMany;
 use Tobyz\JsonApiServer\Schema\Parameter;
 use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
@@ -137,6 +140,116 @@ class FilteringTest extends AbstractTestCase
         $this->assertSame(['1'], array_column($document['data'], 'id'));
     }
 
+    public function test_related_queries_use_the_related_collections_filter_types(): void
+    {
+        $children = [
+            (object) ['id' => '1', 'status' => 'published'],
+            (object) ['id' => '2', 'status' => 'draft'],
+        ];
+        $this->api->resource(new MockResource(
+            'children',
+            models: $children,
+            filters: [CustomFilter::make('status')->type(Type\Str::make())],
+        ));
+        $this->api->resource(new class(
+            'parents',
+            models: [(object) ['id' => '1', 'children' => $children]],
+            endpoints: [ShowRelated::make()],
+            fields: [ToMany::make('children')],
+            filters: [CustomFilter::make('status')->type(Type\Integer::make())],
+        ) extends MockResource {
+            public function relatedQuery(object $model, ToMany $relationship, Context $context): ?object
+            {
+                $query = parent::relatedQuery($model, $relationship, $context);
+                $query->models = array_filter(
+                    $query->models,
+                    fn($child) => $child->status === $context->filter('status'),
+                );
+
+                return $query;
+            }
+        });
+
+        $response = $this->api->handle($this->buildRequest('GET', '/parents/1/children?filter[status]=published'));
+
+        $document = json_decode($response->getBody(), true);
+        $this->assertSame(['1'], array_column($document['data'], 'id'));
+    }
+
+    public function test_context_normalizes_groups_operators_and_typed_values(): void
+    {
+        $request = $this->buildRequest('GET', '/')->withQueryParams([
+            'filter' => [
+                'ids' => '1,2',
+                'status' => 'published',
+                'created' => '2026-09-24',
+                'or' => [['active' => '0'], ['score' => ['gt' => '10']]],
+            ],
+        ]);
+        $context = (new Context($this->api, $request))
+            ->withCollection($this->api->getResource('items'))
+            ->withParameters([
+                Parameter::make('preview')->default(fn(Context $context) => $context->filters()),
+                $this->filterParameter(),
+            ]);
+
+        $this->assertSame([1, 2], $context->filter('ids'));
+        $this->assertSame(FilteringTestStatus::Published, $context->filter('status'));
+        $this->assertSame('2026-09-24', $context->filter('created')[0]->format('Y-m-d'));
+        $this->assertSame([['active' => false], ['score' => ['gt' => 10.0]]], $context->filter('or'));
+
+        $otherCollection = new MockResource('other', filters: [
+            CustomFilter::make('ids')->type(Type\Str::make()),
+        ]);
+        $this->assertSame('1,2', $context->withCollection($otherCollection)->filter('ids'));
+    }
+
+    public function test_duplicate_filter_names_are_rejected(): void
+    {
+        $this->api->resource(new MockResource(
+            'variants',
+            endpoints: [Index::make()],
+            filters: [
+                CustomFilter::make('status')->type(Type\Str::make()),
+                CustomFilter::make('status')->type(Type\Integer::make())->hidden(),
+            ],
+        ));
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage("Filter 'status' is defined more than once in collection 'variants'.");
+
+        $this->api->handle($this->buildRequest('GET', '/variants?filter[status]=12'));
+    }
+
+    public function test_hidden_filters_are_rejected(): void
+    {
+        $this->api->resource(new MockResource(
+            'restricted',
+            endpoints: [Index::make()],
+            filters: [CustomFilter::make('active')->hidden()],
+        ));
+
+        try {
+            $this->api->handle($this->buildRequest('GET', '/restricted?filter[active]=0'));
+            $this->fail('Expected the unavailable filter to be rejected.');
+        } catch (UnknownFilterException $e) {
+            $this->assertSame('filter[active]', $e->getJsonApiError()['source']['parameter']);
+        }
+    }
+
+    public function test_context_filter_errors_identify_the_request_parameter(): void
+    {
+        $context = $this->filterContext(['or' => [['ids' => 'nope']]])
+            ->withCollection($this->api->getResource('items'));
+
+        try {
+            $context->filters();
+            $this->fail('Expected invalid filter values to be rejected.');
+        } catch (JsonApiErrorsException $e) {
+            $this->assertSame('filter[or][0][ids][0]', $e->errors[0]->getJsonApiError()['source']['parameter']);
+        }
+    }
+
     public function test_context_filters_fall_back_to_validated_request_filter(): void
     {
         $context = $this->filterContext(['request' => 'value']);
@@ -146,29 +259,28 @@ class FilteringTest extends AbstractTestCase
         $this->assertNull($context->filter('missing'));
     }
 
-    public function test_delegated_filter_visibility_and_callbacks_see_complete_bag(): void
+    public function test_delegated_filter_visibility_and_callbacks_see_complete_typed_bag(): void
     {
         $seen = [];
         $filters = [
-            'active' => true,
+            'active' => '1',
             'or' => [
-                ['ids' => [1]],
-                ['not' => ['active' => false]],
+                ['ids' => '1'],
+                ['not' => ['active' => '0']],
             ],
         ];
+        $expected = ['active' => true, 'or' => [['ids' => [1]], ['not' => ['active' => false]]]];
         $capture = function ($query, $value, Context $context) use (&$seen): void {
             $seen[] = $context->filters();
         };
-        $resource = new MockResource(
-            'grouped',
-            filters: [
-                CustomFilter::make('active', $capture)->visible(
-                    fn(Context $context) => $context->filters() === $filters &&
-                        $context->filter('active') === true,
+        $resource = new MockResource('grouped', filters: [
+            CustomFilter::make('active', $capture)
+                ->type(Type\Boolean::make())
+                ->visible(
+                    fn(Context $context) => $context->filters() === $expected && $context->filter('active') === true,
                 ),
-                CustomFilter::make('ids', $capture),
-            ],
-        );
+            CustomFilter::make('ids', $capture)->type(Type\Arr::make()->items(Type\Integer::make())),
+        ]);
 
         \Tobyz\JsonApiServer\apply_filters(
             $this->query(),
@@ -177,7 +289,7 @@ class FilteringTest extends AbstractTestCase
             $this->filterContext(['request' => 'value']),
         );
 
-        $this->assertSame([$filters, $filters, $filters], $seen);
+        $this->assertSame([$expected, $expected, $expected], $seen);
     }
 
     public function test_explicit_empty_active_filters_do_not_fall_back_to_request_filter(): void
@@ -191,24 +303,19 @@ class FilteringTest extends AbstractTestCase
 
     public function test_replacing_request_or_parameters_clears_active_filters(): void
     {
-        $requestFilters = ['request' => 'value'];
-        $context = $this->filterContext($requestFilters)->withFilters([
-            'delegated' => 'value',
-        ]);
+        $context = $this
+            ->filterContext(['ids' => '1'])
+            ->withCollection($this->api->getResource('items'))
+            ->withFilters(['ids' => '2']);
+        $this->assertSame([2], $context->filter('ids'));
 
-        $replaced = $context->withRequest(
-            $context->request->withQueryParams(['filter' => ['new' => 'value']]),
-        );
+        $replaced = $context->withRequest($context->request->withQueryParams(['filter' => ['ids' => '3']]));
+
         $this->assertSame([], $replaced->filters());
-        $this->assertSame(
-            ['new' => 'value'],
-            $replaced->withParameters([$this->filterParameter()])->filters(),
-        );
-        $this->assertSame(['delegated' => 'value'], $context->filters());
-        $this->assertSame(
-            $requestFilters,
-            $context->withParameters([$this->filterParameter()])->filters(),
-        );
+        $this->assertSame([3], $replaced->withParameters([$this->filterParameter()])->filter('ids'));
+        $this->assertSame([2], $context->filter('ids'));
+        $this->assertSame([1], $context->withParameters([$this->filterParameter()])->filter('ids'));
+        $this->assertSame([4], $context->withFilters(['ids' => '4'])->filter('ids'));
     }
 
     public function test_custom_filter_handler_can_be_defined_after_type(): void

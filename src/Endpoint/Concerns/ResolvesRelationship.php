@@ -37,7 +37,7 @@ trait ResolvesRelationship
     {
         if (
             ($collection = $this->listableRelationshipCollection($field, $context)) &&
-            ($query = $this->relatedQuery($field, $context))
+            ($query = $this->relatedQuery($field, $context->withCollection($collection)))
         ) {
             $relatedData = $this->resolveList($query, $collection, $context, $field->pagination);
         } else {
