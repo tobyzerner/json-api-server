@@ -2,6 +2,7 @@
 
 namespace Tobyz\Tests\JsonApiServer\feature;
 
+use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Create;
 use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\Exception\Data\UnsupportedTypeException;
@@ -184,6 +185,43 @@ class RelationshipToOneTest extends AbstractTestCase
             ],
             $response->getBody(),
         );
+    }
+
+    public function test_to_one_create_resolves_linkage_with_field_on_context()
+    {
+        $resource = new class (
+            'users',
+            models: [(object) ['id' => '1']],
+            endpoints: [Create::make()],
+            fields: [
+                ToOne::make('friend')
+                    ->type('users')
+                    ->writable(),
+            ],
+        ) extends MockResource {
+            public array $findFields = [];
+
+            public function find(string $id, Context $context): ?object
+            {
+                $this->findFields[] = $context->field?->name;
+
+                return parent::find($id, $context);
+            }
+        };
+
+        $this->api->resource($resource);
+
+        $response = $this->api->handle(
+            $this->buildRequest('POST', '/users')->withParsedBody([
+                'data' => [
+                    'type' => 'users',
+                    'relationships' => ['friend' => ['data' => ['type' => 'users', 'id' => '1']]],
+                ],
+            ]),
+        );
+
+        $this->assertEquals(201, $response->getStatusCode());
+        $this->assertSame(['friend'], $resource->findFields);
     }
 
     public function test_to_one_create_invalid_type()

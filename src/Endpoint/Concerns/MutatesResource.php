@@ -169,7 +169,7 @@ trait MutatesResource
             $value = get_value($context->data, $field);
 
             try {
-                set_value($context->data, $field, $field->deserializeValue($value, $context));
+                set_value($context->data, $field, $field->deserializeValue($value, $context->withField($field)));
             } catch (JsonApiErrorsException $e) {
                 array_push($errors, ...$e->prependSourcePointer('/data' . field_path($field))->errors);
             } catch (Sourceable $e) {
@@ -246,7 +246,7 @@ trait MutatesResource
 
             $value = get_value($context->data, $field);
 
-            $field->setValue($context->model, $value, $context);
+            $field->setValue($context->model, $value, $context->withField($field));
         }
     }
 
@@ -262,7 +262,7 @@ trait MutatesResource
 
             $value = get_value($context->data, $field);
 
-            $field->saveValue($context->model, $value, $context);
+            $field->saveValue($context->model, $value, $context->withField($field));
         }
     }
 }

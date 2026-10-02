@@ -2,6 +2,7 @@
 
 namespace Tobyz\Tests\JsonApiServer\feature;
 
+use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Create;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Field\Attribute;
@@ -45,6 +46,40 @@ class FieldSetTest extends AbstractTestCase
             ['data' => ['attributes' => ['raw' => 'raw', 'deserialized' => 'RAW']]],
             $response->getBody(),
         );
+    }
+
+    public function test_field_is_on_context_when_writing()
+    {
+        $fields = [];
+
+        $this->api->resource(
+            new MockResource(
+                'users',
+                endpoints: [Create::make()],
+                fields: [
+                    Attribute::make('name')
+                        ->writable()
+                        ->deserialize(function ($value, Context $context) use (&$fields) {
+                            $fields['deserialize'] = $context->field?->name;
+                            return $value;
+                        })
+                        ->set(function ($model, $value, Context $context) use (&$fields) {
+                            $fields['set'] = $context->field?->name;
+                        })
+                        ->save(function ($model, $value, Context $context) use (&$fields) {
+                            $fields['save'] = $context->field?->name;
+                        }),
+                ],
+            ),
+        );
+
+        $this->api->handle(
+            $this->buildRequest('POST', '/users')->withParsedBody([
+                'data' => ['type' => 'users', 'attributes' => ['name' => 'Toby']],
+            ]),
+        );
+
+        $this->assertSame(['deserialize' => 'name', 'set' => 'name', 'save' => 'name'], $fields);
     }
 
     public function test_use_setter_if_provided()

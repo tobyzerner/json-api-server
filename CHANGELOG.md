@@ -55,6 +55,9 @@ and this project adheres to
 - Resolve deferred values in relationship meta, linkage meta, and relationship
   links, and closures returned by deferred values, instead of serializing them
   as-is
+- Set the field on the context while deserializing, setting, and saving field
+  values, so callbacks and `find()` (when resolving relationship linkage) can
+  see which field is being written
 
 ## [1.0.0-rc.1] - 2026-01-01
 
