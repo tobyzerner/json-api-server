@@ -189,10 +189,6 @@ abstract class Relationship extends Field
 
         unset($schema['nullable']);
 
-        if ($this->required) {
-            $schema['required'] = ['data'];
-        }
-
         $meta = [];
 
         foreach ($this->meta as $m) {

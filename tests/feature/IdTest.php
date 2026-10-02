@@ -86,6 +86,7 @@ class IdTest extends AbstractTestCase
                         ToOne::make('related')
                             ->type($related)
                             ->get(fn($model) => $model)
+                            ->withLinkage()
                             ->includable(),
                     ],
                 ),

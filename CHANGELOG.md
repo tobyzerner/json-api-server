@@ -16,6 +16,13 @@ and this project adheres to
   `Type\Arr::make()->items(...)->commaSeparated()` instead
 - Add `deserializeQueryValue()` to the `Type` interface; custom type
   implementations must implement this method
+- To-one relationships no longer have resource linkage by default, and only
+  have a relationship endpoint (`/{type}/{id}/relationships/{name}`) if they
+  have linkage or are includable; call `withLinkage()` to restore both
+- Laravel: Belongs-to linkage is no longer built from the foreign key; related
+  models are loaded through the related resource's scopes so that hidden
+  resources aren't linked. Scopes can check `$context->linkageOnly` to only
+  load IDs
 
 ### Added
 
@@ -34,9 +41,15 @@ and this project adheres to
 - Laravel: Add `Attribute::load()` to batch-load the relations an attribute
   needs, or run a closure (e.g. `loadCount`) on those models, only for models
   where the field is requested and visible
+- Add `Context::$linkageOnly`, which is `true` while serializing a relationship
+  that is not included and on relationship endpoints (unless the relationship
+  has linkage meta), so scopes can load only the IDs needed for linkage
 
 ### Changed
 
+- Laravel: Relations loaded only for linkage are no longer set on the model,
+  so partial models loaded by ID-only scopes aren't seen by other fields.
+  Fields that read the same relation now load it themselves.
 - Improve serialization performance and readability
   ([#123](https://github.com/tobyzerner/json-api-server/pull/123) by @mkszepp)
 - Replace Prettier with Mago for formatting
@@ -45,6 +58,11 @@ and this project adheres to
 
 ### Fixed
 
+- OpenAPI: Require `data` in relationship objects in create and update request
+  schemas rather than in the shared relationship schema, which is also used by
+  responses where linkage may be omitted
+- Use relationship field getters when reading the current value and building
+  the response in relationship update endpoints
 - Use query-string type deserialization for typed query parameters and preserve
   nested parameter error sources, matching filter behavior.
 - Skip custom validators after filter type validation fails

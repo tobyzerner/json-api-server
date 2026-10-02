@@ -55,7 +55,8 @@ class OpenApiTest extends AbstractTestCase
                     Attribute::make('name')->type(Type\Str::make()),
                     ToOne::make('pet')
                         ->nullable()
-                        ->writable(),
+                        ->writable()
+                        ->withLinkage(),
                     ToMany::make('pets')->includable(),
                 ],
             ),
@@ -956,8 +957,13 @@ class OpenApiTest extends AbstractTestCase
                                         'type' => 'object',
                                         'properties' => [
                                             'pet' => [
-                                                '$ref' =>
-                                                    '#/components/schemas/users_relationship_pet',
+                                                'allOf' => [
+                                                    [
+                                                        '$ref' =>
+                                                            '#/components/schemas/users_relationship_pet',
+                                                    ],
+                                                    ['required' => ['data']],
+                                                ],
                                             ],
                                         ],
                                     ],
@@ -983,8 +989,13 @@ class OpenApiTest extends AbstractTestCase
                                         'type' => 'object',
                                         'properties' => [
                                             'pet' => [
-                                                '$ref' =>
-                                                    '#/components/schemas/users_relationship_pet',
+                                                'allOf' => [
+                                                    [
+                                                        '$ref' =>
+                                                            '#/components/schemas/users_relationship_pet',
+                                                    ],
+                                                    ['required' => ['data']],
+                                                ],
                                             ],
                                         ],
                                     ],

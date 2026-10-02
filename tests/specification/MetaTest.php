@@ -77,6 +77,7 @@ class MetaTest extends AbstractTestCase
                 endpoints: [Show::make()],
                 fields: [
                     ToOne::make('role')
+                        ->withLinkage()
                         ->get(fn($user) => $user->role)
                         ->meta([Meta::make('foo')->get(fn() => fn() => 'bar')])
                         ->linkageMeta([Meta::make('active')->get(fn() => fn() => true)]),
@@ -135,6 +136,7 @@ class MetaTest extends AbstractTestCase
                 endpoints: [Show::make()],
                 fields: [
                     ToOne::make('role')
+                        ->withLinkage()
                         ->get(fn($user) => $user->role)
                         ->linkageMeta([Meta::make('active')->get(fn() => true)]),
                 ],

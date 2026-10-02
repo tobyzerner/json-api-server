@@ -2,14 +2,19 @@
 
 namespace Tobyz\Tests\JsonApiServer\feature;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Create;
 use Tobyz\JsonApiServer\Endpoint\Show;
+use Tobyz\JsonApiServer\Endpoint\Update;
 use Tobyz\JsonApiServer\Exception\Data\UnsupportedTypeException;
 use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
+use Tobyz\JsonApiServer\Exception\NotFoundException;
 use Tobyz\JsonApiServer\Exception\Request\InvalidIncludeException;
 use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\Schema\Field\Field;
 use Tobyz\JsonApiServer\Schema\Field\ToOne;
+use Tobyz\JsonApiServer\Schema\Meta;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockCollection;
 use Tobyz\Tests\JsonApiServer\MockResource;
@@ -33,7 +38,7 @@ class RelationshipToOneTest extends AbstractTestCase
                     (object) ['id' => '2', 'friend' => $user1],
                 ],
                 endpoints: [Show::make()],
-                fields: [ToOne::make('friend')->type('users')],
+                fields: [ToOne::make('friend')->type('users')->withLinkage()],
             ),
         );
 
@@ -58,7 +63,7 @@ class RelationshipToOneTest extends AbstractTestCase
                 'users',
                 models: [(object) ['id' => '1']],
                 endpoints: [Show::make()],
-                fields: [ToOne::make('friend')->type('users')],
+                fields: [ToOne::make('friend')->type('users')->withLinkage()],
             ),
         );
 
@@ -76,7 +81,7 @@ class RelationshipToOneTest extends AbstractTestCase
         );
     }
 
-    public function test_to_one_without_linkage()
+    public function test_to_one_without_linkage_by_default()
     {
         $this->api->resource(
             new MockResource(
@@ -87,9 +92,7 @@ class RelationshipToOneTest extends AbstractTestCase
                 ],
                 endpoints: [Show::make()],
                 fields: [
-                    ToOne::make('friend')
-                        ->type('users')
-                        ->withoutLinkage(),
+                    ToOne::make('friend')->type('users'),
                 ],
             ),
         );
@@ -98,6 +101,25 @@ class RelationshipToOneTest extends AbstractTestCase
         $document = json_decode($response->getBody(), true);
 
         $this->assertArrayNotHasKey('data', $document['data']['relationships']['friend'] ?? []);
+    }
+
+    public function test_to_one_without_linkage_has_no_relationship_endpoint()
+    {
+        $this->api->resource(
+            new MockResource(
+                'users',
+                models: [
+                    ($user1 = (object) ['id' => '1']),
+                    (object) ['id' => '2', 'friend' => $user1],
+                ],
+                endpoints: [Show::make()],
+                fields: [ToOne::make('friend')->type('users')],
+            ),
+        );
+
+        $this->expectException(NotFoundException::class);
+
+        $this->api->handle($this->buildRequest('GET', '/users/2/relationships/friend'));
     }
 
     public function test_to_one_not_includable()
@@ -200,10 +222,12 @@ class RelationshipToOneTest extends AbstractTestCase
             ],
         ) extends MockResource {
             public array $findFields = [];
+            public array $findLinkageOnly = [];
 
             public function find(string $id, Context $context): ?object
             {
                 $this->findFields[] = $context->field?->name;
+                $this->findLinkageOnly[] = $context->linkageOnly;
 
                 return parent::find($id, $context);
             }
@@ -222,6 +246,75 @@ class RelationshipToOneTest extends AbstractTestCase
 
         $this->assertEquals(201, $response->getStatusCode());
         $this->assertSame(['friend'], $resource->findFields);
+        $this->assertSame([false], $resource->findLinkageOnly);
+    }
+
+    public static function linkageMetaProvider(): array
+    {
+        return [
+            'without linkage meta' => [[]],
+            'with linkage meta' => [[Meta::make('foo')->get(fn() => 'bar')]],
+        ];
+    }
+
+    #[DataProvider('linkageMetaProvider')]
+    public function test_to_one_linkage_only_when_not_included(array $linkageMeta)
+    {
+        // Linkage meta may need more than the related model's ID
+        $linkageOnly = !$linkageMeta;
+
+        $resource = new class (
+            'users',
+            models: [
+                ($user1 = (object) ['id' => '1']),
+                (object) ['id' => '2', 'friend' => $user1],
+            ],
+            endpoints: [Show::make(), Update::make()],
+            fields: [
+                ToOne::make('friend')
+                    ->type('users')
+                    ->includable()
+                    ->writable()
+                    ->withLinkage()
+                    ->linkageMeta($linkageMeta),
+            ],
+        ) extends MockResource {
+            public array $linkageOnly = [];
+
+            public function getValue(object $model, Field $field, Context $context): mixed
+            {
+                if ($field->name === 'friend') {
+                    $this->linkageOnly[$model->id] = $context->linkageOnly;
+                }
+
+                return parent::getValue($model, $field, $context);
+            }
+        };
+
+        $this->api->resource($resource);
+
+        $this->api->handle($this->buildRequest('GET', '/users/2'));
+        $this->assertSame(['2' => $linkageOnly], $resource->linkageOnly);
+
+        $resource->linkageOnly = [];
+        $this->api->handle($this->buildRequest('GET', '/users/2?include=friend'));
+        $this->assertSame(['2' => false, '1' => $linkageOnly], $resource->linkageOnly);
+
+        $resource->linkageOnly = [];
+        $this->api->handle($this->buildRequest('GET', '/users/2/relationships/friend'));
+        $this->assertSame(['2' => $linkageOnly], $resource->linkageOnly);
+
+        $resource->linkageOnly = [];
+        $this->api->handle($this->buildRequest('GET', '/users/2/friend'));
+        $this->assertSame(['2' => false, '1' => $linkageOnly], $resource->linkageOnly);
+
+        $resource->linkageOnly = [];
+        $this->api->handle(
+            $this->buildRequest('PATCH', '/users/2/relationships/friend')->withParsedBody([
+                'data' => ['type' => 'users', 'id' => '1'],
+            ]),
+        );
+        $this->assertSame(['2' => $linkageOnly], $resource->linkageOnly);
     }
 
     public function test_to_one_create_invalid_type()

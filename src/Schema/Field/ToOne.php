@@ -17,8 +17,6 @@ class ToOne extends Relationship
                 ->build()
                 ->pluralize($name),
         );
-
-        $this->withLinkage();
     }
 
     protected function serializeData($value, Context $context): array

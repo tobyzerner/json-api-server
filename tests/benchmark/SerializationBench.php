@@ -93,6 +93,7 @@ class SerializationBench
                     Attribute::make('body'),
                     ToOne::make('author')
                         ->type('users')
+                        ->withLinkage()
                         ->includable(),
                     ToMany::make('comments')
                         ->type('comments')
@@ -117,9 +118,11 @@ class SerializationBench
                     Attribute::make('body'),
                     ToOne::make('author')
                         ->type('users')
+                        ->withLinkage()
                         ->includable(),
                     ToOne::make('post')
                         ->type('posts')
+                        ->withLinkage()
                         ->includable(),
                 ],
             ),

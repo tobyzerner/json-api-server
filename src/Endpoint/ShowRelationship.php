@@ -65,7 +65,9 @@ class ShowRelationship implements Endpoint, ProvidesRootSchema, ProvidesRelation
             return null;
         }
 
-        $context = $context->withParameters($this->getParameters($field, $context));
+        $context = $context
+            ->withParameters($this->getParameters($field, $context))
+            ->forSerializedField($field);
 
         $relatedData = $this->resolveRelationshipData($context, $field);
 

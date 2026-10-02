@@ -22,6 +22,7 @@ use Tobyz\JsonApiServer\Exception\Sourceable;
 use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Resource\Resource;
 use Tobyz\JsonApiServer\Schema\Field\Field;
+use Tobyz\JsonApiServer\Schema\Field\Relationship;
 use Tobyz\JsonApiServer\Schema\Parameter;
 use WeakMap;
 
@@ -32,6 +33,7 @@ class Context extends SchemaContext
     public ?object $model = null;
     public ?array $data = null;
     public ?array $include = null;
+    public bool $linkageOnly = false;
     public ArrayObject $documentMeta;
     public ArrayObject $documentLinks;
     public ArrayObject $activeProfiles;
@@ -342,18 +344,29 @@ class Context extends SchemaContext
         return $new;
     }
 
+    // Only forSerializedField() knows when a field needs linkage only, so
+    // contexts derived for another field or include don't inherit the flag.
+    public function withField(?Field $field): static
+    {
+        $new = parent::withField($field);
+        $new->linkageOnly = false;
+        return $new;
+    }
+
     public function withInclude(?array $include): static
     {
         $new = clone $this;
         $new->include = $include;
+        $new->linkageOnly = false;
         return $new;
     }
 
-    public function withFieldAndInclude(Field $field, ?array $include): static
+    public function forSerializedField(Field $field, ?array $include = null): static
     {
         $new = clone $this;
         $new->field = $field;
         $new->include = $include;
+        $new->linkageOnly = $field instanceof Relationship && $include === null && !$field->linkageMeta;
         return $new;
     }
 

@@ -26,8 +26,6 @@ use Tobyz\JsonApiServer\Schema\Field\Relationship;
 use Tobyz\JsonApiServer\Schema\Field\ToMany;
 use Tobyz\JsonApiServer\SchemaContext;
 
-use function Tobyz\JsonApiServer\resolve_value;
-
 class UpdateRelationship implements Endpoint, ProvidesRootSchema, ProvidesRelationshipLinks
 {
     use BuildsOpenApiPaths;
@@ -162,10 +160,13 @@ class UpdateRelationship implements Endpoint, ProvidesRootSchema, ProvidesRelati
 
     private function showRelationship(Context $context, Relationship $field): ResponseInterface
     {
+        // The response only contains linkage, so mark the context linkage-only.
+        $context = $context->forSerializedField($field);
+
         return $this->createResponse(
             $this->serializeRelationshipDocument(
                 $field,
-                resolve_value($context->resource->getValue($context->model, $field, $context)),
+                $this->resolveRelationshipValue($context, $field),
                 $context,
             ),
             $context,
@@ -219,7 +220,7 @@ class UpdateRelationship implements Endpoint, ProvidesRootSchema, ProvidesRelati
         }
 
         $current = $this->createResourceMap(
-            resolve_value($context->resource->getValue($context->model, $field, $context)) ?: [],
+            $this->resolveRelationshipValue($context, $field) ?: [],
             $field,
             $context,
         );

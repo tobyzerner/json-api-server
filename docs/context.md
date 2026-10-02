@@ -44,6 +44,11 @@ class Context
     // that are included
     public ?array $include = null;
 
+    // Whether only resource linkage is needed (a relationship that is not
+    // included, or a relationship endpoint, and has no linkage meta), so only
+    // related models' IDs need to be loaded
+    public bool $linkageOnly = false;
+
     // Data to be returned in the document's meta object
     public ArrayObject $documentMeta;
 

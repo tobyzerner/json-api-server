@@ -39,12 +39,15 @@ trait ResolvesRelationship
             ($collection = $this->listableRelationshipCollection($field, $context)) &&
             ($query = $this->relatedQuery($field, $context->withCollection($collection)))
         ) {
-            $relatedData = $this->resolveList($query, $collection, $context, $field->pagination);
-        } else {
-            $relatedData = resolve_value($field->getValue($context->withInclude([])));
+            return $this->resolveList($query, $collection, $context, $field->pagination);
         }
 
-        return $relatedData;
+        return $this->resolveRelationshipValue($context, $field);
+    }
+
+    protected function resolveRelationshipValue(Context $context, Relationship $field): mixed
+    {
+        return resolve_value((clone $field)->withLinkage()->getValue($context));
     }
 
     protected function listableRelationshipCollection(

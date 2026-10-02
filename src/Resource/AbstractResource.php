@@ -86,7 +86,7 @@ abstract class AbstractResource extends AbstractCollection implements Resource
                 $schemas["{$type}_update"] = $this->withFieldSchema(
                     $schemas["{$type}_update"],
                     $field,
-                    $fieldSchema['value'],
+                    $fieldSchema['writeValue'],
                 );
             }
 
@@ -94,7 +94,7 @@ abstract class AbstractResource extends AbstractCollection implements Resource
                 $schemas["{$type}_create"] = $this->withFieldSchema(
                     $schemas["{$type}_create"],
                     $field,
-                    $fieldSchema['value'],
+                    $fieldSchema['writeValue'],
                     $field->required,
                 );
             }
@@ -130,13 +130,17 @@ abstract class AbstractResource extends AbstractCollection implements Resource
         $valueSchema = (object) $field->getSchema($context);
 
         if (!$field instanceof Relationship) {
-            return ['value' => $valueSchema, 'relationship' => null];
+            return ['value' => $valueSchema, 'writeValue' => $valueSchema, 'relationship' => null];
         }
 
         $name = "{$type}_relationship_{$field->name}";
+        $ref = ['$ref' => "#/components/schemas/$name"];
 
         return [
-            'value' => ['$ref' => "#/components/schemas/$name"],
+            'value' => $ref,
+            // Relationship objects in requests must contain data, but it may
+            // be omitted from responses.
+            'writeValue' => ['allOf' => [$ref, ['required' => ['data']]]],
             'relationship' => ['name' => $name, 'schema' => $valueSchema],
         ];
     }

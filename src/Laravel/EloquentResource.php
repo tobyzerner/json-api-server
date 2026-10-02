@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Pagination\Cursor;
 use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Support\Str;
@@ -91,35 +90,18 @@ abstract class EloquentResource extends AbstractResource implements
 
         $relation = $model->$method();
 
-        // If this is a belongs-to relationship, and we only need to get the ID
-        // for linkage, then we don't have to actually load the relation because
-        // the ID is stored in a column directly on the model. We will mock up a
-        // related model with the value of the ID filled.
-        if ($relation instanceof BelongsTo && $context->include === null) {
-            if ($model->relationLoaded($method)) {
-                return $model->getRelation($method);
-            }
-
-            if ($key = $model->getAttribute($relation->getForeignKeyName())) {
-                if ($relation instanceof MorphTo) {
-                    $morphType = $model->{$relation->getMorphType()};
-                    $related = $relation->createModelByType($morphType);
-                } else {
-                    $related = $relation->getRelated();
-                }
-
-                return $related->newInstance()->forceFill([$related->getKeyName() => $key]);
-            }
-
+        // A belongs-to relationship without a foreign key can't be related to
+        // anything, so there's no need to query for it.
+        if ($relation instanceof BelongsTo && $model->getAttribute($relation->getForeignKeyName()) === null) {
             return null;
         }
 
-        EloquentBuffer::add($model, $method);
+        EloquentBuffer::add($model, $method, $context);
 
         return function () use ($model, $method, $field, $context) {
             EloquentBuffer::load($model, $method, $field, $context);
 
-            $data = $model->getRelation($method);
+            $data = EloquentBuffer::get($model, $method, $context);
 
             return $data instanceof Collection ? $data->all() : $data;
         };

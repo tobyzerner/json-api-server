@@ -8,6 +8,7 @@ use Tobyz\JsonApiServer\Endpoint\Endpoint;
 use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\Endpoint\ShowRelated;
 use Tobyz\JsonApiServer\Endpoint\ShowRelationship;
+use Tobyz\JsonApiServer\Endpoint\Update;
 use Tobyz\JsonApiServer\Exception\Data\UnsupportedTypeException;
 use Tobyz\JsonApiServer\Exception\Request\InvalidIncludeException;
 use Tobyz\JsonApiServer\Exception\Request\InvalidQueryParameterException;
@@ -224,6 +225,45 @@ class RelationshipToManyTest extends AbstractTestCase
                     ],
                 ],
                 'included' => [['type' => 'users', 'id' => '1'], ['type' => 'users', 'id' => '2']],
+            ],
+            $response->getBody(),
+        );
+    }
+
+    public function test_update_relationship_uses_field_getter()
+    {
+        $this->api->resource(
+            new MockResource(
+                'users',
+                models: [
+                    ($user1 = (object) ['id' => '1']),
+                    (object) ['id' => '2'],
+                    (object) ['id' => '3', 'buddies' => [$user1]],
+                ],
+                endpoints: [Update::make()],
+                fields: [
+                    ToMany::make('friends')
+                        ->type('users')
+                        ->writable()
+                        ->get(fn($model) => $model->buddies ?? [])
+                        ->set(fn($model, $value) => ($model->buddies = $value)),
+                ],
+            ),
+        );
+
+        $response = $this->api->handle(
+            $this->buildRequest('POST', '/users/3/relationships/friends')->withParsedBody([
+                'data' => [['type' => 'users', 'id' => '2']],
+            ]),
+        );
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertJsonApiDocumentSubset(
+            [
+                'data' => [
+                    ['type' => 'users', 'id' => '1'],
+                    ['type' => 'users', 'id' => '2'],
+                ],
             ],
             $response->getBody(),
         );

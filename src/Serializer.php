@@ -160,7 +160,7 @@ class Serializer
                 continue;
             }
 
-            $fieldContext = $context->withFieldAndInclude(
+            $fieldContext = $context->forSerializedField(
                 $field,
                 $context->include[$field->name] ?? null,
             );

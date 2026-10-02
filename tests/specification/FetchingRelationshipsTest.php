@@ -34,7 +34,7 @@ class FetchingRelationshipsTest extends AbstractTestCase
                 'articles',
                 models: [(object) ['id' => '1', 'author' => $author]],
                 endpoints: [Show::make()],
-                fields: [ToOne::make('author')->type('users')],
+                fields: [ToOne::make('author')->type('users')->withLinkage()],
             ),
         );
 
@@ -63,7 +63,7 @@ class FetchingRelationshipsTest extends AbstractTestCase
                 'articles',
                 models: [(object) ['id' => '1', 'author' => null]],
                 endpoints: [Show::make()],
-                fields: [ToOne::make('author')->type('users')],
+                fields: [ToOne::make('author')->type('users')->withLinkage()],
             ),
         );
 

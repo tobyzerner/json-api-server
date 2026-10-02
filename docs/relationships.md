@@ -40,15 +40,18 @@ ToMany::make('activity')->collection('activity');
 
 ## Resource Linkage
 
-By default, to-one relationships will have
-[resource linkage](https://jsonapi.org/format/#document-resource-object-linkage),
-but to-many relationships will not. You can toggle this by calling the
-`withLinkage` or `withoutLinkage` methods.
+By default, relationships will not have
+[resource linkage](https://jsonapi.org/format/#document-resource-object-linkage)
+unless they are included. You can toggle this by calling the `withLinkage` or
+`withoutLinkage` methods.
 
 ```php
-ToOne::make('user')->withoutLinkage();
+ToOne::make('user')->withLinkage();
 ToMany::make('roles')->withLinkage();
 ```
+
+When only linkage is needed, `$context->linkageOnly` is `true`, so scopes can
+avoid loading more than the related resources' IDs.
 
 ::: danger Be careful when enabling linkage on to-many relationships as
 pagination is not supported. :::
