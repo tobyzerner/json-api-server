@@ -31,6 +31,9 @@ and this project adheres to
   and schema configuration
 - Laravel: Allow `Where` filter column expressions to include bindings and
   request-aware callbacks
+- Laravel: Add `Attribute::load()` to batch-load the relations an attribute
+  needs, or run a closure (e.g. `loadCount`) on those models, only for models
+  where the field is requested and visible
 
 ### Changed
 

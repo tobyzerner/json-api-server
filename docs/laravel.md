@@ -110,6 +110,35 @@ class PostsResource extends EloquentResource
 This method will also be used to scope queries when retrieving related models
 for a relationship.
 
+### Loading Relations for Attributes
+
+If an attribute is computed from a relation, use the Laravel `Attribute` field
+and declare the relation with `load`. It will be loaded in a single query, only
+for models where the field is requested and visible:
+
+```php
+use Tobyz\JsonApiServer\Laravel\Field\Attribute;
+
+Attribute::make('yearLevel')
+    ->visible(can('view'))
+    ->load('institution')
+    ->get(fn($user) => $user->institution?->yearLevelFor($user));
+```
+
+`load` accepts anything Eloquent's `loadMissing` does, including nested and
+constrained relations. Resource scopes are not applied. To load data another
+way, pass a closure that receives a collection of the models:
+
+```php
+->load(fn($users) => $users->loadCount('comments'))
+```
+
+Closures run once for the whole batch, so work with the collection rather than
+`$context->model`.
+
+Visibility is checked before relations are loaded, so if a `visible` callback
+needs a relation, eager load it in your resource's `scope` method instead.
+
 ### Soft Deleting
 
 If your Eloquent model is
