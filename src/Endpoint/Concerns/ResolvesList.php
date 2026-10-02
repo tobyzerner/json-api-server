@@ -92,14 +92,14 @@ trait ResolvesList
 
         $this->applyListFilters($query, $collection, $context);
 
-        if (
-            $collection instanceof Countable &&
-            !is_null($total = $collection->count($query, $context))
-        ) {
-            $context->documentMeta['page']['total'] = $total;
-        }
-
         if ($pagination ??= $collection->pagination()) {
+            if (
+                $collection instanceof Countable &&
+                !is_null($total = $collection->count($query, $context))
+            ) {
+                $context->documentMeta['page']['total'] = $total;
+            }
+
             return $pagination->paginate($query, $context);
         }
 

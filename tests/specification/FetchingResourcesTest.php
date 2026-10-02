@@ -2,6 +2,7 @@
 
 namespace Tobyz\Tests\JsonApiServer\specification;
 
+use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Index;
 use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
@@ -119,6 +120,34 @@ class FetchingResourcesTest extends AbstractTestCase
             ['data' => [['type' => 'dogs', 'id' => '1'], ['type' => 'cats', 'id' => '1']]],
             $response->getBody(),
         );
+    }
+
+    public function test_unpaginated_collection_does_not_count()
+    {
+        $resource = new class (
+            'articles',
+            models: [(object) ['id' => '1'], (object) ['id' => '2']],
+            endpoints: [Index::make()],
+        ) extends MockResource {
+            public int $countCalls = 0;
+
+            public function count(object $query, Context $context): int
+            {
+                $this->countCalls++;
+
+                return parent::count($query, $context);
+            }
+        };
+
+        $this->api->resource($resource);
+
+        $response = $this->api->handle($this->buildRequest('GET', '/articles'));
+
+        $document = json_decode($response->getBody(), true);
+
+        $this->assertCount(2, $document['data']);
+        $this->assertArrayNotHasKey('page', $document['meta'] ?? []);
+        $this->assertSame(0, $resource->countCalls);
     }
 
     public function test_fetch_related_resource_with_include_for_to_one_relationship()

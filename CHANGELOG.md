@@ -40,6 +40,8 @@ and this project adheres to
 - Improve serialization performance and readability
   ([#123](https://github.com/tobyzerner/json-api-server/pull/123) by @mkszepp)
 - Replace Prettier with Mago for formatting
+- Only call `Countable::count()` for paginated lists; unpaginated list
+  documents no longer include `meta.page.total`
 
 ### Fixed
 
