@@ -110,6 +110,39 @@ class PostsResource extends EloquentResource
 This method will also be used to scope queries when retrieving related models
 for a relationship.
 
+### Foreign Key Linkage
+
+Linkage for a belongs-to relationship is normally built by loading the related
+models through the related resource's scope, which costs a query per
+relationship. Where scoping can't matter, use the Laravel `ToOne` field and call
+`withForeignKeyLinkage` to build linkage from the foreign key instead. It works
+with belongs-to and morph-to relations. Like `withLinkage`, it takes an optional
+condition for whether linkage is included; calling `withLinkage` later changes
+only the condition:
+
+```php
+use Tobyz\JsonApiServer\Laravel\Field\ToOne;
+
+ToOne::make('item')->withForeignKeyLinkage();
+ToOne::make('product')->withForeignKeyLinkage(fn(Context $context) => ...);
+```
+
+It is only used when just linkage is needed (the relationship is not included,
+or on its relationship endpoint). If the relation is already loaded, it is used
+as-is, and if the foreign key doesn't reference the related model's primary
+key, it is loaded normally. The related resource's ID must be the model's
+primary key, and its collection must be able to tell the resource type from a
+model with only its key set.
+
+::: warning
+This skips the relationship's `scope`, the related resource's scope, and the
+related model's global scopes (such as soft deletes) without checking that the
+related row exists, so linkage can point to a resource the viewer can't see or
+that has been deleted. Only its ID is exposed, but use it only where that's
+harmless: ownership or containment (e.g. comment → post, revision → document),
+or public reference data (e.g. address → country).
+:::
+
 ### Loading Relations for Attributes
 
 If an attribute is computed from a relation, use the Laravel `Attribute` field

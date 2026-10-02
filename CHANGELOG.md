@@ -41,6 +41,8 @@ and this project adheres to
 - Laravel: Add `Attribute::load()` to batch-load the relations an attribute
   needs, or run a closure (e.g. `loadCount`) on those models, only for models
   where the field is requested and visible
+- Laravel: Add `ToOne::withForeignKeyLinkage()` to build belongs-to linkage
+  from the foreign key without loading related models or applying their scopes
 - Add `Context::$linkageOnly`, which is `true` while serializing a relationship
   that is not included and on relationship endpoints (unless the relationship
   has linkage meta), so scopes can load only the IDs needed for linkage
