@@ -36,3 +36,7 @@ In the above example, the exact implementation of `Buffer` is up to you. The
 concept is that every post being serialized will be added to the buffer first;
 then, when the first deferred value is evaluated, the buffer can load the
 relationship for all of the buffered posts at once.
+
+A deferred closure may itself return a closure. It will be evaluated in the next
+round, after all other deferred values at the current level, so nested buffers
+can still load in a single batch.

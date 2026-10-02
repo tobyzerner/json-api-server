@@ -2,6 +2,7 @@
 
 namespace Tobyz\Tests\JsonApiServer\feature;
 
+use Tobyz\JsonApiServer\Endpoint\Index;
 use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Schema\Field\Attribute;
@@ -97,6 +98,45 @@ class FieldGetTest extends AbstractTestCase
 
         $this->assertJsonApiDocumentSubset(
             ['data' => ['attributes' => ['value' => '2']]],
+            $response->getBody(),
+        );
+    }
+
+    public function test_nested_deferred_values_are_resolved_in_rounds()
+    {
+        $log = [];
+
+        $this->api->resource(
+            new MockResource(
+                'users',
+                models: [(object) ['id' => '1'], (object) ['id' => '2']],
+                endpoints: [Index::make()],
+                fields: [
+                    Attribute::make('name')->get(function ($model) use (&$log) {
+                        return function () use ($model, &$log) {
+                            $log[] = "outer:$model->id";
+
+                            return function () use ($model, &$log) {
+                                $log[] = "inner:$model->id";
+
+                                return "User $model->id";
+                            };
+                        };
+                    }),
+                ],
+            ),
+        );
+
+        $response = $this->api->handle($this->buildRequest('GET', '/users'));
+
+        $this->assertSame(['outer:1', 'outer:2', 'inner:1', 'inner:2'], $log);
+        $this->assertJsonApiDocumentSubset(
+            [
+                'data' => [
+                    ['attributes' => ['name' => 'User 1']],
+                    ['attributes' => ['name' => 'User 2']],
+                ],
+            ],
             $response->getBody(),
         );
     }

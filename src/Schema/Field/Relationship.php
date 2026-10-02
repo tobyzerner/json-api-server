@@ -130,19 +130,7 @@ abstract class Relationship extends Field
 
     public function serializeLinks(array $linkFields, Context $context): array
     {
-        $links = [];
-
-        foreach ($linkFields as $field) {
-            if (!$field->isVisible($context)) {
-                continue;
-            }
-
-            $value = $field->getValue($context);
-
-            $links[$field->name] = $field->serializeValue($value, $context);
-        }
-
-        return $links;
+        return $this->serializeFieldValues($linkFields, $context);
     }
 
     abstract protected function serializeData($value, Context $context): array;
@@ -162,19 +150,7 @@ abstract class Relationship extends Field
 
     protected function serializeLinkageMeta(Context $context): array
     {
-        $meta = [];
-
-        foreach ($this->linkageMeta as $field) {
-            if (!$field->isVisible($context)) {
-                continue;
-            }
-
-            $value = $field->getValue($context);
-
-            $meta[$field->name] = $field->serializeValue($value, $context);
-        }
-
-        return $meta;
+        return $this->serializeFieldValues($this->linkageMeta, $context);
     }
 
     public function deserializeValue(mixed $value, Context $context): mixed

@@ -49,6 +49,9 @@ and this project adheres to
 - Fix nested include path validation
 - Apply `EloquentResource` scopes when querying related resources
 - Fix PHP deprecation errors in include and resource serialization paths
+- Resolve deferred values in relationship meta, linkage meta, and relationship
+  links, and closures returned by deferred values, instead of serializing them
+  as-is
 
 ## [1.0.0-rc.1] - 2026-01-01
 

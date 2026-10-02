@@ -8,7 +8,6 @@ use Tobyz\JsonApiServer\Endpoint\Index;
 use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\Endpoint\Update;
 use Tobyz\JsonApiServer\JsonApi;
-use Tobyz\JsonApiServer\Schema\Field\Met;
 use Tobyz\JsonApiServer\Schema\Field\ToMany;
 use Tobyz\JsonApiServer\Schema\Field\ToOne;
 use Tobyz\JsonApiServer\Schema\Meta;
@@ -63,6 +62,43 @@ class MetaTest extends AbstractTestCase
 
         $this->assertJsonApiDocumentSubset(
             ['data' => ['relationships' => ['pet' => ['meta' => ['foo' => 'bar']]]]],
+            $response->getBody(),
+        );
+    }
+
+    public function test_relationship_meta_resolves_deferred_values()
+    {
+        $role = (object) ['id' => '1'];
+
+        $this->api->resource(
+            new MockResource(
+                'users',
+                models: [(object) ['id' => '1', 'role' => $role]],
+                endpoints: [Show::make()],
+                fields: [
+                    ToOne::make('role')
+                        ->get(fn($user) => $user->role)
+                        ->meta([Meta::make('foo')->get(fn() => fn() => 'bar')])
+                        ->linkageMeta([Meta::make('active')->get(fn() => fn() => true)]),
+                ],
+            ),
+        );
+
+        $this->api->resource(new MockResource('roles', models: [$role]));
+
+        $response = $this->api->handle($this->buildRequest('GET', '/users/1'));
+
+        $this->assertJsonApiDocumentSubset(
+            [
+                'data' => [
+                    'relationships' => [
+                        'role' => [
+                            'data' => ['meta' => ['active' => true]],
+                            'meta' => ['foo' => 'bar'],
+                        ],
+                    ],
+                ],
+            ],
             $response->getBody(),
         );
     }

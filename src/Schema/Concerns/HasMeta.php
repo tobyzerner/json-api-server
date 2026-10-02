@@ -5,6 +5,8 @@ namespace Tobyz\JsonApiServer\Schema\Concerns;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Schema\Meta;
 
+use function Tobyz\JsonApiServer\resolve_value;
+
 trait HasMeta
 {
     /**
@@ -24,18 +26,26 @@ trait HasMeta
 
     public function serializeMeta(Context $context): array
     {
-        $meta = [];
+        return $this->serializeFieldValues($this->meta, $context);
+    }
 
-        foreach ($this->meta as $field) {
+    /**
+     * Serialize the values of the visible fields, keyed by name.
+     */
+    protected function serializeFieldValues(array $fields, Context $context): array
+    {
+        $values = [];
+
+        foreach ($fields as $field) {
             if (!$field->isVisible($context)) {
                 continue;
             }
 
-            $value = $field->getValue($context);
+            $value = resolve_value($field->getValue($context));
 
-            $meta[$field->name] = $field->serializeValue($value, $context);
+            $values[$field->name] = $field->serializeValue($value, $context);
         }
 
-        return $meta;
+        return $values;
     }
 }

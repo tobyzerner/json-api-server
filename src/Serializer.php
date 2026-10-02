@@ -242,7 +242,7 @@ class Serializer
     private function resolveValue(mixed $value, callable $resolve): void
     {
         if ($value instanceof Closure) {
-            $this->deferred[] = fn() => $resolve($value());
+            $this->deferred[] = fn() => $this->resolveValue($value(), $resolve);
             return;
         }
 
