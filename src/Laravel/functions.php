@@ -26,7 +26,7 @@ function rules($rules, array $messages = [], array $customAttributes = []): Clos
 
         foreach ($rules as $k => $rule) {
             if (is_string($rule)) {
-                $rule = str_replace('{id}', $context->model?->getKey(), $rule);
+                $rule = str_replace('{id}', (string) $context->model?->getKey(), $rule);
             }
 
             if (!is_numeric($k)) {

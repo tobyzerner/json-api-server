@@ -60,6 +60,10 @@ and this project adheres to
 
 ### Fixed
 
+- Laravel: Reject cursors that can't be decoded instead of ignoring them and
+  returning the first page
+- Laravel: Fix `SortWithCount` without a scope
+- Laravel: Fix deprecation warning in `rules()` when validating new models
 - OpenAPI: Require `data` in relationship objects in create and update request
   schemas rather than in the shared relationship schema, which is also used by
   responses where linkage may be omitted

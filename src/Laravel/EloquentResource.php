@@ -3,6 +3,7 @@
 namespace Tobyz\JsonApiServer\Laravel;
 
 use Exception;
+use Throwable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -162,15 +163,27 @@ abstract class EloquentResource extends AbstractResource implements
             throw new RangePaginationNotSupportedException();
         }
 
-        try {
-            if ($cursor = Cursor::fromEncoded($after ?: $before)) {
-                $cursor = new Cursor($cursor->toArray(), (bool) $after);
-            }
+        $invalidCursor = fn() => (new InvalidPageCursorException())->source([
+            'parameter' => $after ? '[after]' : '[before]',
+        ]);
 
+        $cursor = null;
+
+        if ($encoded = $after ?: $before) {
+            // Cursors that aren't JSON decode to null, while malformed JSON
+            // cursors fail with warnings (exceptions in Laravel) or errors.
+            try {
+                $cursor = Cursor::fromEncoded($encoded) ?? throw $invalidCursor();
+                $cursor = new Cursor($cursor->toArray(), (bool) $after);
+            } catch (Throwable) {
+                throw $invalidCursor();
+            }
+        }
+
+        try {
             $paginator = $query->cursorPaginate(perPage: $size, cursor: $cursor);
         } catch (Exception) {
-            $key = $after ? 'after' : 'before';
-            throw (new InvalidPageCursorException())->source(['parameter' => "[$key]"]);
+            throw $invalidCursor();
         }
 
         return new Page($paginator->items(), $paginator->onFirstPage(), $paginator->onLastPage());

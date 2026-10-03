@@ -30,11 +30,17 @@
     "autoload-dev": {
         "psr-4": {
             "Tobyz\\Tests\\JsonApiServer\\": "tests/"
-        }
+        },
+        "files": [
+            "tests/laravel/helpers.php"
+        ]
     },
     "require-dev": {
         "carthage-software/mago": "^1.30",
         "dms/phpunit-arraysubset-asserts": "^0.5.0",
+        "illuminate/database": "^10.0|^11.0|^12.0",
+        "illuminate/pagination": "^10.0|^11.0|^12.0",
+        "illuminate/validation": "^10.0|^11.0|^12.0",
         "phpbench/phpbench": "^1.2",
         "phpunit/phpunit": "^10.2.2"
     },
