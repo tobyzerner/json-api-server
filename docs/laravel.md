@@ -158,9 +158,9 @@ Attribute::make('yearLevel')
     ->get(fn($user) => $user->institution?->yearLevelFor($user));
 ```
 
-`load` accepts anything Eloquent's `loadMissing` does, including nested and
-constrained relations. Resource scopes are not applied. To load data another
-way, pass a closure that receives a collection of the models:
+`load` behaves like Eloquent's `loadMissing`. Resource scopes are not applied.
+To load data another way, pass a closure that receives a collection of the
+models:
 
 ```php
 ->load(fn($users) => $users->loadCount('comments'))
