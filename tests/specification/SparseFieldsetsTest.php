@@ -47,6 +47,9 @@ class SparseFieldsetsTest extends AbstractTestCase
                     Attribute::make('title'),
                     Attribute::make('body'),
                     Attribute::make('exclude')->sparse(),
+                    Attribute::make('conditional')
+                        ->get(fn() => 'qux')
+                        ->sparse(fn(Context $context) => $context->request->getHeaderLine('X-Sparse') === 'yes'),
                     ToOne::make('author')
                         ->type('users')
                         ->includable(),
@@ -112,7 +115,38 @@ class SparseFieldsetsTest extends AbstractTestCase
 
         $document = json_decode($response->getBody(), true);
 
-        $this->assertSame(['title' => 'foo', 'body' => 'bar'], $document['data']['attributes']);
+        $this->assertSame(['title' => 'foo', 'body' => 'bar', 'conditional' => 'qux'], $document['data']['attributes']);
+    }
+
+    public function test_conditionally_sparse_field_is_excluded_by_default_when_condition_is_true(): void
+    {
+        $response = $this->api->handle(
+            $this->buildRequest('GET', '/articles/1')->withHeader('X-Sparse', 'yes'),
+        );
+
+        $document = json_decode($response->getBody(), true);
+
+        $this->assertArrayNotHasKey('conditional', $document['data']['attributes']);
+    }
+
+    public function test_conditionally_sparse_field_is_included_by_default_when_condition_is_false(): void
+    {
+        $response = $this->api->handle($this->buildRequest('GET', '/articles/1'));
+
+        $document = json_decode($response->getBody(), true);
+
+        $this->assertSame('qux', $document['data']['attributes']['conditional']);
+    }
+
+    public function test_conditionally_sparse_field_is_included_when_requested(): void
+    {
+        $response = $this->api->handle(
+            $this->buildRequest('GET', '/articles/1?fields[articles]=conditional')->withHeader('X-Sparse', 'yes'),
+        );
+
+        $document = json_decode($response->getBody(), true);
+
+        $this->assertSame(['conditional' => 'qux'], $document['data']['attributes']);
     }
 
     public function test_empty_fieldset(): void

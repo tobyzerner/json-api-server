@@ -46,6 +46,8 @@ and this project adheres to
 - Add `Context::$linkageOnly`, which is `true` while serializing a relationship
   that is not included and on relationship endpoints (unless the relationship
   has linkage meta), so scopes can load only the IDs needed for linkage
+- Allow `Field::sparse()` to take a closure that decides whether the field is
+  sparse for the current request
 
 ### Changed
 

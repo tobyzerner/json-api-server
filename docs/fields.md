@@ -151,6 +151,16 @@ the fieldset by default, so that it must be explicitly requested, by using the
 Attribute::make('firstName')->sparse();
 ```
 
+You can optionally pass a closure that receives the context and decides whether
+the field is sparse for the current request. It is evaluated once per request,
+not per model:
+
+```php
+Attribute::make('itemCount')->sparse(
+    fn(Context $context) => !$context->request->hasHeader('X-Legacy-Client'),
+);
+```
+
 ## Writing
 
 By default, fields are read-only. You can allow a field to be written to in the

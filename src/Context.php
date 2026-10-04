@@ -185,7 +185,7 @@ class Context extends SchemaContext
 
             $fields = array_intersect_key($fields, array_flip(explode(',', $requested)));
         } else {
-            $fields = array_filter($fields, fn(Field $field) => !$field->sparse);
+            $fields = array_filter($fields, fn(Field $field) => !$field->isSparse($this));
         }
 
         return $this->sparseFields[$resource] = $fields;
