@@ -3,6 +3,7 @@
 namespace Tobyz\Tests\JsonApiServer\laravel;
 
 use Closure;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Illuminate\Database\Eloquent\Builder;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
@@ -18,6 +19,7 @@ use Tobyz\JsonApiServer\Laravel\Filter\WhereNotNull;
 use Tobyz\JsonApiServer\Laravel\Filter\WhereNull;
 use Tobyz\JsonApiServer\Schema\CustomFilter;
 use Tobyz\JsonApiServer\Schema\Field\Attribute;
+use Tobyz\JsonApiServer\Schema\Id;
 use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\Tests\JsonApiServer\laravel\Models\Comment;
 use Tobyz\Tests\JsonApiServer\laravel\Models\Post;
@@ -206,6 +208,27 @@ class EloquentFilterTest extends LaravelTestCase
         $this->assertSame(['2', '3'], $this->filter('filter[author][ne]=1'));
         $this->assertSame(['3'], $this->filter('filter[author][null]=true'));
         $this->assertSame(['1', '2'], $this->filter('filter[author][notnull]=true'));
+    }
+
+    #[DataProvider('authorTypes')]
+    public function test_where_has_by_id_attribute_when_it_is_not_the_key(string $type)
+    {
+        User::whereKey(2)->update(['uuid' => 'uuid-franz']);
+
+        $this->resources(
+            fields: ['posts' => [Attribute::make('title'), ToOne::make('author')->type($type)]],
+            filters: ['posts' => [WhereHas::make('author')]],
+            ids: ['users' => Id::make()->property('uuid')],
+        );
+        $this->api->collection(new TestCollection('people', ['users']));
+
+        $this->assertSame(['2'], $this->filter('filter[author]=uuid-franz'));
+        $this->assertSame(['1', '3'], $this->filter('filter[author][ne]=uuid-franz'));
+    }
+
+    public static function authorTypes(): array
+    {
+        return ['resource' => ['users'], 'collection' => ['people']];
     }
 
     public function test_where_has_typed_ids()

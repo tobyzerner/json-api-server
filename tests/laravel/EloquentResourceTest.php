@@ -17,6 +17,7 @@ use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\Laravel\SoftDeletes;
 use Tobyz\JsonApiServer\Laravel\Sort\SortColumn;
 use Tobyz\JsonApiServer\Schema\Field\Attribute;
+use Tobyz\JsonApiServer\Schema\Id;
 use Tobyz\JsonApiServer\Schema\Type\DateTime;
 use Tobyz\Tests\JsonApiServer\laravel\Models\Post;
 use Tobyz\Tests\JsonApiServer\laravel\Models\User;
@@ -49,6 +50,29 @@ class EloquentResourceTest extends LaravelTestCase
         $this->assertSame(['2'], $this->ids($this->get('/users')));
         $this->assertSame(200, $this->get('/users/2')->getStatusCode());
         $this->assertInstanceOf(ResourceNotFoundException::class, $this->exception(fn() => $this->get('/users/1')));
+    }
+
+    public function test_finds_by_id_attribute_when_it_is_not_the_key()
+    {
+        User::create(['name' => 'Franz', 'uuid' => 'uuid-franz']);
+        User::create(['name' => 'Toby', 'uuid' => 'uuid-toby']);
+
+        $this->resources(ids: ['users' => Id::make()->property('uuid')]);
+
+        $this->assertJsonApiDocumentSubset(
+            ['data' => ['type' => 'users', 'id' => 'uuid-toby', 'attributes' => ['name' => 'Toby']]],
+            $this->get('/users/uuid-toby')->getBody(),
+        );
+        $this->assertInstanceOf(ResourceNotFoundException::class, $this->exception(fn() => $this->get('/users/2')));
+    }
+
+    public function test_find_does_not_cast_ids()
+    {
+        User::create(['name' => 'Toby']);
+
+        $this->resources();
+
+        $this->assertInstanceOf(ResourceNotFoundException::class, $this->exception(fn() => $this->get('/users/1abc')));
     }
 
     public function test_scope_receives_context()

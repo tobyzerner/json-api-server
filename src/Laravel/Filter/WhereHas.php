@@ -95,7 +95,13 @@ class WhereHas extends Filter
                 }
 
                 if ($ids = $this->extractIds($v)) {
-                    $query->whereKey($ids);
+                    $resource = $context->resourceForModel([$relatedCollection], $query->getModel());
+
+                    if ($resource instanceof EloquentResource) {
+                        $resource->whereIds($query, $ids);
+                    } else {
+                        $query->whereKey($ids);
+                    }
                     return;
                 }
 

@@ -23,6 +23,7 @@ use Tobyz\JsonApiServer\Endpoint\Update;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Laravel\EloquentBuffer;
 use Tobyz\JsonApiServer\Schema\Field\Attribute;
+use Tobyz\JsonApiServer\Schema\Id;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\laravel\Models\Comment;
 use Tobyz\Tests\JsonApiServer\laravel\Models\Country;
@@ -110,6 +111,7 @@ abstract class LaravelTestCase extends AbstractTestCase
             $table->increments('id');
             $table->string('name');
             $table->string('email')->nullable();
+            $table->string('uuid')->nullable();
             $table->unsignedInteger('country_id')->nullable();
             $table->boolean('is_admin')->default(false);
         });
@@ -206,8 +208,14 @@ abstract class LaravelTestCase extends AbstractTestCase
      * @param array<string, array> $fields Fields by type, replacing the default attribute.
      * @param array<string, Closure> $scopes Scopes by type.
      * @param array<string, array> $filters Filters by type.
+     * @param array<string, Id> $ids ID fields by type, replacing the model key.
      */
-    protected function resources(array $fields = [], array $scopes = [], array $filters = []): void
+    protected function resources(
+        array $fields = [],
+        array $scopes = [],
+        array $filters = [],
+        array $ids = [],
+    ): void
     {
         $models = [
             'posts' => [Post::class, 'title'],
@@ -227,6 +235,7 @@ abstract class LaravelTestCase extends AbstractTestCase
                     fields: $fields[$type] ?? [Attribute::make($attribute)],
                     filters: $filters[$type] ?? [],
                     scope: $scopes[$type] ?? null,
+                    id: $ids[$type] ?? null,
                 ),
             );
         }

@@ -26,6 +26,12 @@ class PostsResource extends AbstractResource
 }
 ```
 
+::: tip Laravel Integration
+For Eloquent-backed resources, the ID is the model's primary key by default.
+Learn how to use another column on the
+[Laravel Integration](laravel.md#ids) page.
+:::
+
 ## Type Constraints
 
 The `Id` field uses a string type by default, but you can customize it to define

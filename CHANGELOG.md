@@ -43,6 +43,10 @@ and this project adheres to
   where the field is requested and visible
 - Laravel: Add `ToOne::withForeignKeyLinkage()` to build belongs-to linkage
   from the foreign key without loading related models or applying their scopes
+- Laravel: An `Id` with a `property` (such as `uuid`) is used by `find()` and
+  `WhereHas` filters by ID
+- Add `Context::resourceForModel()` to find the resource that represents a
+  model, or null
 - Add `Context::$linkageOnly`, which is `true` while serializing a relationship
   that is not included and on relationship endpoints (unless the relationship
   has linkage meta), so scopes can load only the IDs needed for linkage
@@ -51,6 +55,8 @@ and this project adheres to
 
 ### Changed
 
+- Laravel: `EloquentResource` no longer overrides `id()` with a getter; an `Id`
+  without a `property` reads and writes the model's key
 - Laravel: Relations loaded only for linkage are no longer set on the model,
   so partial models loaded by ID-only scopes aren't seen by other fields.
   Fields that read the same relation now load it themselves.

@@ -20,6 +20,7 @@ use Tobyz\JsonApiServer\Exception\Request\InvalidQueryParameterException;
 use Tobyz\JsonApiServer\Exception\Request\InvalidSparseFieldsetsException;
 use Tobyz\JsonApiServer\Exception\Sourceable;
 use Tobyz\JsonApiServer\Resource\Listable;
+use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Resource;
 use Tobyz\JsonApiServer\Schema\Field\Field;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
@@ -591,22 +592,39 @@ class Context extends SchemaContext
             return $new;
         }
 
+        [$new->collection, $new->resource] =
+            $this->findResource($collections, $model) ??
+            throw new RuntimeException('No resource type defined to represent model ' . get_class($model));
+        $new->model = $model;
+
+        return $new;
+    }
+
+    /**
+     * Get the resource that represents a model in one of the given
+     * collections, or null if none does.
+     */
+    public function resourceForModel(array $collections, object $model): ?Resource
+    {
+        return $this->findResource($collections, $model)[1] ?? null;
+    }
+
+    /**
+     * @return array{0: Collection, 1: Resource}|null
+     */
+    private function findResource(array $collections, object $model): ?array
+    {
         foreach ($collections as $collection) {
             if (is_string($collection)) {
                 $collection = $this->api->getCollection($collection);
             }
 
             if ($type = $collection->resource($model, $this)) {
-                $new->collection = $collection;
-                $new->resource = $this->api->getResource($type);
-                $new->model = $model;
-                return $new;
+                return [$collection, $this->api->getResource($type)];
             }
         }
 
-        throw new RuntimeException(
-            'No resource type defined to represent model ' . get_class($model),
-        );
+        return null;
     }
 
     /**

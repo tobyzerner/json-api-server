@@ -6,6 +6,7 @@ use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Laravel\EloquentResource;
+use Tobyz\JsonApiServer\Schema\Id;
 
 /**
  * An Eloquent resource configured through its constructor, so tests can
@@ -26,7 +27,13 @@ class TestResource extends EloquentResource
         private readonly ?string $defaultSort = null,
         private readonly ?Closure $scope = null,
         private readonly array $meta = [],
+        private readonly ?Id $id = null,
     ) {}
+
+    public function id(): Id
+    {
+        return $this->id ?? parent::id();
+    }
 
     public function type(): string
     {

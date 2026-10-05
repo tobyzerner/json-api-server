@@ -62,11 +62,6 @@ abstract class EloquentResource extends AbstractResource implements
         return null;
     }
 
-    public function id(): Id
-    {
-        return Id::make()->get(fn($model) => $model->getKey());
-    }
-
     public function getValue(object $model, Field $field, Context $context): mixed
     {
         if ($field instanceof Relationship) {
@@ -78,7 +73,7 @@ abstract class EloquentResource extends AbstractResource implements
 
     protected function getAttributeValue(Model $model, Field $field, Context $context)
     {
-        return $model->getAttribute($this->modelProperty($field));
+        return $model->getAttribute($this->attributeName($model, $field));
     }
 
     protected function getRelationshipValue(Model $model, Relationship $field, Context $context)
@@ -210,7 +205,7 @@ abstract class EloquentResource extends AbstractResource implements
 
     public function find(string $id, Context $context): ?object
     {
-        return $this->query($context)->find($id);
+        return $this->whereIds($this->query($context), [$id])->first();
     }
 
     public function setValue(object $model, Field $field, mixed $value, Context $context): void
@@ -242,7 +237,7 @@ abstract class EloquentResource extends AbstractResource implements
             );
         }
 
-        $model->setAttribute($this->modelProperty($field), $value);
+        $model->setAttribute($this->attributeName($model, $field), $value);
     }
 
     public function saveValue(object $model, Field $field, mixed $value, Context $context): void
@@ -367,6 +362,31 @@ abstract class EloquentResource extends AbstractResource implements
                 $clause($nested);
             }
         });
+    }
+
+    /**
+     * Get the column that the ID reads.
+     */
+    public function idColumn(Model $model): string
+    {
+        return $this->attributeName($model, $this->id());
+    }
+
+    /**
+     * Constrain a query to models with the given IDs.
+     */
+    public function whereIds(Builder $query, array $ids): Builder
+    {
+        return $query->whereIn($query->qualifyColumn($this->idColumn($query->getModel())), $ids);
+    }
+
+    /**
+     * Get the model attribute that a field reads and writes. An ID without a
+     * property is the model's key.
+     */
+    private function attributeName(Model $model, Field $field): string
+    {
+        return $field instanceof Id && !$field->property ? $model->getKeyName() : $this->modelProperty($field);
     }
 
     /**

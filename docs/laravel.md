@@ -86,6 +86,21 @@ Eloquent resources will automatically convert field names into `snake_case` when
 getting and setting model values. For example, a field with the name `createdAt`
 will read its value from the model's `created_at` property.
 
+### IDs
+
+The ID is the model's primary key by default. To identify resources by another
+column, set the ID's `property`, and resources will be found by that column:
+
+```php
+public function id(): Id
+{
+    return Id::make()->property('uuid');
+}
+```
+
+If you define the ID with a getter instead, still set `property` to the column
+it reads, since that's the column resources are looked up by.
+
 ### Scoping
 
 If you need to modify the query used to retrieve and list models – for example,
@@ -279,6 +294,10 @@ Where::make('date')
         [config('app.timezone'), $context->parameter('userTimezone')],
     ]);
 ```
+
+`WhereBelongsTo` compares values against the foreign key. If the related
+resource's ID is another column (such as `Id::make()->property('uuid')`), use
+`WhereHas` instead, which filters by the related resource's ID.
 
 ### Boolean Filters
 
