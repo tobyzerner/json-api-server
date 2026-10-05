@@ -58,7 +58,7 @@ class SchemaContext
      */
     public function fields(Resource $resource): array
     {
-        return $this->namedDefinitions($this->fields, $resource, $resource->fields());
+        return $this->namedDefinitions($this->fields, $resource, $resource->fields(...));
     }
 
     /**
@@ -68,7 +68,7 @@ class SchemaContext
      */
     public function meta(Resource $resource): array
     {
-        return $this->namedDefinitions($this->meta, $resource, $resource->meta());
+        return $this->namedDefinitions($this->meta, $resource, $resource->meta(...));
     }
 
     /**
@@ -78,7 +78,7 @@ class SchemaContext
      */
     public function links(Resource $resource): array
     {
-        return $this->namedDefinitions($this->links, $resource, $resource->links());
+        return $this->namedDefinitions($this->links, $resource, $resource->links(...));
     }
 
     /**
@@ -126,7 +126,7 @@ class SchemaContext
     private function namedDefinitions(
         WeakMap $cache,
         object $resource,
-        iterable $definitions,
+        callable $definitions,
     ): array {
         if (isset($cache[$resource])) {
             return $cache[$resource];
@@ -134,7 +134,7 @@ class SchemaContext
 
         $namedDefinitions = [];
 
-        foreach ($definitions as $definition) {
+        foreach ($definitions() as $definition) {
             $namedDefinitions[$definition->name] = $definition;
         }
 
