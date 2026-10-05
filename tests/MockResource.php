@@ -114,15 +114,14 @@ class MockResource extends AbstractResource implements
         return (object) ['models' => $related, 'sorts' => []];
     }
 
-    public function find(string $id, Context $context): ?object
+    public function find(array $ids, Context $context): array
     {
-        foreach ($this->models as $model) {
-            if ($model->id == $id) {
-                return $model;
-            }
-        }
-
-        return null;
+        return array_values(
+            array_filter(
+                $this->models,
+                fn($model) => in_array($context->forModel([$this], $model)->id($this, $model), $ids),
+            ),
+        );
     }
 
     public function paginate(object $query, int $offset, int $limit, Context $context): Page

@@ -16,6 +16,16 @@ trait FindsResources
      */
     private function findResource(Context $context, string $id)
     {
+        return $this->findResources($context, [$id])[$id] ??
+            throw new ResourceNotFoundException($context->collection->name(), $id);
+    }
+
+    /**
+     * Find resources within the API, keyed by ID. IDs that aren't found are
+     * omitted.
+     */
+    protected function findResources(Context $context, array $ids): array
+    {
         $collection = $context->collection;
 
         if (!$collection instanceof Findable) {
@@ -24,10 +34,13 @@ trait FindsResources
             );
         }
 
-        if (!($model = $collection->find($id, $context))) {
-            throw new ResourceNotFoundException($collection->name(), $id);
+        $models = [];
+
+        foreach ($collection->find(array_values(array_unique($ids)), $context) as $model) {
+            $modelContext = $context->forModel([$collection], $model);
+            $models[$modelContext->id($modelContext->resource, $model)] = $model;
         }
 
-        return $model;
+        return $models;
     }
 }

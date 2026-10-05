@@ -213,6 +213,19 @@ abstract class Relationship extends Field
 
     protected function resourceForIdentifier(array $identifier, Context $context): mixed
     {
+        $type = $this->validateIdentifier($identifier, $context);
+
+        return $this->findResource(
+            $context->withCollection($context->resource($type)),
+            $identifier['id'],
+        );
+    }
+
+    /**
+     * Validate a resource identifier and return its type.
+     */
+    protected function validateIdentifier(array $identifier, Context $context): string
+    {
         if (!is_string($identifier['type'] ?? null)) {
             throw (new InvalidTypeException())->source([
                 'pointer' => array_key_exists('type', $identifier) ? '/type' : '',
@@ -225,16 +238,13 @@ abstract class Relationship extends Field
             ]);
         }
 
-        $resources = $this->getRelatedResources($context);
-
-        if (in_array($identifier['type'], $resources)) {
-            return $this->findResource(
-                $context->withCollection($context->resource($identifier['type'])),
-                $identifier['id'],
-            );
+        if (!in_array($identifier['type'], $this->getRelatedResources($context))) {
+            throw (new UnsupportedTypeException($identifier['type']))->source([
+                'pointer' => '/type',
+            ]);
         }
 
-        throw (new UnsupportedTypeException($identifier['type']))->source(['pointer' => '/type']);
+        return $identifier['type'];
     }
 
     protected function getRelatedResources(SchemaContext $context): array

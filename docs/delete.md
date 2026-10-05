@@ -53,9 +53,9 @@ class PostsResource extends Resource implements Deletable
         return [Endpoint\Delete::make()];
     }
 
-    public function find(string $id, Context $context): ?object;
+    public function find(array $ids, Context $context): array
     {
-        return Post::find($id);
+        return Post::findMany($ids)->all();
     }
 
     public function delete(object $model, Context $context): void

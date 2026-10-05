@@ -60,9 +60,9 @@ class PostsResource extends Resource implements Updatable
         return [Endpoint\Update::make()];
     }
 
-    public function find(string $id, Context $context): ?object;
+    public function find(array $ids, Context $context): array
     {
-        return Post::find($id);
+        return Post::findMany($ids)->all();
     }
 
     public function setValue(

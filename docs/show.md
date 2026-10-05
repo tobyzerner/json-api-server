@@ -38,6 +38,8 @@ Show::make()->visible(fn($model, Context $context) => $model->is_public);
 The `Show` endpoint requires the resource or collection to implement the
 `Tobyz\JsonApiServer\Resource\Findable` interface. The endpoint will call the
 `find` method with the requested resource ID to retrieve the model instance.
+The method receives an array of IDs and should return the models that exist, in
+any order.
 
 A simple implementation might look like:
 
@@ -54,9 +56,9 @@ class PostsResource extends Resource implements Findable
         return [Endpoint\Show::make()];
     }
 
-    public function find(string $id, Context $context): ?object;
+    public function find(array $ids, Context $context): array
     {
-        return Post::find($id);
+        return Post::findMany($ids)->all();
     }
 }
 ```

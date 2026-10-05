@@ -10,6 +10,11 @@ and this project adheres to
 
 ### ⚠️ Breaking Changes
 
+- `Findable::find()` now receives an array of IDs and returns an array of the
+  models it finds, in any order. To-many relationship data is resolved with one
+  `find()` call per related type instead of one per identifier, and
+  `EloquentResource` does this in a single scoped query. A model is only
+  matched if its serialized ID equals the requested ID
 - Remove `Tobyz\JsonApiServer\Laravel\Filter\ColumnFilter`
 - Remove `Where::commaSeparated()` and `Scope::commaSeparated()`; configure
   comma-separated query values with

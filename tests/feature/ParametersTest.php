@@ -498,18 +498,21 @@ class ParametersTest extends AbstractTestCase
             ) extends MockResource {
                 public array $parameterDefinitions;
 
-                public function find(string $id, Context $context): ?object
+                public function find(array $ids, Context $context): array
                 {
-                    $model = parent::find($id, $context);
-                    $model->lookupParameters = [];
+                    $models = parent::find($ids, $context);
 
-                    foreach ($this->parameterDefinitions as $parameter) {
-                        if (($value = $context->parameter($parameter->name)) !== null) {
-                            $model->lookupParameters[$parameter->name] = $value;
+                    foreach ($models as $model) {
+                        $model->lookupParameters = [];
+
+                        foreach ($this->parameterDefinitions as $parameter) {
+                            if (($value = $context->parameter($parameter->name)) !== null) {
+                                $model->lookupParameters[$parameter->name] = $value;
+                            }
                         }
                     }
 
-                    return $model;
+                    return $models;
                 }
             },
         );
@@ -575,13 +578,13 @@ class ParametersTest extends AbstractTestCase
                 ToMany::make('pets')->type('pets')->includable(),
             ],
         ) extends MockResource {
-            public function find(string $id, Context $context): ?object
+            public function find(array $ids, Context $context): array
             {
-                $model = parent::find($id, $context);
-                if ($model) {
+                $models = parent::find($ids, $context);
+                foreach ($models as $model) {
                     $model->lookupLocale = $context->parameter('locale');
                 }
-                return $model;
+                return $models;
             }
         });
         return $api;

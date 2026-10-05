@@ -4,6 +4,7 @@ namespace Tobyz\JsonApiServer\Schema\Field;
 
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\Relationship\InvalidRelationshipDataException;
+use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\Exception\Sourceable;
 use Tobyz\JsonApiServer\Pagination\Pagination;
 use Tobyz\JsonApiServer\SchemaContext;
@@ -64,14 +65,33 @@ class ToMany extends Relationship
             throw new InvalidRelationshipDataException();
         }
 
-        $models = [];
+        $ids = [];
 
         foreach ($data as $i => $identifier) {
             try {
-                $models[] = $this->resourceForIdentifier($identifier, $context);
+                $ids[$this->validateIdentifier($identifier, $context)][] = $identifier['id'];
             } catch (Sourceable $e) {
                 throw $e->prependSourcePath($i);
             }
+        }
+
+        // Find each type's models in one batch, then map them back into
+        // request order.
+        $found = [];
+
+        foreach ($ids as $type => $typeIds) {
+            $found[$type] = $this->findResources(
+                $context->withCollection($context->resource($type)),
+                $typeIds,
+            );
+        }
+
+        $models = [];
+
+        foreach ($data as $i => ['type' => $type, 'id' => $id]) {
+            $models[] =
+                $found[$type][$id] ??
+                throw (new ResourceNotFoundException($type, $id))->prependSourcePath($i);
         }
 
         return $models;

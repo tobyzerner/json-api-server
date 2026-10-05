@@ -3,6 +3,7 @@
 namespace Tobyz\Tests\JsonApiServer\laravel;
 
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\Laravel\Field\ToMany;
 use Tobyz\JsonApiServer\Laravel\Field\ToOne;
 use Tobyz\JsonApiServer\Schema\Field\Attribute;
@@ -381,6 +382,45 @@ class EloquentRelationshipTest extends LaravelTestCase
         ]);
 
         $this->assertSame([$laravel->id], $post->tags()->pluck('tags.id')->all());
+    }
+
+    public function test_resolves_to_many_identifiers_in_one_query()
+    {
+        $post = Post::create(['title' => 'A']);
+        Tag::create(['name' => 'php']);
+        Tag::create(['name' => 'laravel']);
+        Tag::create(['name' => 'eloquent']);
+
+        $this->resources(fields: ['posts' => [ToMany::make('tags')->type('tags')->writable()]]);
+
+        [, $queries] = $this->queries(fn() => $this->update('posts', '1', relationships: [
+            'tags' => ['data' => [
+                ['type' => 'tags', 'id' => '3'],
+                ['type' => 'tags', 'id' => '1'],
+                ['type' => 'tags', 'id' => '3'],
+            ]],
+        ]));
+
+        $this->assertQueryCount(1, 'tags', $queries);
+        $this->assertEqualsCanonicalizing([1, 3], $post->tags()->pluck('tags.id')->all());
+    }
+
+    public function test_to_many_identifier_outside_scope_is_not_found()
+    {
+        Post::create(['title' => 'A']);
+        Tag::create(['name' => 'php']);
+        Tag::create(['name' => 'hidden']);
+
+        $this->resources(fields: ['posts' => [ToMany::make('tags')->type('tags')->writable()]], scopes: [
+            'tags' => fn($query) => $query->where('name', '!=', 'hidden'),
+        ]);
+
+        $e = $this->exception(fn() => $this->update('posts', '1', relationships: [
+            'tags' => ['data' => [['type' => 'tags', 'id' => '1'], ['type' => 'tags', 'id' => '2']]],
+        ]));
+
+        $this->assertInstanceOf(ResourceNotFoundException::class, $e);
+        $this->assertSame('/data/relationships/tags/data/1', $e->getJsonApiError()['source']['pointer']);
     }
 
     public function test_attaches_and_detaches_belongs_to_many()

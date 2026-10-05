@@ -224,12 +224,12 @@ class RelationshipToOneTest extends AbstractTestCase
             public array $findFields = [];
             public array $findLinkageOnly = [];
 
-            public function find(string $id, Context $context): ?object
+            public function find(array $ids, Context $context): array
             {
                 $this->findFields[] = $context->field?->name;
                 $this->findLinkageOnly[] = $context->linkageOnly;
 
-                return parent::find($id, $context);
+                return parent::find($ids, $context);
             }
         };
 

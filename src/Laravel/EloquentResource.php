@@ -203,9 +203,9 @@ abstract class EloquentResource extends AbstractResource implements
         return $query->toBase()->getCountForPagination();
     }
 
-    public function find(string $id, Context $context): ?object
+    public function find(array $ids, Context $context): array
     {
-        return $this->whereIds($this->query($context), [$id])->first();
+        return $this->whereIds($this->query($context), $ids)->get()->all();
     }
 
     public function setValue(object $model, Field $field, mixed $value, Context $context): void

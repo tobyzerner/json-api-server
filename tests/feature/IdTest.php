@@ -80,7 +80,7 @@ class IdTest extends AbstractTestCase
                     models: [$model],
                     endpoints: [Show::make()],
                     id: Id::make()->get(
-                        fn($model) => ($resourceType === 'scoped' ? '16:' : '') . $model->id,
+                        fn($model) => ($resourceType === 'scoped' ? '16-' : '') . $model->id,
                     ),
                     fields: [
                         ToOne::make('related')
@@ -103,16 +103,16 @@ class IdTest extends AbstractTestCase
 
     public static function sharedModelProvider(): array
     {
-        $scoped = ['type' => 'scoped', 'id' => '16:123'];
+        $scoped = ['type' => 'scoped', 'id' => '16-123'];
         $plain = ['type' => 'plain', 'id' => '123'];
         $scopedResource = $scoped + ['relationships' => ['related' => ['data' => $plain]]];
         $plainResource = $plain + ['relationships' => ['related' => ['data' => $scoped]]];
 
         return [
-            'scoped first, linkage' => ['/scoped/123', $scopedResource, []],
+            'scoped first, linkage' => ['/scoped/16-123', $scopedResource, []],
             'plain first, linkage' => ['/plain/123', $plainResource, []],
             'scoped first, included' => [
-                '/scoped/123?include=related',
+                '/scoped/16-123?include=related',
                 $scopedResource,
                 [$plainResource],
             ],

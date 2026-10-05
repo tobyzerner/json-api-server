@@ -55,17 +55,19 @@ class SparseFieldsetsTest extends AbstractTestCase
                         ->includable(),
                 ],
             ) extends MockResource {
-                public function find(string $id, Context $context): ?object
+                public function find(array $ids, Context $context): array
                 {
-                    $model = parent::find($id, $context);
+                    $models = parent::find($ids, $context);
 
-                    foreach (['title', 'body', 'exclude'] as $field) {
-                        if (!$context->fieldRequested('articles', $field)) {
-                            unset($model->$field);
+                    foreach ($models as $model) {
+                        foreach (['title', 'body', 'exclude'] as $field) {
+                            if (!$context->fieldRequested('articles', $field)) {
+                                unset($model->$field);
+                            }
                         }
                     }
 
-                    return $model;
+                    return $models;
                 }
             },
         );

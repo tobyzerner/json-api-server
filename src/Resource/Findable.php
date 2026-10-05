@@ -7,7 +7,11 @@ use Tobyz\JsonApiServer\Context;
 interface Findable
 {
     /**
-     * Find a model with the given ID.
+     * Find the models with the given IDs, in any order. IDs without a model
+     * are omitted.
+     *
+     * @param string[] $ids
+     * @return object[]
      */
-    public function find(string $id, Context $context): ?object;
+    public function find(array $ids, Context $context): array;
 }

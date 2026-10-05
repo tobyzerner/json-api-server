@@ -11,6 +11,7 @@ use Tobyz\JsonApiServer\Endpoint\ShowRelationship;
 use Tobyz\JsonApiServer\Endpoint\Update;
 use Tobyz\JsonApiServer\Exception\Data\UnsupportedTypeException;
 use Tobyz\JsonApiServer\Exception\Request\InvalidIncludeException;
+use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\Exception\Request\InvalidQueryParameterException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Pagination\OffsetPagination;
@@ -269,6 +270,92 @@ class RelationshipToManyTest extends AbstractTestCase
         );
     }
 
+    public function test_update_resolves_identifiers_in_request_order()
+    {
+        $this->api->resource(
+            new MockResource(
+                'users',
+                models: [
+                    ($user1 = (object) ['id' => '1']),
+                    ($user2 = (object) ['id' => '2']),
+                    (object) ['id' => '3'],
+                ],
+                endpoints: [Update::make()],
+                fields: [
+                    ToMany::make('friends')
+                        ->type('users')
+                        ->writable()
+                        ->set(function ($model, $value) use (&$friends) {
+                            $friends = $value;
+                        }),
+                ],
+            ),
+        );
+
+        $this->api->handle(
+            $this->buildRequest('PATCH', '/users/3')->withParsedBody([
+                'data' => [
+                    'type' => 'users',
+                    'id' => '3',
+                    'relationships' => [
+                        'friends' => [
+                            'data' => [
+                                ['type' => 'users', 'id' => '2'],
+                                ['type' => 'users', 'id' => '1'],
+                                ['type' => 'users', 'id' => '2'],
+                            ],
+                        ],
+                    ],
+                ],
+            ]),
+        );
+
+        $this->assertSame([$user2, $user1, $user2], $friends);
+    }
+
+    public function test_update_with_missing_identifier_points_to_it()
+    {
+        $this->api->resource(
+            new MockResource(
+                'users',
+                models: [(object) ['id' => '1'], (object) ['id' => '3']],
+                endpoints: [Update::make()],
+                fields: [
+                    ToMany::make('friends')
+                        ->type('users')
+                        ->writable(),
+                ],
+            ),
+        );
+
+        try {
+            $this->api->handle(
+                $this->buildRequest('PATCH', '/users/3')->withParsedBody([
+                    'data' => [
+                        'type' => 'users',
+                        'id' => '3',
+                        'relationships' => [
+                            'friends' => [
+                                'data' => [
+                                    ['type' => 'users', 'id' => '1'],
+                                    ['type' => 'users', 'id' => '2'],
+                                ],
+                            ],
+                        ],
+                    ],
+                ]),
+            );
+
+            $this->fail('Expected ResourceNotFoundException to be thrown.');
+        } catch (ResourceNotFoundException $e) {
+            $this->assertSame('2', $e->id);
+            $this->assertSame(
+                '/data/relationships/friends/data/1',
+                $e->getJsonApiError()['source']['pointer'],
+            );
+        }
+    }
+
     public function test_to_many_create_invalid_type()
     {
         $this->api->resource(
@@ -381,10 +468,12 @@ class RelationshipToManyTest extends AbstractTestCase
                 ToMany::make('friends')->type('users')->pagination(new OffsetPagination()),
             ],
         ) extends MockResource {
-            public function find(string $id, Context $context): ?object
+            public function find(array $ids, Context $context): array
             {
-                $model = parent::find($id, $context);
-                return $model->locale === $context->parameter('locale') ? $model : null;
+                return array_values(array_filter(
+                    parent::find($ids, $context),
+                    fn($model) => $model->locale === $context->parameter('locale'),
+                ));
             }
 
             public function relatedQuery(object $model, ToMany $relationship, Context $context): ?object
