@@ -43,8 +43,8 @@ and this project adheres to
   where the field is requested and visible
 - Laravel: Add `ToOne::withForeignKeyLinkage()` to build belongs-to linkage
   from the foreign key without loading related models or applying their scopes
-- Laravel: An `Id` with a `property` (such as `uuid`) is used by `find()` and
-  `WhereHas` filters by ID
+- Laravel: An `Id` with a `property` (such as `uuid`) is used by `find()`,
+  `WhereHas` filters by ID and `ToOne::withForeignKeyLinkage()`
 - Add `Context::resourceForModel()` to find the resource that represents a
   model, or null
 - Add `Context::$linkageOnly`, which is `true` while serializing a relationship

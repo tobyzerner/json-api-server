@@ -2,7 +2,9 @@
 
 namespace Tobyz\Tests\JsonApiServer\laravel;
 
+use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Laravel\Field\ToOne;
+use Tobyz\JsonApiServer\Schema\Id;
 use Tobyz\Tests\JsonApiServer\laravel\Models\Image;
 use Tobyz\Tests\JsonApiServer\laravel\Models\Post;
 use Tobyz\Tests\JsonApiServer\laravel\Models\User;
@@ -143,7 +145,7 @@ class ForeignKeyLinkageTest extends LaravelTestCase
         $this->assertQueryCount(0, 'posts', $queries);
     }
 
-    public function test_falls_back_when_owner_key_is_not_the_primary_key()
+    public function test_falls_back_when_owner_key_is_not_the_id_column()
     {
         User::create(['name' => 'Franz', 'email' => 'franz@example.com']);
         $user = User::create(['name' => 'Toby', 'email' => 'toby@example.com']);
@@ -154,6 +156,80 @@ class ForeignKeyLinkageTest extends LaravelTestCase
         ]]);
 
         $this->assertSame([['type' => 'users', 'id' => '2']], $this->linkage($this->get('/posts'), 'authorByEmail'));
+    }
+
+    public function test_morph_to_loads_only_types_whose_id_is_not_the_key()
+    {
+        $user = User::create(['name' => 'Toby', 'uuid' => 'uuid-toby']);
+        $post = Post::create(['title' => 'A']);
+
+        Image::create(['url' => 'a', 'imageable_type' => User::class, 'imageable_id' => $user->id]);
+        Image::create(['url' => 'b', 'imageable_type' => Post::class, 'imageable_id' => $post->id]);
+
+        $this->resources(
+            fields: ['images' => [ToOne::make('imageable')->type(['users', 'posts'])->withForeignKeyLinkage()]],
+            ids: ['users' => Id::make()->property('uuid')],
+        );
+
+        [$response, $queries] = $this->queries(fn() => $this->get('/images'));
+
+        $this->assertSame(
+            [['type' => 'users', 'id' => 'uuid-toby'], ['type' => 'posts', 'id' => '1']],
+            $this->linkage($response, 'imageable'),
+        );
+        $this->assertQueryCount(1, 'users', $queries);
+        $this->assertQueryCount(0, 'posts', $queries);
+    }
+
+    public function test_uses_foreign_key_when_it_references_the_id_attribute()
+    {
+        $user = User::create(['name' => 'Toby', 'email' => 'toby@example.com']);
+        Post::create(['title' => 'A', 'author_email' => $user->email]);
+
+        $this->resources(
+            fields: ['posts' => [ToOne::make('authorByEmail')->type('users')->withForeignKeyLinkage()]],
+            ids: ['users' => Id::make()->property('email')],
+        );
+
+        [$response, $queries] = $this->queries(fn() => $this->get('/posts'));
+
+        $this->assertSame([['type' => 'users', 'id' => 'toby@example.com']], $this->linkage($response, 'authorByEmail'));
+        $this->assertQueryCount(0, 'users', $queries);
+    }
+
+    public function test_resolves_related_resource_from_model_with_foreign_key_set()
+    {
+        $user = User::create(['name' => 'Toby']);
+        Post::create(['title' => 'A', 'user_id' => $user->id]);
+
+        $this->resources(fields: ['posts' => [ToOne::make('author')->type('users')->withForeignKeyLinkage()]]);
+
+        // A collection may need the model's attributes to tell its type.
+        $this->usersResolvableOnlyWithKey();
+
+        [$response, $queries] = $this->queries(fn() => $this->get('/posts'));
+
+        $this->assertSame([['type' => 'users', 'id' => '1']], $this->linkage($response, 'author'));
+        $this->assertQueryCount(0, 'users', $queries);
+    }
+
+    public function test_loads_normally_when_related_resource_cannot_be_resolved()
+    {
+        User::create(['name' => 'Toby', 'email' => 'toby@example.com']);
+        Post::create(['title' => 'A', 'author_email' => 'toby@example.com']);
+
+        $this->resources(
+            fields: ['posts' => [ToOne::make('authorByEmail')->type('users')->withForeignKeyLinkage()]],
+            ids: ['users' => Id::make()->property('email')],
+        );
+
+        // Without its key, the related model can't be resolved to a resource.
+        $this->usersResolvableOnlyWithKey(Id::make()->property('email'));
+
+        [$response, $queries] = $this->queries(fn() => $this->get('/posts'));
+
+        $this->assertSame([['type' => 'users', 'id' => 'toby@example.com']], $this->linkage($response, 'authorByEmail'));
+        $this->assertQueryCount(1, 'users', $queries);
     }
 
     public function test_loaded_relation_is_used()
@@ -196,5 +272,21 @@ class ForeignKeyLinkageTest extends LaravelTestCase
         ]]);
 
         $this->assertSame([null], $this->linkage($this->get('/posts'), 'author'));
+    }
+
+    /**
+     * Replace the users resource with one that can only tell its type from a
+     * model with its key set.
+     */
+    private function usersResolvableOnlyWithKey(?Id $id = null): void
+    {
+        $this->api->resource(
+            new class ('users', User::class, id: $id) extends TestResource {
+                public function resource(object $model, Context $context): ?string
+                {
+                    return $model->getKey() ? parent::resource($model, $context) : null;
+                }
+            },
+        );
     }
 }

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Laravel\EloquentResource;
 use Tobyz\JsonApiServer\Schema\Field\ToOne as BaseToOne;
 
 class ToOne extends BaseToOne
@@ -73,14 +74,17 @@ class ToOne extends BaseToOne
 
         // The relation creates a fresh related model each time it's built.
         $related = $relation->getRelated();
-        $key = $related->getKeyName();
+        $ownerKey = $relation->getOwnerKeyName() ?: $related->getKeyName();
+        $related->forceFill([$ownerKey => $foreignKey]);
 
-        // The foreign key is only the related model's ID if it references its
-        // primary key; otherwise, load it normally.
-        if (($relation->getOwnerKeyName() ?: $key) !== $key) {
+        // The foreign key is only the related resource's ID if it references
+        // the column the ID reads; otherwise, load it normally.
+        $resource = $context->resourceForModel($this->collections, $related);
+
+        if (!$resource instanceof EloquentResource || $resource->idColumn($related) !== $ownerKey) {
             return parent::getValue($context);
         }
 
-        return $related->forceFill([$key => $foreignKey]);
+        return $related;
     }
 }

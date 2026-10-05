@@ -144,10 +144,10 @@ ToOne::make('product')->withForeignKeyLinkage(fn(Context $context) => ...);
 
 It is only used when just linkage is needed (the relationship is not included,
 or on its relationship endpoint). If the relation is already loaded, it is used
-as-is, and if the foreign key doesn't reference the related model's primary
-key, it is loaded normally. The related resource's ID must be the model's
-primary key, and its collection must be able to tell the resource type from a
-model with only its key set.
+as-is. Otherwise, the foreign key is used only if it references the column the
+related resource's ID reads (its `property`, or the primary key by default);
+if not, the relation is loaded normally. The related resource's collection must
+be able to tell the resource type from a model with only that column set.
 
 ::: warning
 This skips the relationship's `scope`, the related resource's scope, and the
