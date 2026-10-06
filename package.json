@@ -6,11 +6,12 @@
         "docs:dev": "vitepress dev docs",
         "docs:build": "vitepress build docs",
         "docs:preview": "vitepress preview docs",
-        "format": "vendor/bin/mago format",
+        "format": "vendor/bin/mago format && prettier --write \"**/*.md\"",
         "release": "release-it"
     },
     "devDependencies": {
         "@release-it/keep-a-changelog": "^5.0.0",
+        "prettier": "^3.9.9",
         "release-it": "^17.0.0",
         "vitepress": "^1.0.0-rc.31"
     },

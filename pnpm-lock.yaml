@@ -11,6 +11,9 @@ importers:
       '@release-it/keep-a-changelog':
         specifier: ^5.0.0
         version: 5.0.0(release-it@17.11.0)
+      prettier:
+        specifier: ^3.9.9
+        version: 3.9.9
       release-it:
         specifier: ^17.0.0
         version: 17.11.0
@@ -1425,6 +1428,11 @@ packages:
 
   preact@10.26.5:
     resolution: {integrity: sha512-fmpDkgfGU6JYux9teDWLhj9mKN55tyepwYbxHgQuIxbWQzgFg5vk7Mrrtfx7xRxq798ynkY4DDDxZr235Kk+4w==}
+
+  prettier@3.9.9:
+    resolution: {integrity: sha512-Z/CJHIkdujO/OtN7nXUii0Rf3VT5SRuhjBA82Xvu2XhBUgX3nhP67T0LHceBdQLex7OOFGTox+Q5Yg8Jk2Qivg==}
+    engines: {node: '>=14'}
+    hasBin: true
 
   property-information@7.0.0:
     resolution: {integrity: sha512-7D/qOz/+Y4X/rzSB6jKxKUsQnphO046ei8qxG59mtM3RG3DHgTK81HrxrmoDVINJb8NKT5ZsRbwHvQ6B68Iyhg==}
@@ -3180,6 +3188,8 @@ snapshots:
       source-map-js: 1.2.1
 
   preact@10.26.5: {}
+
+  prettier@3.9.9: {}
 
   property-information@7.0.0: {}
 

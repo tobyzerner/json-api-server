@@ -1,0 +1,9 @@
+php-version = "8.1"
+
+[source]
+paths = ["src", "tests"]
+includes = ["vendor"]
+
+[formatter]
+print-width = 100
+preserve-breaking-argument-list = true

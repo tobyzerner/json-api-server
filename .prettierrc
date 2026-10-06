@@ -1,15 +1,4 @@
 {
-    "singleQuote": true,
-    "printWidth": 100,
     "proseWrap": "always",
-    "phpVersion": "8.1",
-    "plugins": ["@prettier/plugin-php"],
-    "overrides": [
-        {
-            "files": ["docs/**/*", "*.md"],
-            "options": {
-                "printWidth": 80
-            }
-        }
-    ]
+    "printWidth": 80
 }
