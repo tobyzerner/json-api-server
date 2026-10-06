@@ -64,11 +64,16 @@ class EloquentAttributeLoadTest extends LaravelTestCase
 
     public function test_does_not_load_when_field_is_not_requested()
     {
-        User::create(['name' => 'Toby', 'country_id' => Country::create(['name' => 'Australia'])->id]);
+        User::create([
+            'name' => 'Toby',
+            'country_id' => Country::create(['name' => 'Australia'])->id,
+        ]);
 
         $this->users([
             Attribute::make('name'),
-            Attribute::make('countryName')->load('country')->get(fn(User $user) => $user->country->name),
+            Attribute::make('countryName')->load(
+                'country',
+            )->get(fn(User $user) => $user->country->name),
         ]);
 
         [, $queries] = $this->queries(fn() => $this->get('/users?fields[users]=name'));
@@ -78,7 +83,10 @@ class EloquentAttributeLoadTest extends LaravelTestCase
 
     public function test_does_not_load_when_no_model_is_visible()
     {
-        User::create(['name' => 'Toby', 'country_id' => Country::create(['name' => 'Australia'])->id]);
+        User::create([
+            'name' => 'Toby',
+            'country_id' => Country::create(['name' => 'Australia'])->id,
+        ]);
 
         $this->users([
             Attribute::make('countryName')
@@ -148,7 +156,9 @@ class EloquentAttributeLoadTest extends LaravelTestCase
         Post::create(['title' => 'B', 'user_id' => 2]);
 
         $this->users([
-            Attribute::make('countryName')->load('country')->get(fn(User $user) => $user->country->name),
+            Attribute::make('countryName')->load(
+                'country',
+            )->get(fn(User $user) => $user->country->name),
         ]);
 
         $this->api->resource(
@@ -171,13 +181,21 @@ class EloquentAttributeLoadTest extends LaravelTestCase
 
     public function test_loads_for_resource_meta()
     {
-        User::create(['name' => 'Toby', 'country_id' => Country::create(['name' => 'Australia'])->id]);
-
-        $this->users(meta: [
-            Attribute::make('countryName')->load('country')->get(fn(User $user) => $user->country->name),
+        User::create([
+            'name' => 'Toby',
+            'country_id' => Country::create(['name' => 'Australia'])->id,
         ]);
 
-        $this->assertSame('Australia', $this->document($this->get('/users'))['data'][0]['meta']['countryName']);
+        $this->users(meta: [
+            Attribute::make('countryName')->load(
+                'country',
+            )->get(fn(User $user) => $user->country->name),
+        ]);
+
+        $this->assertSame(
+            'Australia',
+            $this->document($this->get('/users'))['data'][0]['meta']['countryName'],
+        );
     }
 
     public function test_deferred_getters_are_still_batched()
@@ -218,7 +236,7 @@ class EloquentAttributeLoadTest extends LaravelTestCase
 
         $this->users([$field]);
 
-        $context = new Context($this->api, $this->buildRequest('GET', '/users'))
+        $context = (new Context($this->api, $this->buildRequest('GET', '/users')))
             ->withSerializer(new Serializer())
             ->withModel(new User(['name' => 'Stale']));
 
@@ -232,7 +250,13 @@ class EloquentAttributeLoadTest extends LaravelTestCase
     private function users(array $fields = [], array $meta = []): void
     {
         $this->api->resource(
-            new TestResource('users', User::class, endpoints: [Index::make()], fields: $fields, meta: $meta),
+            new TestResource(
+                'users',
+                User::class,
+                endpoints: [Index::make()],
+                fields: $fields,
+                meta: $meta,
+            ),
         );
     }
 }

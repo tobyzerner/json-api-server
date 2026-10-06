@@ -72,8 +72,8 @@ class Number extends AbstractType
         // comparison work at all times we need to cast the result to float. Casting both to integer will not work
         // as intended since then the result of the division would also be rounded.
         if (
-            $this->multipleOf !== null &&
-            (float) ($value / $this->multipleOf) !== round($value / $this->multipleOf)
+            $this->multipleOf !== null
+            && (float) ($value / $this->multipleOf) !== round($value / $this->multipleOf)
         ) {
             $fail(new MultipleViolationException($this->multipleOf, $value));
         }

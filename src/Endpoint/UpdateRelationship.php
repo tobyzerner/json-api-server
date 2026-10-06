@@ -61,7 +61,7 @@ class UpdateRelationship implements Endpoint, ProvidesRootSchema, ProvidesRelati
 
         $context = $this->resolveModel($context, $segments[0]);
 
-        if (!($context->resource instanceof Updatable)) {
+        if (!$context->resource instanceof Updatable) {
             throw new RuntimeException(
                 sprintf('%s must implement %s', get_class($context->resource), Updatable::class),
             );

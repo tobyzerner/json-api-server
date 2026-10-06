@@ -66,9 +66,9 @@ trait IncludesData
                 $fields = $context->fields($resource);
 
                 if (
-                    !($field = $fields[$name] ?? null) ||
-                    !$field instanceof Relationship ||
-                    !$field->includable
+                    !($field = $fields[$name] ?? null)
+                    || !$field instanceof Relationship
+                    || !$field->includable
                 ) {
                     continue;
                 }
@@ -81,7 +81,9 @@ trait IncludesData
             }
 
             if ($relatedResources === null) {
-                throw (new InvalidIncludeException($path . $name))->source(['parameter' => 'include']);
+                throw (new InvalidIncludeException($path . $name))->source([
+                    'parameter' => 'include',
+                ]);
             }
 
             $this->validateInclude($context, $relatedResources, $nested, $path . $name . '.');

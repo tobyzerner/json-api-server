@@ -47,9 +47,7 @@ class NumberTest extends AbstractTestCase
                 'users',
                 endpoints: [Create::make()],
                 fields: [
-                    Attribute::make('count')
-                        ->type(Number::make())
-                        ->writable(),
+                    Attribute::make('count')->type(Number::make())->writable(),
                 ],
             ),
         );

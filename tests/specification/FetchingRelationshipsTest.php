@@ -26,7 +26,7 @@ class FetchingRelationshipsTest extends AbstractTestCase
     public function test_fetch_relationship_for_to_one_returns_identifier_object()
     {
         $this->api->resource(
-            new MockResource('users', models: [($author = (object) ['id' => '1'])]),
+            new MockResource('users', models: [$author = (object) ['id' => '1']]),
         );
 
         $this->api->resource(
@@ -89,8 +89,8 @@ class FetchingRelationshipsTest extends AbstractTestCase
             new MockResource(
                 'comments',
                 models: [
-                    ($comment1 = (object) ['id' => '1']),
-                    ($comment2 = (object) ['id' => '2']),
+                    $comment1 = (object) ['id' => '1'],
+                    $comment2 = (object) ['id' => '2'],
                 ],
             ),
         );
@@ -158,8 +158,8 @@ class FetchingRelationshipsTest extends AbstractTestCase
             new MockResource(
                 'comments',
                 models: [
-                    ($comment1 = (object) ['id' => '1', 'body' => 'alpha']),
-                    ($comment2 = (object) ['id' => '2', 'body' => 'zulu']),
+                    $comment1 = (object) ['id' => '1', 'body' => 'alpha'],
+                    $comment2 = (object) ['id' => '2', 'body' => 'zulu'],
                 ],
                 fields: [Attribute::make('body')],
                 pagination: new OffsetPagination(),

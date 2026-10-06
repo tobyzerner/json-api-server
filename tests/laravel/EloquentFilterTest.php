@@ -3,8 +3,8 @@
 namespace Tobyz\Tests\JsonApiServer\laravel;
 
 use Closure;
-use PHPUnit\Framework\Attributes\DataProvider;
 use Illuminate\Database\Eloquent\Builder;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
 use Tobyz\JsonApiServer\Laravel\Field\ToMany;
@@ -41,7 +41,11 @@ class EloquentFilterTest extends LaravelTestCase
             'published_at' => '2024-01-01 00:00:00',
         ]);
         Post::create(['title' => 'Banana', 'user_id' => $franz->id, 'published' => false]);
-        Post::create(['title' => 'Cherry', 'published' => true, 'published_at' => '2024-06-01 00:00:00']);
+        Post::create([
+            'title' => 'Cherry',
+            'published' => true,
+            'published_at' => '2024-06-01 00:00:00',
+        ]);
 
         Comment::create(['body' => 'One', 'post_id' => 1]);
         Comment::create(['body' => 'Two', 'post_id' => 1]);
@@ -53,8 +57,14 @@ class EloquentFilterTest extends LaravelTestCase
         $this->posts([Where::make('title')]);
 
         $this->assertSame(['1'], $this->filter('filter[title]=Apple'));
-        $this->assertSame(['1', '2'], $this->filter('filter[title][in][]=Apple&filter[title][in][]=Banana'));
-        $this->assertSame(['3'], $this->filter('filter[title][notin][]=Apple&filter[title][notin][]=Banana'));
+        $this->assertSame(
+            ['1', '2'],
+            $this->filter('filter[title][in][]=Apple&filter[title][in][]=Banana'),
+        );
+        $this->assertSame(
+            ['3'],
+            $this->filter('filter[title][notin][]=Apple&filter[title][notin][]=Banana'),
+        );
         $this->assertSame(['2', '3'], $this->filter('filter[title][ne]=Apple'));
     }
 
@@ -164,7 +174,10 @@ class EloquentFilterTest extends LaravelTestCase
 
         // Each operator repeats the expression's bindings. The Eloquent builder
         // only accepts bindings by forwarding addBinding() to its base query.
-        $this->assertSame(['1', '3'], $this->filter('filter[shout][like]=%25!&filter[shout][notlike]=%25a!'));
+        $this->assertSame(
+            ['1', '3'],
+            $this->filter('filter[shout][like]=%25!&filter[shout][notlike]=%25a!'),
+        );
         $this->assertSame(['2'], $this->filter('filter[shout]=Banana!'));
         $this->assertInstanceOf(Context::class, $seenContext);
 
@@ -233,7 +246,9 @@ class EloquentFilterTest extends LaravelTestCase
 
     public function test_where_has_typed_ids()
     {
-        $this->posts([WhereHas::make('author')->type(Type\Integer::make())], [ToOne::make('author')->type('users')]);
+        $this->posts([WhereHas::make('author')->type(Type\Integer::make())], [ToOne::make(
+            'author',
+        )->type('users')]);
 
         $this->assertSame(['2', '3'], $this->filter('filter[author][ne]=1'));
         $this->assertInstanceOf(JsonApiErrorsException::class, $this->exception(
@@ -253,7 +268,9 @@ class EloquentFilterTest extends LaravelTestCase
                 $scoped = $context->filters();
             },
             usersFilters: [
-                CustomFilter::make('name', function ($query, string $value, Context $context) use (&$nested) {
+                CustomFilter::make('name', function ($query, string $value, Context $context) use (
+                    &$nested,
+                ) {
                     $nested = $context->filters();
                     $query->where('name', $value);
                 }),
@@ -319,7 +336,11 @@ class EloquentFilterTest extends LaravelTestCase
     {
         $this->posts([
             Scope::make('titled'),
-            Scope::make('startsWith')->scope(fn(Builder $query, $value) => $query->where('title', 'like', "$value%")),
+            Scope::make('startsWith')->scope(fn(Builder $query, $value) => $query->where(
+                'title',
+                'like',
+                "$value%",
+            )),
             Scope::make('published')->asBoolean(),
         ]);
 
@@ -361,11 +382,16 @@ class EloquentFilterTest extends LaravelTestCase
     {
         $this->posts([Where::make('title'), Where::make('published')->asBoolean()]);
 
-        $this->assertSame(['1', '2'], $this->filter('filter[or][0][title]=Apple&filter[or][1][title]=Banana'));
+        $this->assertSame(
+            ['1', '2'],
+            $this->filter('filter[or][0][title]=Apple&filter[or][1][title]=Banana'),
+        );
         $this->assertSame(['2', '3'], $this->filter('filter[not][title]=Apple'));
         $this->assertSame(
             ['3'],
-            $this->filter('filter[published]=1&filter[not][or][0][title]=Apple&filter[not][or][1][title]=Banana'),
+            $this->filter(
+                'filter[published]=1&filter[not][or][0][title]=Apple&filter[not][or][1][title]=Banana',
+            ),
         );
     }
 

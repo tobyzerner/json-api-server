@@ -59,9 +59,7 @@ class UpdatingRelationshipsTest extends AbstractTestCase
                 models: [(object) ['id' => '1']],
                 endpoints: [Update::make()],
                 fields: [
-                    ToMany::make('pets')
-                        ->writable()
-                        ->attachable(),
+                    ToMany::make('pets')->writable()->attachable(),
                 ],
             ),
         );
@@ -86,7 +84,7 @@ class UpdatingRelationshipsTest extends AbstractTestCase
         $this->api->resource(
             new MockResource(
                 'pets',
-                models: [($pet = (object) ['id' => '1']), (object) ['id' => '2']],
+                models: [$pet = (object) ['id' => '1'], (object) ['id' => '2']],
             ),
         );
 
@@ -96,9 +94,7 @@ class UpdatingRelationshipsTest extends AbstractTestCase
                 models: [(object) ['id' => '1', 'pets' => [$pet]]],
                 endpoints: [Update::make()],
                 fields: [
-                    ToMany::make('pets')
-                        ->writable()
-                        ->attachable(),
+                    ToMany::make('pets')->writable()->attachable(),
                 ],
             ),
         );
@@ -123,7 +119,7 @@ class UpdatingRelationshipsTest extends AbstractTestCase
         $this->api->resource(
             new MockResource(
                 'pets',
-                models: [($pet1 = (object) ['id' => '1']), ($pet2 = (object) ['id' => '2'])],
+                models: [$pet1 = (object) ['id' => '1'], $pet2 = (object) ['id' => '2']],
             ),
         );
 
@@ -133,9 +129,7 @@ class UpdatingRelationshipsTest extends AbstractTestCase
                 models: [(object) ['id' => '1', 'pets' => [$pet1, $pet2]]],
                 endpoints: [Update::make()],
                 fields: [
-                    ToMany::make('pets')
-                        ->writable()
-                        ->attachable(),
+                    ToMany::make('pets')->writable()->attachable(),
                 ],
             ),
         );
@@ -157,7 +151,7 @@ class UpdatingRelationshipsTest extends AbstractTestCase
         $this->api->resource(
             new MockResource(
                 'pets',
-                models: [($pet1 = (object) ['id' => '1']), ($pet2 = (object) ['id' => '2'])],
+                models: [$pet1 = (object) ['id' => '1'], $pet2 = (object) ['id' => '2']],
             ),
         );
 
@@ -204,7 +198,7 @@ class UpdatingRelationshipsTest extends AbstractTestCase
         $this->api->resource(
             new MockResource(
                 'pets',
-                models: [($pet1 = (object) ['id' => '1']), ($pet2 = (object) ['id' => '2'])],
+                models: [$pet1 = (object) ['id' => '1'], $pet2 = (object) ['id' => '2']],
             ),
         );
 

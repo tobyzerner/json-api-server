@@ -9,6 +9,5 @@ class Page
         public ?bool $isFirstPage = null,
         public ?bool $isLastPage = null,
         public ?bool $rangeTruncated = null,
-    ) {
-    }
+    ) {}
 }

@@ -13,7 +13,7 @@ class Scope extends Filter
 
     protected const SUPPORTED_OPERATORS = ['eq', 'ne'];
 
-    protected null|string|Closure $scope = null;
+    protected string|Closure|null $scope = null;
     protected bool $asBoolean = false;
 
     public function __construct(string $name)
@@ -28,7 +28,7 @@ class Scope extends Filter
         return new static($name);
     }
 
-    public function scope(null|string|Closure $scope): static
+    public function scope(string|Closure|null $scope): static
     {
         $this->scope = $scope;
 

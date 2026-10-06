@@ -60,7 +60,10 @@ class EloquentSortTest extends LaravelTestCase
         $response = $this->get('/posts?sort=-xComments');
 
         $this->assertSame(['3', '1', '2'], $this->ids($response));
-        $this->assertSame([2, 1, 0], $this->attributeValues($this->document($response)['data'], 'xCount'));
+        $this->assertSame(
+            [2, 1, 0],
+            $this->attributeValues($this->document($response)['data'], 'xCount'),
+        );
     }
 
     /**

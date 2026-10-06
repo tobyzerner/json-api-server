@@ -49,7 +49,9 @@ class EloquentResourceTest extends LaravelTestCase
 
         $this->assertSame(['2'], $this->ids($this->get('/users')));
         $this->assertSame(200, $this->get('/users/2')->getStatusCode());
-        $this->assertInstanceOf(ResourceNotFoundException::class, $this->exception(fn() => $this->get('/users/1')));
+        $this->assertInstanceOf(ResourceNotFoundException::class, $this->exception(
+            fn() => $this->get('/users/1'),
+        ));
     }
 
     public function test_finds_by_id_attribute_when_it_is_not_the_key()
@@ -60,10 +62,18 @@ class EloquentResourceTest extends LaravelTestCase
         $this->resources(ids: ['users' => Id::make()->property('uuid')]);
 
         $this->assertJsonApiDocumentSubset(
-            ['data' => ['type' => 'users', 'id' => 'uuid-toby', 'attributes' => ['name' => 'Toby']]],
+            [
+                'data' => [
+                    'type' => 'users',
+                    'id' => 'uuid-toby',
+                    'attributes' => ['name' => 'Toby'],
+                ],
+            ],
             $this->get('/users/uuid-toby')->getBody(),
         );
-        $this->assertInstanceOf(ResourceNotFoundException::class, $this->exception(fn() => $this->get('/users/2')));
+        $this->assertInstanceOf(ResourceNotFoundException::class, $this->exception(
+            fn() => $this->get('/users/2'),
+        ));
     }
 
     public function test_find_does_not_cast_ids()
@@ -72,14 +82,18 @@ class EloquentResourceTest extends LaravelTestCase
 
         $this->resources();
 
-        $this->assertInstanceOf(ResourceNotFoundException::class, $this->exception(fn() => $this->get('/users/1abc')));
+        $this->assertInstanceOf(ResourceNotFoundException::class, $this->exception(
+            fn() => $this->get('/users/1abc'),
+        ));
     }
 
     public function test_scope_receives_context()
     {
         $contexts = [];
 
-        $this->api->resource($this->users(scope: function ($query, Context $context) use (&$contexts) {
+        $this->api->resource($this->users(scope: function ($query, Context $context) use (
+            &$contexts,
+        ) {
             $contexts[] = $context;
         }));
 
@@ -175,7 +189,8 @@ class EloquentResourceTest extends LaravelTestCase
     {
         Post::create(['title' => 'Hello']);
 
-        $this->api->resource(new class('posts', Post::class, endpoints: [Delete::make()]) extends TestResource {
+        $this->api->resource(new class('posts', Post::class, endpoints: [Delete::make()]) extends
+            TestResource {
             use SoftDeletes;
         });
 
@@ -252,7 +267,9 @@ class EloquentResourceTest extends LaravelTestCase
             User::create(['name' => "User $i", 'is_admin' => ($i % 2) === 0]);
         }
 
-        $this->api->resource($this->users(endpoints: [Index::make()->paginate(2)], scope: fn($query) => $query->where(
+        $this->api->resource($this->users(endpoints: [Index::make()->paginate(
+            2,
+        )], scope: fn($query) => $query->where(
             'is_admin',
             true,
         )));
@@ -269,7 +286,9 @@ class EloquentResourceTest extends LaravelTestCase
             User::create(['name' => "User $i"]);
         }
 
-        $this->api->resource($this->users(endpoints: [Index::make()->cursorPaginate(2)], defaultSort: 'id'));
+        $this->api->resource($this->users(endpoints: [Index::make()->cursorPaginate(
+            2,
+        )], defaultSort: 'id'));
 
         $first = $this->document($this->get('/users'));
         $this->assertSame(['1', '2'], array_column($first['data'], 'id'));
@@ -298,7 +317,9 @@ class EloquentResourceTest extends LaravelTestCase
     #[DataProvider('invalidCursors')]
     public function test_cursor_pagination_rejects_invalid_cursors(string $cursor)
     {
-        $this->api->resource($this->users(endpoints: [Index::make()->cursorPaginate(2)], defaultSort: 'id'));
+        $this->api->resource($this->users(endpoints: [Index::make()->cursorPaginate(
+            2,
+        )], defaultSort: 'id'));
 
         // Laravel converts warnings, such as for missing cursor parameters, to
         // exceptions.

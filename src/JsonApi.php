@@ -56,8 +56,9 @@ class JsonApi implements RequestHandlerInterface
      */
     private array $collectionsByResource = [];
 
-    public function __construct(public string $basePath = '')
-    {
+    public function __construct(
+        public string $basePath = '',
+    ) {
         $this->basePath = rtrim($this->basePath, '/');
     }
 
@@ -70,8 +71,8 @@ class JsonApi implements RequestHandlerInterface
     {
         foreach ($parameters as $parameter) {
             if (
-                $parameter->in === 'query' &&
-                preg_match('/^(page|filter|sort|include|fields)(\[|$)/', $parameter->name)
+                $parameter->in === 'query'
+                && preg_match('/^(page|filter|sort|include|fields)(\[|$)/', $parameter->name)
             ) {
                 throw new InvalidArgumentException(
                     "Query parameter '$parameter->name' is reserved for endpoint configuration.",
@@ -295,9 +296,10 @@ class JsonApi implements RequestHandlerInterface
         $status = $e->getJsonApiStatus();
         $context = new Context($this, new ServerRequest('GET', '/'));
 
-        return $context
-            ->createResponse(['errors' => array_map($this->formatError(...), $errors)])
-            ->withStatus($status);
+        return $context->createResponse(['errors' => array_map(
+            $this->formatError(...),
+            $errors,
+        )])->withStatus($status);
     }
 
     private function formatError(ErrorProvider $exception): array

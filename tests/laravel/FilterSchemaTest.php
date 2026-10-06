@@ -22,7 +22,18 @@ use Tobyz\Tests\JsonApiServer\AbstractTestCase;
  */
 class FilterSchemaTest extends AbstractTestCase
 {
-    private const COMPARABLE_OPERATORS = ['eq', 'ne', 'in', 'notin', 'lt', 'lte', 'gt', 'gte', 'null', 'notnull'];
+    private const COMPARABLE_OPERATORS = [
+        'eq',
+        'ne',
+        'in',
+        'notin',
+        'lt',
+        'lte',
+        'gt',
+        'gte',
+        'null',
+        'notnull',
+    ];
     private const ALL_OPERATORS = [...self::COMPARABLE_OPERATORS, 'like', 'notlike'];
 
     public function test_where_derives_default_operators_from_integer_type(): void

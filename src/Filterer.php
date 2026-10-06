@@ -45,7 +45,10 @@ class Filterer
             $filters,
             'and',
             [],
-            array_filter($this->definitions, fn(Filter $filter) => $filter->isVisible($this->context)),
+            array_filter(
+                $this->definitions,
+                fn(Filter $filter) => $filter->isVisible($this->context),
+            ),
         );
     }
 
@@ -55,7 +58,8 @@ class Filterer
             try {
                 if (
                     is_int($key)
-                    || $this->collection instanceof SupportsBooleanFilters && in_array($key, ['and', 'or', 'not'])
+                    || $this->collection instanceof SupportsBooleanFilters
+                    && in_array($key, ['and', 'or', 'not'])
                 ) {
                     if (!is_array($value)) {
                         throw new InvalidFilterStructureException();
@@ -73,8 +77,13 @@ class Filterer
         return $filters;
     }
 
-    private function applyGroup($query, array $filters, string $boolean, array $path, array $availableFilters): void
-    {
+    private function applyGroup(
+        $query,
+        array $filters,
+        string $boolean,
+        array $path,
+        array $availableFilters,
+    ): void {
         $clauses = [];
 
         foreach ($filters as $key => $value) {
@@ -82,7 +91,8 @@ class Filterer
 
             if (
                 is_int($key)
-                || $this->collection instanceof SupportsBooleanFilters && in_array($key, ['and', 'or', 'not'])
+                || $this->collection instanceof SupportsBooleanFilters
+                && in_array($key, ['and', 'or', 'not'])
             ) {
                 $clauses[] = fn($query) => $this->applyGroup(
                     $query,

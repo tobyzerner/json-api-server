@@ -16,8 +16,12 @@ trait FindsResources
      */
     private function findResource(Context $context, string $id)
     {
-        return $this->findResources($context, [$id])[$id] ??
-            throw new ResourceNotFoundException($context->collection->name(), $id);
+        return (
+            $this->findResources($context, [$id])[$id] ?? throw new ResourceNotFoundException(
+                $context->collection->name(),
+                $id,
+            )
+        );
     }
 
     /**

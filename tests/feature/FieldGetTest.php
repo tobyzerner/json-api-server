@@ -55,9 +55,9 @@ class FieldGetTest extends AbstractTestCase
                 fields: [
                     Attribute::make('raw'),
                     Attribute::make('serialized')->serialize(fn($value) => strtoupper($value)),
-                    Attribute::make('getter')
-                        ->get(fn() => 'getter')
-                        ->serialize(fn($value) => strtoupper($value)),
+                    Attribute::make('getter')->get(fn() => 'getter')->serialize(
+                        fn($value) => strtoupper($value),
+                    ),
                 ],
             ),
         );

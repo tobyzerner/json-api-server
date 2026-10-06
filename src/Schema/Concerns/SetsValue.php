@@ -118,8 +118,10 @@ trait SetsValue
      */
     public function isWritableOnCreate(Context $context): bool
     {
-        return $this->isWritable($context) ||
-            ($this->writableOnCreate && ($this->writableOnCreate)($context->model, $context));
+        return (
+            $this->isWritable($context)
+            || $this->writableOnCreate && ($this->writableOnCreate)($context->model, $context)
+        );
     }
 
     /**
@@ -161,8 +163,8 @@ trait SetsValue
         if ($this->setter) {
             ($this->setter)($model, $value, $context);
         } elseif (
-            !$this->saver &&
-            ($context->resource instanceof Creatable || $context->resource instanceof Updatable)
+            !$this->saver
+            && ($context->resource instanceof Creatable || $context->resource instanceof Updatable)
         ) {
             $context->resource->setValue($model, $this, $value, $context);
         }
@@ -176,8 +178,8 @@ trait SetsValue
         if ($this->saver) {
             ($this->saver)($model, $value, $context);
         } elseif (
-            $context->resource instanceof Creatable ||
-            $context->resource instanceof Updatable
+            $context->resource instanceof Creatable
+            || $context->resource instanceof Updatable
         ) {
             $context->resource->saveValue($model, $this, $value, $context);
         }

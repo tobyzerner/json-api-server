@@ -17,8 +17,7 @@ class MockCollection extends AbstractCollection implements Listable, Paginatable
         private readonly array $endpoints = [],
         private readonly array $filters = [],
         private readonly array $sorts = [],
-    ) {
-    }
+    ) {}
 
     public function name(): string
     {

@@ -25,9 +25,7 @@ class FieldRequiredTest extends AbstractTestCase
                 'users',
                 endpoints: [Create::make()],
                 fields: [
-                    Attribute::make('required')
-                        ->writable()
-                        ->required(),
+                    Attribute::make('required')->writable()->required(),
                 ],
             ),
         );
@@ -48,9 +46,7 @@ class FieldRequiredTest extends AbstractTestCase
                 'users',
                 endpoints: [Create::make()],
                 fields: [
-                    Attribute::make('required')
-                        ->writable()
-                        ->required(),
+                    Attribute::make('required')->writable()->required(),
                 ],
             ),
         );

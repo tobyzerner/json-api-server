@@ -20,9 +20,9 @@ abstract class Filter
     protected ?array $operators = null;
     protected array $operatorTypes = [];
 
-    public function __construct(public string $name)
-    {
-    }
+    public function __construct(
+        public string $name,
+    ) {}
 
     public function type(Type\Type $type): static
     {

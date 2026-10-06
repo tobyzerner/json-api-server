@@ -129,15 +129,13 @@ class IdTest extends AbstractTestCase
         $gets = $serializations = 0;
         $resource = new MockResource(
             'users',
-            id: Id::make()
-                ->get(function ($model) use (&$gets) {
-                    $gets++;
-                    return $model->id;
-                })
-                ->serialize(function ($value) use (&$serializations) {
-                    $serializations++;
-                    return "user:$value";
-                }),
+            id: Id::make()->get(function ($model) use (&$gets) {
+                $gets++;
+                return $model->id;
+            })->serialize(function ($value) use (&$serializations) {
+                $serializations++;
+                return "user:$value";
+            }),
         );
         $model = (object) ['id' => 123];
         $context = (new Context($this->api, $this->buildRequest('GET', '/users')))

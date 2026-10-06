@@ -24,18 +24,17 @@ class CursorPagination implements
 {
     public const PROFILE_URI = 'https://jsonapi.org/profiles/ethanresnick/cursor-pagination';
 
-    public function __construct(public int $defaultSize = 20, public ?int $maxSize = 50)
-    {
-    }
+    public function __construct(
+        public int $defaultSize = 20,
+        public ?int $maxSize = 50,
+    ) {}
 
     public function parameters(): array
     {
         return [
             Parameter::make('page[size]')
                 ->type(
-                    Type\Integer::make()
-                        ->minimum(1)
-                        ->maximum($this->maxSize),
+                    Type\Integer::make()->minimum(1)->maximum($this->maxSize),
                 )
                 ->default(fn() => $this->defaultSize),
 

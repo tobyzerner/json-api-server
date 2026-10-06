@@ -47,18 +47,17 @@ trait JsonApiError
     public function prependSourcePointer(string $pointer): static
     {
         if ($this->sourcePath) {
-            $pointer .=
-                '/' .
-                implode(
-                    '/',
-                    array_map(
-                        fn(int|string $segment) => strtr((string) $segment, [
-                            '~' => '~0',
-                            '/' => '~1',
-                        ]),
-                        $this->sourcePath,
-                    ),
-                );
+            $pointer .= '/'
+            . implode(
+                '/',
+                array_map(
+                    fn(int|string $segment) => strtr((string) $segment, [
+                        '~' => '~0',
+                        '/' => '~1',
+                    ]),
+                    $this->sourcePath,
+                ),
+            );
 
             $this->sourcePath = [];
         }

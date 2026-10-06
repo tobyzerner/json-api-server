@@ -28,8 +28,9 @@ class SchemaContext
     private ArrayObject $resourceLinkDefinitions;
     private ArrayObject $relationshipLinkDefinitions;
 
-    public function __construct(public JsonApi $api)
-    {
+    public function __construct(
+        public JsonApi $api,
+    ) {
         $this->endpoints = new WeakMap();
         $this->fields = new WeakMap();
         $this->meta = new WeakMap();

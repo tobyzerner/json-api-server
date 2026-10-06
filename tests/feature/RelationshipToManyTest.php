@@ -11,8 +11,8 @@ use Tobyz\JsonApiServer\Endpoint\ShowRelationship;
 use Tobyz\JsonApiServer\Endpoint\Update;
 use Tobyz\JsonApiServer\Exception\Data\UnsupportedTypeException;
 use Tobyz\JsonApiServer\Exception\Request\InvalidIncludeException;
-use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\Exception\Request\InvalidQueryParameterException;
+use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\Pagination\OffsetPagination;
 use Tobyz\JsonApiServer\Schema\Field\ToMany;
@@ -36,15 +36,13 @@ class RelationshipToManyTest extends AbstractTestCase
             new MockResource(
                 'users',
                 models: [
-                    ($user1 = (object) ['id' => '1']),
-                    ($user2 = (object) ['id' => '2']),
+                    $user1 = (object) ['id' => '1'],
+                    $user2 = (object) ['id' => '2'],
                     (object) ['id' => '3', 'friends' => [$user1, $user2]],
                 ],
                 endpoints: [Show::make()],
                 fields: [
-                    ToMany::make('friends')
-                        ->withLinkage()
-                        ->type('users'),
+                    ToMany::make('friends')->withLinkage()->type('users'),
                 ],
             ),
         );
@@ -78,9 +76,7 @@ class RelationshipToManyTest extends AbstractTestCase
                 models: [(object) ['id' => '3', 'friends' => []]],
                 endpoints: [Show::make()],
                 fields: [
-                    ToMany::make('friends')
-                        ->withLinkage()
-                        ->type('users'),
+                    ToMany::make('friends')->withLinkage()->type('users'),
                 ],
             ),
         );
@@ -107,8 +103,8 @@ class RelationshipToManyTest extends AbstractTestCase
             new MockResource(
                 'users',
                 models: [
-                    ($user1 = (object) ['id' => '1']),
-                    ($user2 = (object) ['id' => '2']),
+                    $user1 = (object) ['id' => '1'],
+                    $user2 = (object) ['id' => '2'],
                     (object) ['id' => '3', 'friends' => [$user1, $user2]],
                 ],
                 endpoints: [Show::make()],
@@ -144,15 +140,13 @@ class RelationshipToManyTest extends AbstractTestCase
             new MockResource(
                 'users',
                 models: [
-                    ($user1 = (object) ['id' => '1']),
-                    ($user2 = (object) ['id' => '2']),
+                    $user1 = (object) ['id' => '1'],
+                    $user2 = (object) ['id' => '2'],
                     (object) ['id' => '3', 'friends' => [$user1, $user2]],
                 ],
                 endpoints: [Show::make()],
                 fields: [
-                    ToMany::make('friends')
-                        ->type('users')
-                        ->includable(),
+                    ToMany::make('friends')->type('users')->includable(),
                 ],
             ),
         );
@@ -187,10 +181,7 @@ class RelationshipToManyTest extends AbstractTestCase
                 models: [(object) ['id' => '1'], (object) ['id' => '2']],
                 endpoints: [Create::make()],
                 fields: [
-                    ToMany::make('friends')
-                        ->type('users')
-                        ->writable()
-                        ->includable(),
+                    ToMany::make('friends')->type('users')->writable()->includable(),
                 ],
             ),
         );
@@ -237,7 +228,7 @@ class RelationshipToManyTest extends AbstractTestCase
             new MockResource(
                 'users',
                 models: [
-                    ($user1 = (object) ['id' => '1']),
+                    $user1 = (object) ['id' => '1'],
                     (object) ['id' => '2'],
                     (object) ['id' => '3', 'buddies' => [$user1]],
                 ],
@@ -247,7 +238,7 @@ class RelationshipToManyTest extends AbstractTestCase
                         ->type('users')
                         ->writable()
                         ->get(fn($model) => $model->buddies ?? [])
-                        ->set(fn($model, $value) => ($model->buddies = $value)),
+                        ->set(fn($model, $value) => $model->buddies = $value),
                 ],
             ),
         );
@@ -276,8 +267,8 @@ class RelationshipToManyTest extends AbstractTestCase
             new MockResource(
                 'users',
                 models: [
-                    ($user1 = (object) ['id' => '1']),
-                    ($user2 = (object) ['id' => '2']),
+                    $user1 = (object) ['id' => '1'],
+                    $user2 = (object) ['id' => '2'],
                     (object) ['id' => '3'],
                 ],
                 endpoints: [Update::make()],
@@ -321,9 +312,7 @@ class RelationshipToManyTest extends AbstractTestCase
                 models: [(object) ['id' => '1'], (object) ['id' => '3']],
                 endpoints: [Update::make()],
                 fields: [
-                    ToMany::make('friends')
-                        ->type('users')
-                        ->writable(),
+                    ToMany::make('friends')->type('users')->writable(),
                 ],
             ),
         );
@@ -363,9 +352,7 @@ class RelationshipToManyTest extends AbstractTestCase
                 'users',
                 endpoints: [Create::make()],
                 fields: [
-                    ToMany::make('friends')
-                        ->type('users')
-                        ->writable(),
+                    ToMany::make('friends')->type('users')->writable(),
                 ],
             ),
         );
@@ -389,7 +376,7 @@ class RelationshipToManyTest extends AbstractTestCase
     public function test_to_many_create_polymorphic()
     {
         $this->api->resource(
-            new MockResource('animals', models: [($friend = (object) ['id' => '1'])]),
+            new MockResource('animals', models: [$friend = (object) ['id' => '1']]),
         );
 
         $this->api->resource(
@@ -398,9 +385,7 @@ class RelationshipToManyTest extends AbstractTestCase
                 models: [(object) ['id' => '1']],
                 endpoints: [Create::make()],
                 fields: [
-                    ToMany::make('friends')
-                        ->type('creatures')
-                        ->writable(),
+                    ToMany::make('friends')->type('creatures')->writable(),
                 ],
             ),
         );
@@ -438,7 +423,10 @@ class RelationshipToManyTest extends AbstractTestCase
     {
         $api = $this->apiWithRelationshipParameters(ShowRelationship::make());
         $response = $api->handle(
-            $this->buildRequest('GET', '/users/1/relationships/friends?locale=fr&page[offset]=1&page[limit]=1'),
+            $this->buildRequest(
+                'GET',
+                '/users/1/relationships/friends?locale=fr&page[offset]=1&page[limit]=1',
+            ),
         );
 
         $document = json_decode($response->getBody(), true);
@@ -456,13 +444,17 @@ class RelationshipToManyTest extends AbstractTestCase
     private function apiWithRelationshipParameters(Endpoint $endpoint): JsonApi
     {
         $api = new JsonApi();
-        $api->resource(new class (
+        $api->resource(new class(
             'users',
-            models: [(object) ['id' => '1', 'locale' => 'fr', 'friends' => [
-                (object) ['id' => '1', 'locale' => 'en'],
-                (object) ['id' => '2', 'locale' => 'fr'],
-                (object) ['id' => '3', 'locale' => 'fr'],
-            ]]],
+            models: [(object) [
+                'id' => '1',
+                'locale' => 'fr',
+                'friends' => [
+                    (object) ['id' => '1', 'locale' => 'en'],
+                    (object) ['id' => '2', 'locale' => 'fr'],
+                    (object) ['id' => '3', 'locale' => 'fr'],
+                ],
+            ]],
             endpoints: [$endpoint->parameters([Parameter::make('locale')])],
             fields: [
                 ToMany::make('friends')->type('users')->pagination(new OffsetPagination()),
@@ -476,8 +468,11 @@ class RelationshipToManyTest extends AbstractTestCase
                 ));
             }
 
-            public function relatedQuery(object $model, ToMany $relationship, Context $context): ?object
-            {
+            public function relatedQuery(
+                object $model,
+                ToMany $relationship,
+                Context $context,
+            ): ?object {
                 $query = parent::relatedQuery($model, $relationship, $context);
                 $query->models = array_filter(
                     $query->models,

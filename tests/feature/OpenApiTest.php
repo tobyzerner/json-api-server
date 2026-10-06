@@ -46,17 +46,12 @@ class OpenApiTest extends AbstractTestCase
                     ->writableOnCreate()
                     ->required()
                     ->type(
-                        Type\Str::make()
-                            ->pattern('^[a-z0-9-]+$')
-                            ->minLength(3),
+                        Type\Str::make()->pattern('^[a-z0-9-]+$')->minLength(3),
                     ),
 
                 fields: [
                     Attribute::make('name')->type(Type\Str::make()),
-                    ToOne::make('pet')
-                        ->nullable()
-                        ->writable()
-                        ->withLinkage(),
+                    ToOne::make('pet')->nullable()->writable()->withLinkage(),
                     ToMany::make('pets')->includable(),
                 ],
             ),
@@ -83,8 +78,7 @@ class OpenApiTest extends AbstractTestCase
                                         'schema' => [
                                             'type' => 'string',
                                         ],
-                                        'description' =>
-                                            'Comma-separated list of relationship paths to include',
+                                        'description' => 'Comma-separated list of relationship paths to include',
                                     ],
                                     [
                                         'name' => 'fields',
@@ -95,8 +89,7 @@ class OpenApiTest extends AbstractTestCase
                                                 'type' => 'string',
                                             ],
                                         ],
-                                        'description' =>
-                                            'Comma-separated sparse fieldsets keyed by type',
+                                        'description' => 'Comma-separated sparse fieldsets keyed by type',
                                     ],
                                 ],
                                 'responses' => [
@@ -110,15 +103,13 @@ class OpenApiTest extends AbstractTestCase
                                                         'data' => [
                                                             'type' => 'array',
                                                             'items' => [
-                                                                '$ref' =>
-                                                                    '#/components/schemas/users',
+                                                                '$ref' => '#/components/schemas/users',
                                                             ],
                                                         ],
                                                         'included' => [
                                                             'type' => 'array',
                                                             'items' => [
-                                                                '$ref' =>
-                                                                    '#/components/schemas/jsonApiResource',
+                                                                '$ref' => '#/components/schemas/jsonApiResource',
                                                             ],
                                                         ],
                                                     ],
@@ -139,8 +130,7 @@ class OpenApiTest extends AbstractTestCase
                                         'schema' => [
                                             'type' => 'string',
                                         ],
-                                        'description' =>
-                                            'Comma-separated list of relationship paths to include',
+                                        'description' => 'Comma-separated list of relationship paths to include',
                                     ],
                                     [
                                         'name' => 'fields',
@@ -151,8 +141,7 @@ class OpenApiTest extends AbstractTestCase
                                                 'type' => 'string',
                                             ],
                                         ],
-                                        'description' =>
-                                            'Comma-separated sparse fieldsets keyed by type',
+                                        'description' => 'Comma-separated sparse fieldsets keyed by type',
                                     ],
                                 ],
                                 'requestBody' => [
@@ -163,14 +152,12 @@ class OpenApiTest extends AbstractTestCase
                                                 'type' => 'object',
                                                 'properties' => [
                                                     'data' => [
-                                                        '$ref' =>
-                                                            '#/components/schemas/users_create',
+                                                        '$ref' => '#/components/schemas/users_create',
                                                     ],
                                                     'included' => [
                                                         'type' => 'array',
                                                         'items' => [
-                                                            '$ref' =>
-                                                                '#/components/schemas/jsonApiResource',
+                                                            '$ref' => '#/components/schemas/jsonApiResource',
                                                         ],
                                                     ],
                                                 ],
@@ -193,8 +180,7 @@ class OpenApiTest extends AbstractTestCase
                                                         'included' => [
                                                             'type' => 'array',
                                                             'items' => [
-                                                                '$ref' =>
-                                                                    '#/components/schemas/jsonApiResource',
+                                                                '$ref' => '#/components/schemas/jsonApiResource',
                                                             ],
                                                         ],
                                                     ],
@@ -224,8 +210,7 @@ class OpenApiTest extends AbstractTestCase
                                         'schema' => [
                                             'type' => 'string',
                                         ],
-                                        'description' =>
-                                            'Comma-separated list of relationship paths to include',
+                                        'description' => 'Comma-separated list of relationship paths to include',
                                     ],
                                     [
                                         'name' => 'fields',
@@ -236,8 +221,7 @@ class OpenApiTest extends AbstractTestCase
                                                 'type' => 'string',
                                             ],
                                         ],
-                                        'description' =>
-                                            'Comma-separated sparse fieldsets keyed by type',
+                                        'description' => 'Comma-separated sparse fieldsets keyed by type',
                                     ],
                                 ],
                                 'responses' => [
@@ -254,8 +238,7 @@ class OpenApiTest extends AbstractTestCase
                                                         'included' => [
                                                             'type' => 'array',
                                                             'items' => [
-                                                                '$ref' =>
-                                                                    '#/components/schemas/jsonApiResource',
+                                                                '$ref' => '#/components/schemas/jsonApiResource',
                                                             ],
                                                         ],
                                                     ],
@@ -283,8 +266,7 @@ class OpenApiTest extends AbstractTestCase
                                         'schema' => [
                                             'type' => 'string',
                                         ],
-                                        'description' =>
-                                            'Comma-separated list of relationship paths to include',
+                                        'description' => 'Comma-separated list of relationship paths to include',
                                     ],
                                     [
                                         'name' => 'fields',
@@ -295,8 +277,7 @@ class OpenApiTest extends AbstractTestCase
                                                 'type' => 'string',
                                             ],
                                         ],
-                                        'description' =>
-                                            'Comma-separated sparse fieldsets keyed by type',
+                                        'description' => 'Comma-separated sparse fieldsets keyed by type',
                                     ],
                                 ],
                                 'requestBody' => [
@@ -307,14 +288,12 @@ class OpenApiTest extends AbstractTestCase
                                                 'type' => 'object',
                                                 'properties' => [
                                                     'data' => [
-                                                        '$ref' =>
-                                                            '#/components/schemas/users_update',
+                                                        '$ref' => '#/components/schemas/users_update',
                                                     ],
                                                     'included' => [
                                                         'type' => 'array',
                                                         'items' => [
-                                                            '$ref' =>
-                                                                '#/components/schemas/jsonApiResource',
+                                                            '$ref' => '#/components/schemas/jsonApiResource',
                                                         ],
                                                     ],
                                                 ],
@@ -337,8 +316,7 @@ class OpenApiTest extends AbstractTestCase
                                                         'included' => [
                                                             'type' => 'array',
                                                             'items' => [
-                                                                '$ref' =>
-                                                                    '#/components/schemas/jsonApiResource',
+                                                                '$ref' => '#/components/schemas/jsonApiResource',
                                                             ],
                                                         ],
                                                     ],
@@ -386,8 +364,7 @@ class OpenApiTest extends AbstractTestCase
                                         'schema' => [
                                             'type' => 'string',
                                         ],
-                                        'description' =>
-                                            'Comma-separated list of relationship paths to include',
+                                        'description' => 'Comma-separated list of relationship paths to include',
                                     ],
                                     [
                                         'name' => 'fields',
@@ -398,8 +375,7 @@ class OpenApiTest extends AbstractTestCase
                                                 'type' => 'string',
                                             ],
                                         ],
-                                        'description' =>
-                                            'Comma-separated sparse fieldsets keyed by type',
+                                        'description' => 'Comma-separated sparse fieldsets keyed by type',
                                     ],
                                 ],
                                 'responses' => [
@@ -413,8 +389,7 @@ class OpenApiTest extends AbstractTestCase
                                                         'data' => [
                                                             'oneOf' => [
                                                                 [
-                                                                    '$ref' =>
-                                                                        '#/components/schemas/pets',
+                                                                    '$ref' => '#/components/schemas/pets',
                                                                 ],
                                                                 [
                                                                     'type' => 'null',
@@ -424,8 +399,7 @@ class OpenApiTest extends AbstractTestCase
                                                         'included' => [
                                                             'type' => 'array',
                                                             'items' => [
-                                                                '$ref' =>
-                                                                    '#/components/schemas/jsonApiResource',
+                                                                '$ref' => '#/components/schemas/jsonApiResource',
                                                             ],
                                                         ],
                                                     ],
@@ -455,8 +429,7 @@ class OpenApiTest extends AbstractTestCase
                                         'schema' => [
                                             'type' => 'string',
                                         ],
-                                        'description' =>
-                                            'Comma-separated list of relationship paths to include',
+                                        'description' => 'Comma-separated list of relationship paths to include',
                                     ],
                                     [
                                         'name' => 'fields',
@@ -467,8 +440,7 @@ class OpenApiTest extends AbstractTestCase
                                                 'type' => 'string',
                                             ],
                                         ],
-                                        'description' =>
-                                            'Comma-separated sparse fieldsets keyed by type',
+                                        'description' => 'Comma-separated sparse fieldsets keyed by type',
                                     ],
                                     [
                                         'name' => 'page[offset]',
@@ -533,15 +505,13 @@ class OpenApiTest extends AbstractTestCase
                                                         'data' => [
                                                             'type' => 'array',
                                                             'items' => [
-                                                                '$ref' =>
-                                                                    '#/components/schemas/pets',
+                                                                '$ref' => '#/components/schemas/pets',
                                                             ],
                                                         ],
                                                         'included' => [
                                                             'type' => 'array',
                                                             'items' => [
-                                                                '$ref' =>
-                                                                    '#/components/schemas/jsonApiResource',
+                                                                '$ref' => '#/components/schemas/jsonApiResource',
                                                             ],
                                                         ],
                                                     ],
@@ -575,8 +545,7 @@ class OpenApiTest extends AbstractTestCase
                                                     'type' => 'object',
                                                     'properties' => [
                                                         'data' => [
-                                                            '$ref' =>
-                                                                '#/components/schemas/users_relationship_pet',
+                                                            '$ref' => '#/components/schemas/users_relationship_pet',
                                                         ],
                                                     ],
                                                     'required' => ['data'],
@@ -607,8 +576,7 @@ class OpenApiTest extends AbstractTestCase
                                                 'type' => 'object',
                                                 'properties' => [
                                                     'data' => [
-                                                        '$ref' =>
-                                                            '#/components/schemas/users_relationship_pet',
+                                                        '$ref' => '#/components/schemas/users_relationship_pet',
                                                     ],
                                                 ],
                                                 'required' => ['data'],
@@ -625,8 +593,7 @@ class OpenApiTest extends AbstractTestCase
                                                     'type' => 'object',
                                                     'properties' => [
                                                         'data' => [
-                                                            '$ref' =>
-                                                                '#/components/schemas/users_relationship_pet',
+                                                            '$ref' => '#/components/schemas/users_relationship_pet',
                                                         ],
                                                     ],
                                                     'required' => ['data'],
@@ -676,8 +643,7 @@ class OpenApiTest extends AbstractTestCase
                                                     'type' => 'object',
                                                     'properties' => [
                                                         'data' => [
-                                                            '$ref' =>
-                                                                '#/components/schemas/users_relationship_pets',
+                                                            '$ref' => '#/components/schemas/users_relationship_pets',
                                                         ],
                                                     ],
                                                     'required' => ['data'],
@@ -825,8 +791,7 @@ class OpenApiTest extends AbstractTestCase
                                             [
                                                 'allOf' => [
                                                     [
-                                                        '$ref' =>
-                                                            '#/components/schemas/jsonApiResourceIdentifier',
+                                                        '$ref' => '#/components/schemas/jsonApiResourceIdentifier',
                                                     ],
                                                     [
                                                         'properties' => [
@@ -866,8 +831,7 @@ class OpenApiTest extends AbstractTestCase
                                         'items' => [
                                             'allOf' => [
                                                 [
-                                                    '$ref' =>
-                                                        '#/components/schemas/jsonApiResourceIdentifier',
+                                                    '$ref' => '#/components/schemas/jsonApiResourceIdentifier',
                                                 ],
                                                 [
                                                     'properties' => [
@@ -916,12 +880,10 @@ class OpenApiTest extends AbstractTestCase
                                         'type' => 'object',
                                         'properties' => [
                                             'pet' => [
-                                                '$ref' =>
-                                                    '#/components/schemas/users_relationship_pet',
+                                                '$ref' => '#/components/schemas/users_relationship_pet',
                                             ],
                                             'pets' => [
-                                                '$ref' =>
-                                                    '#/components/schemas/users_relationship_pets',
+                                                '$ref' => '#/components/schemas/users_relationship_pets',
                                             ],
                                         ],
                                         'required' => ['pet', 'pets'],
@@ -959,8 +921,7 @@ class OpenApiTest extends AbstractTestCase
                                             'pet' => [
                                                 'allOf' => [
                                                     [
-                                                        '$ref' =>
-                                                            '#/components/schemas/users_relationship_pet',
+                                                        '$ref' => '#/components/schemas/users_relationship_pet',
                                                     ],
                                                     ['required' => ['data']],
                                                 ],
@@ -991,8 +952,7 @@ class OpenApiTest extends AbstractTestCase
                                             'pet' => [
                                                 'allOf' => [
                                                     [
-                                                        '$ref' =>
-                                                            '#/components/schemas/users_relationship_pet',
+                                                        '$ref' => '#/components/schemas/users_relationship_pet',
                                                     ],
                                                     ['required' => ['data']],
                                                 ],
@@ -1027,9 +987,7 @@ class OpenApiTest extends AbstractTestCase
 
         $definition = (new OpenApiGenerator())->generate($api);
         $items =
-            $definition['paths']['/articles']['get']['responses']['200']['content'][
-                'application/vnd.api+json'
-            ]['schema']['properties']['data']['items'];
+            $definition['paths']['/articles']['get']['responses']['200']['content']['application/vnd.api+json']['schema']['properties']['data']['items'];
 
         $this->assertEquals(
             [
@@ -1139,9 +1097,7 @@ class OpenApiTest extends AbstractTestCase
             ['type' => 'integer'],
             json_decode(
                 json_encode(
-                    $operation['responses']['200']['content']['application/vnd.api+json']['schema'][
-                        'properties'
-                    ]['meta']['properties']['count'],
+                    $operation['responses']['200']['content']['application/vnd.api+json']['schema']['properties']['meta']['properties']['count'],
                 ),
                 true,
             ),
@@ -1161,9 +1117,7 @@ class OpenApiTest extends AbstractTestCase
                     UpdateRelationship::make()->schema(['summary' => 'Manage pet relationships']),
                 ],
                 fields: [
-                    ToMany::make('pets')
-                        ->type('pets')
-                        ->writable(),
+                    ToMany::make('pets')->type('pets')->writable(),
                 ],
             ),
         );

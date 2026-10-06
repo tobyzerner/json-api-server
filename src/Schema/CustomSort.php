@@ -7,8 +7,10 @@ use Tobyz\JsonApiServer\Context;
 
 class CustomSort extends Sort
 {
-    public function __construct(public string $name, private readonly Closure $apply)
-    {
+    public function __construct(
+        public string $name,
+        private readonly Closure $apply,
+    ) {
         parent::__construct($name);
     }
 

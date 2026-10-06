@@ -7,9 +7,9 @@ use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Concerns\BuildsOpenApiPaths;
-use Tobyz\JsonApiServer\Endpoint\Concerns\HasSavedCallbacks;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasParameters;
 use Tobyz\JsonApiServer\Endpoint\Concerns\HasResponse;
+use Tobyz\JsonApiServer\Endpoint\Concerns\HasSavedCallbacks;
 use Tobyz\JsonApiServer\Endpoint\Concerns\MutatesResource;
 use Tobyz\JsonApiServer\Endpoint\Concerns\SerializesResourceDocument;
 use Tobyz\JsonApiServer\Exception\ForbiddenException;
@@ -85,25 +85,26 @@ class Create implements Endpoint, ProvidesRootSchema
 
             if ($asyncResult !== null) {
                 if (is_string($asyncResult)) {
-                    $response = $context
-                        ->createResponse($this->serializeDocument($context))
-                        ->withHeader(
-                            'Location',
-                            $context->api->basePath . '/' . ltrim($asyncResult, '/'),
-                        );
+                    $response = $context->createResponse($this->serializeDocument(
+                        $context,
+                    ))->withHeader(
+                        'Location',
+                        $context->api->basePath . '/' . ltrim($asyncResult, '/'),
+                    );
                 } else {
                     $context = $context->forModel([$this->asyncCollection], $asyncResult);
 
-                    $response = $context
-                        ->createResponse($this->serializeResourceDocument($asyncResult, $context))
-                        ->withHeader(
-                            'Content-Location',
-                            implode('/', [
-                                $context->api->basePath,
-                                $context->collection->name(),
-                                $context->id($context->resource, $asyncResult),
-                            ]),
-                        );
+                    $response = $context->createResponse($this->serializeResourceDocument(
+                        $asyncResult,
+                        $context,
+                    ))->withHeader(
+                        'Content-Location',
+                        implode('/', [
+                            $context->api->basePath,
+                            $context->collection->name(),
+                            $context->id($context->resource, $asyncResult),
+                        ]),
+                    );
                 }
 
                 return $response->withStatus(202);

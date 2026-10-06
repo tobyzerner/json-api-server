@@ -57,9 +57,7 @@ class EndpointResponseTest extends AbstractTestCase
         $api = new JsonApi();
 
         $endpoint = $endpointFactory()->headers([
-            Header::make('X-Custom-Header')
-                ->type(Integer::make())
-                ->get(fn() => 42),
+            Header::make('X-Custom-Header')->type(Integer::make())->get(fn() => 42),
         ]);
 
         $api->resource(

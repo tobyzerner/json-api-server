@@ -26,7 +26,9 @@ class Parameter extends Field
 
     protected function deserializeTypeValue(mixed $value): mixed
     {
-        return $this->in === 'query' ? $this->type->deserializeQueryValue($value) : $this->type->deserialize($value);
+        return $this->in === 'query'
+            ? $this->type->deserializeQueryValue($value)
+            : $this->type->deserialize($value);
     }
 
     public function getSchema(SchemaContext $context): array

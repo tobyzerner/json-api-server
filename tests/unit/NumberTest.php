@@ -80,9 +80,7 @@ class NumberTest extends AbstractTestCase
 
     public function test_multipleOf_reset(): void
     {
-        $number = Number::make()
-            ->multipleOf(2)
-            ->multipleOf(null);
+        $number = Number::make()->multipleOf(2)->multipleOf(null);
 
         $fail = $this->createMock(MockedCaller::class);
         $fail->expects($this->never())->method('__invoke');
@@ -96,9 +94,7 @@ class NumberTest extends AbstractTestCase
             [Number::make(), ['type' => 'number']],
             [Number::make()->nullable(), ['type' => 'number', 'nullable' => true]],
             [
-                Number::make()
-                    ->minimum(10)
-                    ->maximum(100),
+                Number::make()->minimum(10)->maximum(100),
                 ['type' => 'number', 'minimum' => 10.0, 'maximum' => 100.0],
             ],
         ];

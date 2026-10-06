@@ -64,15 +64,14 @@ trait MutatesResource
         }
 
         if (
-            array_key_exists('attributes', $body['data']) &&
-            !is_array($body['data']['attributes'])
+            array_key_exists('attributes', $body['data']) && !is_array($body['data']['attributes'])
         ) {
             throw (new InvalidAttributesException())->source(['pointer' => '/data/attributes']);
         }
 
         if (
-            array_key_exists('relationships', $body['data']) &&
-            !is_array($body['data']['relationships'])
+            array_key_exists('relationships', $body['data'])
+            && !is_array($body['data']['relationships'])
         ) {
             throw (new InvalidRelationshipsException())->source([
                 'pointer' => '/data/relationships',
@@ -169,9 +168,16 @@ trait MutatesResource
             $value = get_value($context->data, $field);
 
             try {
-                set_value($context->data, $field, $field->deserializeValue($value, $context->withField($field)));
+                set_value(
+                    $context->data,
+                    $field,
+                    $field->deserializeValue($value, $context->withField($field)),
+                );
             } catch (JsonApiErrorsException $e) {
-                array_push($errors, ...$e->prependSourcePointer('/data' . field_path($field))->errors);
+                array_push(
+                    $errors,
+                    ...$e->prependSourcePointer('/data' . field_path($field))->errors,
+                );
             } catch (Sourceable $e) {
                 throw $e->prependSourcePointer('/data' . field_path($field));
             }

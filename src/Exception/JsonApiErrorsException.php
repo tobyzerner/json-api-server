@@ -6,8 +6,9 @@ use DomainException;
 
 class JsonApiErrorsException extends DomainException implements Sourceable
 {
-    public function __construct(public array $errors)
-    {
+    public function __construct(
+        public array $errors,
+    ) {
         parent::__construct('Multiple errors occurred');
 
         foreach ($this->errors as &$error) {
@@ -67,6 +68,6 @@ class JsonApiErrorsException extends DomainException implements Sourceable
 
         $clientErrors = count(array_filter($statuses, fn($s) => $s[0] === '4'));
 
-        return $clientErrors >= count($statuses) / 2 ? '400' : '500';
+        return $clientErrors >= (count($statuses) / 2) ? '400' : '500';
     }
 }

@@ -193,7 +193,9 @@ class Where extends Filter
         }
 
         if (!is_callable([$query, 'addBinding'])) {
-            throw new LogicException('Query builders must support addBinding() to use bound column expressions.');
+            throw new LogicException(
+                'Query builders must support addBinding() to use bound column expressions.',
+            );
         }
 
         $query->addBinding($bindings, 'where');
@@ -207,7 +209,7 @@ class Where extends Filter
     {
         [$expression, $bindings] = $column + [null, null];
 
-        if ((!is_string($expression) && !$expression instanceof Expression) || !is_array($bindings)) {
+        if (!is_string($expression) && !$expression instanceof Expression || !is_array($bindings)) {
             throw new InvalidArgumentException(
                 'Column expression arrays must be [string|Expression, bindings array].',
             );
@@ -224,11 +226,11 @@ class Where extends Filter
     {
         $expressionClass = 'Illuminate\\Database\\Query\\Expression';
 
-        return is_string($expression) &&
-            class_exists($expressionClass) &&
-            is_subclass_of($expressionClass, Expression::class)
-                ? new $expressionClass($expression)
-                : $expression;
+        return is_string($expression)
+        && class_exists($expressionClass)
+        && is_subclass_of($expressionClass, Expression::class)
+            ? new $expressionClass($expression)
+            : $expression;
     }
 
     private function arrayValue(mixed $value): array

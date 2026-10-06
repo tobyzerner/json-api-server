@@ -47,8 +47,8 @@ class SortWithCount extends Sort
             $relationship .= " as $countAs";
         }
 
-        $query
-            ->withCount($this->scope ? [$relationship => $this->scope] : [$relationship])
-            ->orderBy($countAs, $direction);
+        $query->withCount(
+            $this->scope ? [$relationship => $this->scope] : [$relationship],
+        )->orderBy($countAs, $direction);
     }
 }

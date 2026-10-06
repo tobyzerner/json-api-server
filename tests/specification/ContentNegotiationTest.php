@@ -4,10 +4,10 @@ namespace Tobyz\Tests\JsonApiServer\specification;
 
 use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\Endpoint\Show;
-use Tobyz\JsonApiServer\Extension\Extension;
 use Tobyz\JsonApiServer\Exception\NotAcceptableException;
 use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\Exception\UnsupportedMediaTypeException;
+use Tobyz\JsonApiServer\Extension\Extension;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockResource;
@@ -231,7 +231,8 @@ class ContentNegotiationTest extends AbstractTestCase
         $this->expectException(ResourceNotFoundException::class);
 
         $this->api->handle(
-            $this->buildRequest('POST', '/extension-demo')
+            $this
+                ->buildRequest('POST', '/extension-demo')
                 ->withHeader(
                     'Accept',
                     'application/vnd.api+json; ext="https://example.com/extensions/demo"',

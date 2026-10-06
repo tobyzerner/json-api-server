@@ -13,21 +13,21 @@ and this project adheres to
 - `Findable::find()` now receives an array of IDs and returns an array of the
   models it finds, in any order. To-many relationship data is resolved with one
   `find()` call per related type instead of one per identifier, and
-  `EloquentResource` does this in a single scoped query. A model is only
-  matched if its serialized ID equals the requested ID
+  `EloquentResource` does this in a single scoped query. A model is only matched
+  if its serialized ID equals the requested ID
 - Remove `Tobyz\JsonApiServer\Laravel\Filter\ColumnFilter`
 - Remove `Where::commaSeparated()` and `Scope::commaSeparated()`; configure
   comma-separated query values with
   `Type\Arr::make()->items(...)->commaSeparated()` instead
 - Add `deserializeQueryValue()` to the `Type` interface; custom type
   implementations must implement this method
-- To-one relationships no longer have resource linkage by default, and only
-  have a relationship endpoint (`/{type}/{id}/relationships/{name}`) if they
-  have linkage or are includable; call `withLinkage()` to restore both
+- To-one relationships no longer have resource linkage by default, and only have
+  a relationship endpoint (`/{type}/{id}/relationships/{name}`) if they have
+  linkage or are includable; call `withLinkage()` to restore both
 - Laravel: Belongs-to linkage is no longer built from the foreign key; related
   models are loaded through the related resource's scopes so that hidden
-  resources aren't linked. Scopes can check `$context->linkageOnly` to only
-  load IDs
+  resources aren't linked. Scopes can check `$context->linkageOnly` to only load
+  IDs
 
 ### Added
 
@@ -46,8 +46,8 @@ and this project adheres to
 - Laravel: Add `Attribute::load()` to batch-load the relations an attribute
   needs, or run a closure (e.g. `loadCount`) on those models, only for models
   where the field is requested and visible
-- Laravel: Add `ToOne::withForeignKeyLinkage()` to build belongs-to linkage
-  from the foreign key without loading related models or applying their scopes
+- Laravel: Add `ToOne::withForeignKeyLinkage()` to build belongs-to linkage from
+  the foreign key without loading related models or applying their scopes
 - Laravel: An `Id` with a `property` (such as `uuid`) is used by `find()`,
   `WhereHas` filters by ID and `ToOne::withForeignKeyLinkage()`
 - Add `Context::resourceForModel()` to find the resource that represents a
@@ -62,14 +62,14 @@ and this project adheres to
 
 - Laravel: `EloquentResource` no longer overrides `id()` with a getter; an `Id`
   without a `property` reads and writes the model's key
-- Laravel: Relations loaded only for linkage are no longer set on the model,
-  so partial models loaded by ID-only scopes aren't seen by other fields.
-  Fields that read the same relation now load it themselves.
+- Laravel: Relations loaded only for linkage are no longer set on the model, so
+  partial models loaded by ID-only scopes aren't seen by other fields. Fields
+  that read the same relation now load it themselves.
 - Improve serialization performance and readability
   ([#123](https://github.com/tobyzerner/json-api-server/pull/123) by @mkszepp)
 - Replace Prettier with Mago for formatting
-- Only call `Countable::count()` for paginated lists; unpaginated list
-  documents no longer include `meta.page.total`
+- Only call `Countable::count()` for paginated lists; unpaginated list documents
+  no longer include `meta.page.total`
 
 ### Fixed
 
@@ -80,8 +80,8 @@ and this project adheres to
 - OpenAPI: Require `data` in relationship objects in create and update request
   schemas rather than in the shared relationship schema, which is also used by
   responses where linkage may be omitted
-- Use relationship field getters when reading the current value and building
-  the response in relationship update endpoints
+- Use relationship field getters when reading the current value and building the
+  response in relationship update endpoints
 - Use query-string type deserialization for typed query parameters and preserve
   nested parameter error sources, matching filter behavior.
 - Skip custom validators after filter type validation fails

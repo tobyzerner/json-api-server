@@ -41,7 +41,8 @@ class AtomicOperationsTest extends AbstractTestCase
     public function test_atomic_operations()
     {
         $response = $this->api->handle(
-            $this->buildRequest('POST', '/operations')
+            $this
+                ->buildRequest('POST', '/operations')
                 ->withHeader('Accept', static::MEDIA_TYPE)
                 ->withHeader('Content-Type', static::MEDIA_TYPE)
                 ->withParsedBody([
@@ -105,7 +106,8 @@ class AtomicOperationsTest extends AbstractTestCase
     {
         try {
             $this->api->handle(
-                $this->buildRequest('POST', '/operations')
+                $this
+                    ->buildRequest('POST', '/operations')
                     ->withHeader('Accept', static::MEDIA_TYPE)
                     ->withHeader('Content-Type', static::MEDIA_TYPE)
                     ->withParsedBody([
@@ -142,8 +144,7 @@ class AtomicOperationsTest extends AbstractTestCase
                                 'content' => [
                                     static::MEDIA_TYPE => [
                                         'schema' => [
-                                            '$ref' =>
-                                                '#/components/schemas/jsonApiAtomicOperationsDocument',
+                                            '$ref' => '#/components/schemas/jsonApiAtomicOperationsDocument',
                                         ],
                                     ],
                                 ],
@@ -153,8 +154,7 @@ class AtomicOperationsTest extends AbstractTestCase
                                     'content' => [
                                         static::MEDIA_TYPE => [
                                             'schema' => [
-                                                '$ref' =>
-                                                    '#/components/schemas/jsonApiAtomicResultsDocument',
+                                                '$ref' => '#/components/schemas/jsonApiAtomicResultsDocument',
                                             ],
                                         ],
                                     ],
@@ -232,8 +232,7 @@ class AtomicOperationsTest extends AbstractTestCase
                                         'oneOf' => [
                                             ['type' => 'null'],
                                             [
-                                                '$ref' =>
-                                                    '#/components/schemas/jsonApiAtomicResultDocument',
+                                                '$ref' => '#/components/schemas/jsonApiAtomicResultDocument',
                                             ],
                                         ],
                                     ],

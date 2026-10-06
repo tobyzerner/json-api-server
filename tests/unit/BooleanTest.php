@@ -32,13 +32,13 @@ class BooleanTest extends AbstractTestCase
     public static function queryDeserializationProvider(): array
     {
         return [
-            ['true', true],
-            ['false', false],
-            ['1', true],
-            ['0', false],
-            ['', false],
+            ['true',      true],
+            ['false',     false],
+            ['1',         true],
+            ['0',         false],
+            ['',          false],
             ['sometimes', 'sometimes'],
-            [null, null],
+            [null,        null],
         ];
     }
 

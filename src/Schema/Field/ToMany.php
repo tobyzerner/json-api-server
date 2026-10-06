@@ -89,9 +89,10 @@ class ToMany extends Relationship
         $models = [];
 
         foreach ($data as $i => ['type' => $type, 'id' => $id]) {
-            $models[] =
-                $found[$type][$id] ??
-                throw (new ResourceNotFoundException($type, $id))->prependSourcePath($i);
+            $models[] = $found[$type][$id] ?? throw (new ResourceNotFoundException(
+                $type,
+                $id,
+            ))->prependSourcePath($i);
         }
 
         return $models;

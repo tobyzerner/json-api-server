@@ -19,9 +19,10 @@ class OffsetPagination implements
     ProvidesDocumentMeta,
     ProvidesDocumentLinks
 {
-    public function __construct(public int $defaultLimit = 20, public ?int $maxLimit = 50)
-    {
-    }
+    public function __construct(
+        public int $defaultLimit = 20,
+        public ?int $maxLimit = 50,
+    ) {}
 
     public function parameters(): array
     {
@@ -32,9 +33,7 @@ class OffsetPagination implements
 
             Parameter::make('page[limit]')
                 ->type(
-                    Type\Integer::make()
-                        ->minimum(1)
-                        ->maximum($this->maxLimit),
+                    Type\Integer::make()->minimum(1)->maximum($this->maxLimit),
                 )
                 ->default(fn() => $this->defaultLimit),
         ];
@@ -71,7 +70,7 @@ class OffsetPagination implements
 
         $total = $context->documentMeta['page']['total'] ?? null;
 
-        if ($total !== null && $limit && $offset + $limit < $total) {
+        if ($total !== null && $limit && ($offset + $limit) < $total) {
             $context->documentLinks['last'] = $context->currentUrl([
                 'page' => ['offset' => floor(($total - 1) / $limit) * $limit ?: null],
             ]);

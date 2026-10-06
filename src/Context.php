@@ -19,8 +19,8 @@ use Tobyz\JsonApiServer\Exception\NotAcceptableException;
 use Tobyz\JsonApiServer\Exception\Request\InvalidQueryParameterException;
 use Tobyz\JsonApiServer\Exception\Request\InvalidSparseFieldsetsException;
 use Tobyz\JsonApiServer\Exception\Sourceable;
-use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Resource\Collection;
+use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Resource\Resource;
 use Tobyz\JsonApiServer\Schema\Field\Field;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
@@ -54,8 +54,10 @@ class Context extends SchemaContext
     private WeakMap $modelIds;
     private WeakMap $sparseFields;
 
-    public function __construct(JsonApi $api, public ServerRequestInterface $request)
-    {
+    public function __construct(
+        JsonApi $api,
+        public ServerRequestInterface $request,
+    ) {
         parent::__construct($api);
 
         $this->parseAcceptHeader();
@@ -123,10 +125,9 @@ class Context extends SchemaContext
 
         $queryString = http_build_query($queryParams, '', '&', PHP_QUERY_RFC3986);
 
-        return $this->api->basePath .
-            '/' .
-            $this->path() .
-            ($queryString ? '?' . $queryString : '');
+        return (
+            $this->api->basePath . '/' . $this->path() . ($queryString ? '?' . $queryString : '')
+        );
     }
 
     /**
@@ -135,13 +136,11 @@ class Context extends SchemaContext
     public function body(): ?array
     {
         try {
-            return $this->body ??=
-                (array) $this->request->getParsedBody() ?:
-                json_decode(
-                    $this->request->getBody()->getContents(),
-                    true,
-                    flags: JSON_THROW_ON_ERROR,
-                );
+            return $this->body ??= (array) $this->request->getParsedBody() ?: json_decode(
+                $this->request->getBody()->getContents(),
+                true,
+                flags: JSON_THROW_ON_ERROR,
+            );
         } catch (JsonException $e) {
             throw new InvalidJsonException($e->getMessage());
         }
@@ -367,7 +366,8 @@ class Context extends SchemaContext
         $new = clone $this;
         $new->field = $field;
         $new->include = $include;
-        $new->linkageOnly = $field instanceof Relationship && $include === null && !$field->linkageMeta;
+        $new->linkageOnly =
+            $field instanceof Relationship && $include === null && !$field->linkageMeta;
         return $new;
     }
 
@@ -492,8 +492,10 @@ class Context extends SchemaContext
         }
 
         try {
-            return $this->normalizedFilters[$this->collection] ??=
-                (new Filterer($this->collection, $this))->normalize($filters);
+            return $this->normalizedFilters[$this->collection] ??= (new Filterer(
+                $this->collection,
+                $this,
+            ))->normalize($filters);
         } catch (Sourceable $e) {
             // Delegated filters receive their outer path from the calling filter.
             throw $this->activeFilters === null ? $e->prependSourceParameter('filter') : $e;
@@ -524,8 +526,8 @@ class Context extends SchemaContext
 
                 foreach ($parameters as $parameter) {
                     if (
-                        $flattenedKey === $parameter->name ||
-                        str_starts_with($flattenedKey, $parameter->name . '[')
+                        $flattenedKey === $parameter->name
+                        || str_starts_with($flattenedKey, $parameter->name . '[')
                     ) {
                         $matched = true;
                     }
@@ -561,7 +563,10 @@ class Context extends SchemaContext
     private function extractParameterValue(Parameter $param): array
     {
         if ($param->in === 'header') {
-            return [$this->request->hasHeader($param->name), $this->request->getHeaderLine($param->name)];
+            return [
+                $this->request->hasHeader($param->name),
+                $this->request->getHeaderLine($param->name),
+            ];
         }
 
         if ($param->in !== 'query') {
@@ -592,9 +597,12 @@ class Context extends SchemaContext
             return $new;
         }
 
-        [$new->collection, $new->resource] =
-            $this->findResource($collections, $model) ??
-            throw new RuntimeException('No resource type defined to represent model ' . get_class($model));
+        [$new->collection, $new->resource] = $this->findResource(
+            $collections,
+            $model,
+        ) ?? throw new RuntimeException(
+            'No resource type defined to represent model ' . get_class($model),
+        );
         $new->model = $model;
 
         return $new;
@@ -655,11 +663,11 @@ class Context extends SchemaContext
                 Stream::create(
                     json_encode(
                         $document,
-                        JSON_HEX_TAG |
-                            JSON_HEX_APOS |
-                            JSON_HEX_AMP |
-                            JSON_HEX_QUOT |
-                            JSON_UNESCAPED_SLASHES,
+                        JSON_HEX_TAG
+                        | JSON_HEX_APOS
+                        | JSON_HEX_AMP
+                        | JSON_HEX_QUOT
+                        | JSON_UNESCAPED_SLASHES,
                     ),
                 ),
             );

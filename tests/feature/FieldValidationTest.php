@@ -72,13 +72,15 @@ class FieldValidationTest extends AbstractTestCase
 
     public function test_schema_errors_are_collected_before_custom_deserialization(): void
     {
-        $this->api->resource(new MockResource('users', endpoints: [Create::make()], fields: array_map(
-            fn($name) => Attribute::make($name)
-                ->writable()
-                ->type(Integer::make()->minimum(1))
-                ->deserialize(fn() => $this->fail('Invalid input reached the deserializer.')),
-            ['product', 'quantity'],
-        )));
+        $this->api->resource(
+            new MockResource('users', endpoints: [Create::make()], fields: array_map(
+                fn($name) => Attribute::make($name)
+                    ->writable()
+                    ->type(Integer::make()->minimum(1))
+                    ->deserialize(fn() => $this->fail('Invalid input reached the deserializer.')),
+                ['product', 'quantity'],
+            )),
+        );
 
         try {
             $this->api->handle($this->buildRequest('POST', '/users')->withParsedBody([
@@ -100,7 +102,9 @@ class FieldValidationTest extends AbstractTestCase
             ->type(Integer::make())
             ->default(null)
             ->deserialize(fn() => $this->fail('Null reached the deserializer.'));
-        $this->api->resource(new MockResource('users', endpoints: [Create::make()], fields: [$field]));
+        $this->api->resource(
+            new MockResource('users', endpoints: [Create::make()], fields: [$field]),
+        );
         $request = $this->buildRequest('POST', '/users')->withParsedBody([
             'data' => ['type' => 'users'],
         ]);
@@ -109,7 +113,10 @@ class FieldValidationTest extends AbstractTestCase
             $this->api->handle($request);
             $this->fail('Expected a non-nullable default to fail.');
         } catch (JsonApiErrorsException $e) {
-            $this->assertSame('/data/attributes/product', $e->errors[0]->getJsonApiError()['source']['pointer']);
+            $this->assertSame(
+                '/data/attributes/product',
+                $e->errors[0]->getJsonApiError()['source']['pointer'],
+            );
         }
 
         $field->nullable();

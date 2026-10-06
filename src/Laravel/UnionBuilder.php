@@ -11,9 +11,9 @@ class UnionBuilder implements Builder
     private ?int $limit = null;
     private int $offset = 0;
 
-    public function __construct(protected array $queries)
-    {
-    }
+    public function __construct(
+        protected array $queries,
+    ) {}
 
     public function for(string $type): Builder
     {

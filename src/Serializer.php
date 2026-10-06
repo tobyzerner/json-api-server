@@ -81,10 +81,10 @@ class Serializer
     ): void {
         $this->resolveValue(
             $value,
-            fn($value) => ($this->map[$key]['meta'][$field->name] = $field->serializeValue(
+            fn($value) => $this->map[$key]['meta'][$field->name] = $field->serializeValue(
                 $value,
                 $context,
-            )),
+            ),
         );
     }
 
@@ -96,10 +96,10 @@ class Serializer
     ): void {
         $this->resolveValue(
             $value,
-            fn($value) => ($this->map[$key]['links'][$field->name] = $field->serializeValue(
+            fn($value) => $this->map[$key]['links'][$field->name] = $field->serializeValue(
                 $value,
                 $context,
-            )),
+            ),
         );
     }
 
@@ -224,6 +224,7 @@ class Serializer
 
         return false;
     }
+
     private function resolveDeferred(): void
     {
         $i = 0;
@@ -256,8 +257,7 @@ class Serializer
         mixed $value,
     ): void {
         if (
-            ($value = $field->serializeValue($value, $context)) ||
-            !$field instanceof Relationship
+            ($value = $field->serializeValue($value, $context)) || !$field instanceof Relationship
         ) {
             set_value($this->map[$key], $field, $value);
         }

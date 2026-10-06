@@ -20,12 +20,21 @@ abstract class EloquentBuffer
     {
         // Linkage-only loads are buffered separately, so that scopes which only
         // load IDs for linkage don't apply to models that need full resources.
-        static::$buffer[get_class($model)][$relationName][$context->linkageOnly][spl_object_id($model)] = $model;
+        static::$buffer[get_class($model)][$relationName][$context->linkageOnly][spl_object_id(
+            $model,
+        )] = $model;
     }
 
-    public static function load(Model $model, string $relationName, Relationship $relationship, Context $context): void
-    {
-        if (!($models = static::$buffer[get_class($model)][$relationName][$context->linkageOnly] ?? null)) {
+    public static function load(
+        Model $model,
+        string $relationName,
+        Relationship $relationship,
+        Context $context,
+    ): void {
+        if (
+            !($models =
+                static::$buffer[get_class($model)][$relationName][$context->linkageOnly] ?? null)
+        ) {
             return;
         }
 

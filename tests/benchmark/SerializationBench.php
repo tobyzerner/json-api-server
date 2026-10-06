@@ -91,14 +91,8 @@ class SerializationBench
                 fields: [
                     Attribute::make('title'),
                     Attribute::make('body'),
-                    ToOne::make('author')
-                        ->type('users')
-                        ->withLinkage()
-                        ->includable(),
-                    ToMany::make('comments')
-                        ->type('comments')
-                        ->includable()
-                        ->withLinkage(),
+                    ToOne::make('author')->type('users')->withLinkage()->includable(),
+                    ToMany::make('comments')->type('comments')->includable()->withLinkage(),
                 ],
             ),
         );
@@ -116,14 +110,8 @@ class SerializationBench
                 ],
                 fields: [
                     Attribute::make('body'),
-                    ToOne::make('author')
-                        ->type('users')
-                        ->withLinkage()
-                        ->includable(),
-                    ToOne::make('post')
-                        ->type('posts')
-                        ->withLinkage()
-                        ->includable(),
+                    ToOne::make('author')->type('users')->withLinkage()->includable(),
+                    ToOne::make('post')->type('posts')->withLinkage()->includable(),
                 ],
             ),
         );

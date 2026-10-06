@@ -44,7 +44,9 @@ trait AppliesType
             $this->type->validate($value, function ($error = []) use (&$errors) {
                 $errors[] = $error instanceof ErrorProvider
                     ? $error
-                    : new InvalidFieldValueException(is_scalar($error) ? ['detail' => (string) $error] : $error);
+                    : new InvalidFieldValueException(
+                        is_scalar($error) ? ['detail' => (string) $error] : $error,
+                    );
             });
 
             if ($errors) {

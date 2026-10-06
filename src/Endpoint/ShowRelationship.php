@@ -134,9 +134,11 @@ class ShowRelationship implements Endpoint, ProvidesRootSchema, ProvidesRelation
 
     public function relationshipLinks(Relationship $field, SchemaContext $context): array
     {
-        return $this->hasRelationshipLink($field, $context)
-            ? [$this->relationshipSelfLinkDefinition($field)]
-            : [];
+        return (
+            $this->hasRelationshipLink($field, $context)
+                ? [$this->relationshipSelfLinkDefinition($field)]
+                : []
+        );
     }
 
     private function hasRelationshipLink(Relationship $field, SchemaContext $context): bool
@@ -145,10 +147,9 @@ class ShowRelationship implements Endpoint, ProvidesRootSchema, ProvidesRelation
             return true;
         }
 
-        $collection =
-            count($field->collections) === 1
-                ? $context->api->getCollection($field->collections[0])
-                : null;
+        $collection = count($field->collections) === 1
+            ? $context->api->getCollection($field->collections[0])
+            : null;
 
         return $field instanceof ToMany && $collection instanceof Listable;
     }

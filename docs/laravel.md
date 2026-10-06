@@ -145,18 +145,16 @@ ToOne::make('product')->withForeignKeyLinkage(fn(Context $context) => ...);
 It is only used when just linkage is needed (the relationship is not included,
 or on its relationship endpoint). If the relation is already loaded, it is used
 as-is. Otherwise, the foreign key is used only if it references the column the
-related resource's ID reads (its `property`, or the primary key by default);
-if not, the relation is loaded normally. The related resource's collection must
-be able to tell the resource type from a model with only that column set.
+related resource's ID reads (its `property`, or the primary key by default); if
+not, the relation is loaded normally. The related resource's collection must be
+able to tell the resource type from a model with only that column set.
 
-::: warning
-This skips the relationship's `scope`, the related resource's scope, and the
-related model's global scopes (such as soft deletes) without checking that the
-related row exists, so linkage can point to a resource the viewer can't see or
-that has been deleted. Only its ID is exposed, but use it only where that's
-harmless: ownership or containment (e.g. comment → post, revision → document),
-or public reference data (e.g. address → country).
-:::
+::: warning This skips the relationship's `scope`, the related resource's scope,
+and the related model's global scopes (such as soft deletes) without checking
+that the related row exists, so linkage can point to a resource the viewer can't
+see or that has been deleted. Only its ID is exposed, but use it only where
+that's harmless: ownership or containment (e.g. comment → post, revision →
+document), or public reference data (e.g. address → country). :::
 
 ### Loading Relations for Attributes
 

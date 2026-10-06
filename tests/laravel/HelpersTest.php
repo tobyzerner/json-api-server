@@ -21,7 +21,10 @@ class HelpersTest extends LaravelTestCase
                 ->validate(rules(['email'])),
         ]]);
 
-        $errors = $this->errors(fn() => $this->create('users', ['name' => 'Tobias', 'email' => 'nope']));
+        $errors = $this->errors(fn() => $this->create('users', [
+            'name' => 'Tobias',
+            'email' => 'nope',
+        ]));
 
         $this->assertSame(
             [
@@ -70,7 +73,10 @@ class HelpersTest extends LaravelTestCase
 
         $this->assertSame(
             [['The meta.nickname field is required.', '/data/attributes/meta']],
-            $this->errors(fn() => $this->create('users', ['name' => 'Toby', 'meta' => ['other' => 1]])),
+            $this->errors(fn() => $this->create('users', [
+                'name' => 'Toby',
+                'meta' => ['other' => 1],
+            ])),
         );
     }
 

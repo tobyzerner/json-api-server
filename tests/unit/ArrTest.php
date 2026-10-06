@@ -59,9 +59,7 @@ class ArrTest extends AbstractTestCase
             [Arr::make()->nullable(), null, null],
             [Arr::make()->items(Integer::make()), null, null],
             [
-                Arr::make()
-                    ->items(Integer::make())
-                    ->commaSeparated(),
+                Arr::make()->items(Integer::make())->commaSeparated(),
                 null,
                 null,
             ],
@@ -89,16 +87,12 @@ class ArrTest extends AbstractTestCase
             [Arr::make()->uniqueItems(), [1, 2], true],
             [Arr::make()->uniqueItems(), [1, 1], false],
             [
-                Arr::make()
-                    ->items(Date::make())
-                    ->uniqueItems(),
+                Arr::make()->items(Date::make())->uniqueItems(),
                 [new \DateTime('1993-04-04'), new \DateTime('1993-04-05')],
                 true,
             ],
             [
-                Arr::make()
-                    ->items(Date::make())
-                    ->uniqueItems(),
+                Arr::make()->items(Date::make())->uniqueItems(),
                 [new \DateTime('1993-04-04'), new \DateTime('1993-04-04')],
                 false,
             ],
@@ -165,10 +159,7 @@ class ArrTest extends AbstractTestCase
             [Arr::make(), ['type' => 'array']],
             [Arr::make()->nullable(), ['type' => 'array', 'nullable' => true]],
             [
-                Arr::make()
-                    ->minItems(1)
-                    ->maxItems(10)
-                    ->uniqueItems(),
+                Arr::make()->minItems(1)->maxItems(10)->uniqueItems(),
                 [
                     'type' => 'array',
                     'minItems' => 1,

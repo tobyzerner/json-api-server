@@ -9,9 +9,9 @@ class OneOf extends AbstractType
     /**
      * @param Type[] $types
      */
-    public function __construct(private array $types)
-    {
-    }
+    public function __construct(
+        private array $types,
+    ) {}
 
     public static function make(array $types): static
     {

@@ -36,8 +36,10 @@ trait ResolvesRelationship
     protected function resolveRelationshipData(Context $context, Relationship $field): mixed
     {
         if (
-            ($collection = $this->listableRelationshipCollection($field, $context)) &&
-            ($query = $this->relatedQuery($field, $context->withCollection($collection)))
+            ($collection = $this->listableRelationshipCollection(
+                $field,
+                $context,
+            )) && ($query = $this->relatedQuery($field, $context->withCollection($collection)))
         ) {
             return $this->resolveList($query, $collection, $context, $field->pagination);
         }
@@ -57,10 +59,10 @@ trait ResolvesRelationship
         $collections = array_map($context->api->getCollection(...), $field->collections);
 
         if (
-            $field instanceof ToMany &&
-            count($collections) === 1 &&
-            $context->resource instanceof RelatedListable &&
-            $collections[0] instanceof Listable
+            $field instanceof ToMany
+            && count($collections) === 1
+            && $context->resource instanceof RelatedListable
+            && $collections[0] instanceof Listable
         ) {
             return $collections[0];
         }

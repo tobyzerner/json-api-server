@@ -47,9 +47,7 @@ class BooleanTest extends AbstractTestCase
                 'users',
                 endpoints: [Create::make()],
                 fields: [
-                    Attribute::make('name')
-                        ->type(Boolean::make())
-                        ->writable(),
+                    Attribute::make('name')->type(Boolean::make())->writable(),
                 ],
             ),
         );

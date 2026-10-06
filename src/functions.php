@@ -59,13 +59,16 @@ function resolve_value(mixed $value): mixed
 
 function parse_sort_string(string $string): array
 {
-    return array_map(function ($field) {
-        if ($field[0] === '-') {
-            return [substr($field, 1), 'desc'];
-        } else {
-            return [$field, 'asc'];
-        }
-    }, explode(',', $string));
+    return array_map(
+        function ($field) {
+            if ($field[0] === '-') {
+                return [substr($field, 1), 'desc'];
+            } else {
+                return [$field, 'asc'];
+            }
+        },
+        explode(',', $string),
+    );
 }
 
 function apply_filters(

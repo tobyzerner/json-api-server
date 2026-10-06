@@ -73,8 +73,8 @@ class Str extends AbstractType
         }
 
         if (
-            $this->pattern &&
-            !preg_match('/' . str_replace('/', '\/', $this->pattern) . '/', $value)
+            $this->pattern
+            && !preg_match('/' . str_replace('/', '\/', $this->pattern) . '/', $value)
         ) {
             $fail(new PatternViolationException($this->pattern));
         }

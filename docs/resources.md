@@ -255,8 +255,8 @@ $api->parameters([
 ]);
 ```
 
-`?locale=fr` selects `fr`; omitting it uses `en`. Other values produce a validation
-error. Read the validated value through [Context](context.md):
+`?locale=fr` selects `fr`; omitting it uses `en`. Other values produce a
+validation error. Read the validated value through [Context](context.md):
 
 ```php
 $locale = $context->parameter('locale');

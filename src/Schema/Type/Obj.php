@@ -63,10 +63,9 @@ class Obj extends AbstractType
                 continue;
             }
 
-            $result[$key] =
-                $this->additionalProperties instanceof Type
-                    ? $this->additionalProperties->$method($val)
-                    : $val;
+            $result[$key] = $this->additionalProperties instanceof Type
+                ? $this->additionalProperties->$method($val)
+                : $val;
         }
 
         return $result;

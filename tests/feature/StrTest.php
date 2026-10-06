@@ -47,9 +47,7 @@ class StrTest extends AbstractTestCase
                 'users',
                 endpoints: [Create::make()],
                 fields: [
-                    Attribute::make('name')
-                        ->type(Str::make())
-                        ->writable(),
+                    Attribute::make('name')->type(Str::make())->writable(),
                 ],
             ),
         );

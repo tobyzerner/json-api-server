@@ -52,7 +52,10 @@ class EloquentCollectionTest extends LaravelTestCase
         $this->assertSame(3, $first['meta']['page']['total']);
 
         $second = $this->document($this->get('/feed?sort=type&page[limit]=2&page[offset]=2'));
-        $this->assertSame([['users', '1']], array_map(fn($r) => [$r['type'], $r['id']], $second['data']));
+        $this->assertSame(
+            [['users', '1']],
+            array_map(fn($r) => [$r['type'], $r['id']], $second['data']),
+        );
     }
 
     public function test_collection_scope_and_per_resource_queries()
@@ -75,7 +78,10 @@ class EloquentCollectionTest extends LaravelTestCase
                 ['users', 'posts'],
                 endpoints: [$paginate ? Index::make()->paginate() : Index::make()],
                 sorts: [
-                    CustomSort::make('type', fn(UnionBuilder $query, string $direction) => $query->outer(
+                    CustomSort::make('type', fn(
+                        UnionBuilder $query,
+                        string $direction,
+                    ) => $query->outer(
                         fn($query) => $query->orderBy('type', $direction)->orderBy('id'),
                     )),
                 ],

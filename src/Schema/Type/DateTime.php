@@ -22,9 +22,16 @@ class DateTime extends AbstractType
     protected function deserializeValue(mixed $value): mixed
     {
         if (
-            is_string($value) &&
-            (($date = \DateTime::createFromFormat(DateTimeInterface::RFC3339, $value)) ||
-                ($date = \DateTime::createFromFormat(DateTimeInterface::RFC3339_EXTENDED, $value)))
+            is_string($value)
+            && (
+                ($date = \DateTime::createFromFormat(
+                    DateTimeInterface::RFC3339,
+                    $value,
+                )) || ($date = \DateTime::createFromFormat(
+                    DateTimeInterface::RFC3339_EXTENDED,
+                    $value,
+                ))
+            )
         ) {
             return $date;
         }

@@ -6,9 +6,9 @@ use Tobyz\JsonApiServer\Exception\Type\InvalidSchemaException;
 
 class Not extends AbstractType
 {
-    public function __construct(private Type $type)
-    {
-    }
+    public function __construct(
+        private Type $type,
+    ) {}
 
     public static function make(Type $type): static
     {

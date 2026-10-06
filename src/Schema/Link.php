@@ -23,9 +23,13 @@ class Link extends Field
 
     public function getSchema(SchemaContext $context): array
     {
-        return parent::getSchema($context) +
-            ($this->object
-                ? ['$ref' => '#/components/schemas/jsonApiLinkObject']
-                : ['type' => 'string', 'format' => 'uri']);
+        return (
+            parent::getSchema($context)
+            + (
+                $this->object
+                    ? ['$ref' => '#/components/schemas/jsonApiLinkObject']
+                    : ['type' => 'string', 'format' => 'uri']
+            )
+        );
     }
 }

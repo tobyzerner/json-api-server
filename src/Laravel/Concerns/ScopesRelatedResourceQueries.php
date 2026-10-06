@@ -19,8 +19,8 @@ trait ScopesRelatedResourceQueries
     ): void {
         $applyRelationshipScope = function () use ($relationship, $relation, $context): void {
             if (
-                ($relationship instanceof ToMany || $relationship instanceof ToOne) &&
-                $relationship->scope
+                ($relationship instanceof ToMany || $relationship instanceof ToOne)
+                && $relationship->scope
             ) {
                 ($relationship->scope)($relation, $context);
             }

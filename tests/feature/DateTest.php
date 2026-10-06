@@ -46,9 +46,7 @@ class DateTest extends AbstractTestCase
                 'users',
                 endpoints: [Create::make()],
                 fields: [
-                    Attribute::make('dob')
-                        ->type(Date::make())
-                        ->writable(),
+                    Attribute::make('dob')->type(Date::make())->writable(),
                 ],
             ),
         );
@@ -69,9 +67,7 @@ class DateTest extends AbstractTestCase
                 'users',
                 endpoints: [Create::make()],
                 fields: [
-                    Attribute::make('dob')
-                        ->type(Date::make())
-                        ->writable(),
+                    Attribute::make('dob')->type(Date::make())->writable(),
                 ],
             ),
         );

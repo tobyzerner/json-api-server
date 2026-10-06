@@ -17,9 +17,7 @@ class WhereBelongsTo extends Where
         parent::__construct($name);
 
         $this->type(
-            Arr::make()
-                ->items(Str::make())
-                ->commaSeparated(),
+            Arr::make()->items(Str::make())->commaSeparated(),
         );
     }
 

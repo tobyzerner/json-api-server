@@ -65,9 +65,7 @@ abstract class EloquentCollection extends AbstractCollection implements
         return $query;
     }
 
-    public function scope(UnionBuilder $query, Context $context): void
-    {
-    }
+    public function scope(UnionBuilder $query, Context $context): void {}
 
     public function results(object $query, Context $context): array
     {

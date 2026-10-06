@@ -124,7 +124,7 @@ class FetchingResourcesTest extends AbstractTestCase
 
     public function test_unpaginated_collection_does_not_count()
     {
-        $resource = new class (
+        $resource = new class(
             'articles',
             models: [(object) ['id' => '1'], (object) ['id' => '2']],
             endpoints: [Index::make()],
@@ -152,12 +152,12 @@ class FetchingResourcesTest extends AbstractTestCase
 
     public function test_fetch_related_resource_with_include_for_to_one_relationship()
     {
-        $this->api->resource(new MockResource('pets', models: [($pet = (object) ['id' => '1'])]));
+        $this->api->resource(new MockResource('pets', models: [$pet = (object) ['id' => '1']]));
 
         $this->api->resource(
             new MockResource(
                 'users',
-                models: [($user = (object) ['id' => '1', 'name' => 'Toby', 'pet' => $pet])],
+                models: [$user = (object) ['id' => '1', 'name' => 'Toby', 'pet' => $pet]],
                 fields: [Attribute::make('name'), ToOne::make('pet')->includable()],
             ),
         );
@@ -211,20 +211,18 @@ class FetchingResourcesTest extends AbstractTestCase
 
     public function test_fetch_related_resources_with_include_for_to_many_relationship()
     {
-        $this->api->resource(new MockResource('users', models: [($user = (object) ['id' => '1'])]));
+        $this->api->resource(new MockResource('users', models: [$user = (object) ['id' => '1']]));
 
         $this->api->resource(
             new MockResource(
                 'comments',
                 models: [
-                    ($comment1 = (object) ['id' => '1', 'body' => 'hello', 'author' => $user]),
-                    ($comment2 = (object) ['id' => '2', 'body' => 'test', 'author' => $user]),
+                    $comment1 = (object) ['id' => '1', 'body' => 'hello', 'author' => $user],
+                    $comment2 = (object) ['id' => '2', 'body' => 'test', 'author' => $user],
                 ],
                 fields: [
                     Attribute::make('body'),
-                    ToOne::make('author')
-                        ->type('users')
-                        ->includable(),
+                    ToOne::make('author')->type('users')->includable(),
                 ],
             ),
         );
@@ -285,8 +283,8 @@ class FetchingResourcesTest extends AbstractTestCase
             new MockResource(
                 'comments',
                 models: [
-                    ($comment1 = (object) ['id' => '1', 'body' => 'alpha']),
-                    ($comment2 = (object) ['id' => '2', 'body' => 'zulu']),
+                    $comment1 = (object) ['id' => '1', 'body' => 'alpha'],
+                    $comment2 = (object) ['id' => '2', 'body' => 'zulu'],
                 ],
                 fields: [Attribute::make('body')],
                 sorts: [MockSort::make('body')],
@@ -323,8 +321,8 @@ class FetchingResourcesTest extends AbstractTestCase
             new MockResource(
                 'comments',
                 models: [
-                    ($comment1 = (object) ['id' => '1', 'body' => 'match']),
-                    ($comment2 = (object) ['id' => '2', 'body' => 'other']),
+                    $comment1 = (object) ['id' => '1', 'body' => 'match'],
+                    $comment2 = (object) ['id' => '2', 'body' => 'other'],
                 ],
                 fields: [Attribute::make('body')],
                 filters: [
@@ -364,8 +362,8 @@ class FetchingResourcesTest extends AbstractTestCase
             new MockResource(
                 'comments',
                 models: [
-                    ($comment1 = (object) ['id' => '1', 'body' => 'alpha']),
-                    ($comment2 = (object) ['id' => '2', 'body' => 'zulu']),
+                    $comment1 = (object) ['id' => '1', 'body' => 'alpha'],
+                    $comment2 = (object) ['id' => '2', 'body' => 'zulu'],
                 ],
                 fields: [Attribute::make('body')],
                 pagination: new OffsetPagination(),

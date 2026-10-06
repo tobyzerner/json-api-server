@@ -162,7 +162,9 @@ abstract class LaravelTestCase extends AbstractTestCase
         ]);
 
         $validator = new ValidationFactory(new Translator($loader, 'en'), $this->app);
-        $validator->setPresenceVerifier(new DatabasePresenceVerifier($this->db->getDatabaseManager()));
+        $validator->setPresenceVerifier(
+            new DatabasePresenceVerifier($this->db->getDatabaseManager()),
+        );
 
         $this->app->instance('validator', $validator);
     }
@@ -180,7 +182,10 @@ abstract class LaravelTestCase extends AbstractTestCase
             }
         });
 
-        $this->app->instance(Gate::class, new class(function (array $abilities, array $arguments): bool {
+        $this->app->instance(Gate::class, new class(function (
+            array $abilities,
+            array $arguments,
+        ): bool {
             $this->gateCalls[] = [$abilities, $arguments];
 
             foreach ($abilities as $ability) {
@@ -215,8 +220,7 @@ abstract class LaravelTestCase extends AbstractTestCase
         array $scopes = [],
         array $filters = [],
         array $ids = [],
-    ): void
-    {
+    ): void {
         $models = [
             'posts' => [Post::class, 'title'],
             'users' => [User::class, 'name'],
@@ -263,7 +267,10 @@ abstract class LaravelTestCase extends AbstractTestCase
 
     protected function assertQueryCount(int $count, string $table, array $queries): void
     {
-        $this->assertCount($count, array_filter($queries, fn($sql) => str_contains($sql, "from \"$table\"")));
+        $this->assertCount($count, array_filter($queries, fn($sql) => str_contains(
+            $sql,
+            "from \"$table\"",
+        )));
     }
 
     protected function get(string $uri): ResponseInterface
@@ -276,8 +283,11 @@ abstract class LaravelTestCase extends AbstractTestCase
         return $this->api->handle($this->buildRequest($method, $uri)->withParsedBody($body));
     }
 
-    protected function create(string $type, array $attributes = [], array $relationships = []): ResponseInterface
-    {
+    protected function create(
+        string $type,
+        array $attributes = [],
+        array $relationships = [],
+    ): ResponseInterface {
         return $this->send('POST', "/$type", [
             'data' => array_filter(compact('type', 'attributes', 'relationships')),
         ]);

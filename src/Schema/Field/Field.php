@@ -22,9 +22,9 @@ abstract class Field
     public bool $nullable = false;
     public bool|Closure $sparse = false;
 
-    public function __construct(public readonly string $name)
-    {
-    }
+    public function __construct(
+        public readonly string $name,
+    ) {}
 
     public static function location(): ?string
     {

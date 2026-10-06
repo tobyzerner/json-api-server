@@ -26,9 +26,7 @@ class BooleanDateTimeTest extends AbstractTestCase
                 'users',
                 endpoints: [Create::make()],
                 fields: [
-                    BooleanDateTime::make('isDeleted')
-                        ->property('deletedAt')
-                        ->writable(),
+                    BooleanDateTime::make('isDeleted')->property('deletedAt')->writable(),
                 ],
             ),
         );
@@ -47,12 +45,10 @@ class BooleanDateTimeTest extends AbstractTestCase
         $this->api->resource(
             new MockResource(
                 'users',
-                models: [($user = (object) ['id' => '1'])],
+                models: [$user = (object) ['id' => '1']],
                 endpoints: [Update::make()],
                 fields: [
-                    BooleanDateTime::make('isDeleted')
-                        ->property('deletedAt')
-                        ->writable(),
+                    BooleanDateTime::make('isDeleted')->property('deletedAt')->writable(),
                 ],
             ),
         );
@@ -77,12 +73,10 @@ class BooleanDateTimeTest extends AbstractTestCase
         $this->api->resource(
             new MockResource(
                 'users',
-                models: [($user = (object) ['id' => '1'])],
+                models: [$user = (object) ['id' => '1']],
                 endpoints: [Update::make()],
                 fields: [
-                    BooleanDateTime::make('isDeleted')
-                        ->property('deletedAt')
-                        ->writable(),
+                    BooleanDateTime::make('isDeleted')->property('deletedAt')->writable(),
                 ],
             ),
         );

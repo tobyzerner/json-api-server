@@ -4,17 +4,17 @@ namespace Tobyz\Tests\JsonApiServer\unit;
 
 use PHPUnit\Framework\TestCase;
 use Tobyz\JsonApiServer\JsonApi;
-use Tobyz\JsonApiServer\SchemaContext;
 use Tobyz\JsonApiServer\Schema\Field\Attribute;
 use Tobyz\JsonApiServer\Schema\Link;
 use Tobyz\JsonApiServer\Schema\Meta;
+use Tobyz\JsonApiServer\SchemaContext;
 use Tobyz\Tests\JsonApiServer\MockResource;
 
 class SchemaContextTest extends TestCase
 {
     public function test_definitions_are_only_built_once_per_resource()
     {
-        $resource = new class ('users') extends MockResource {
+        $resource = new class('users') extends MockResource {
             public array $calls = ['fields' => 0, 'meta' => 0, 'links' => 0];
 
             public function fields(): array

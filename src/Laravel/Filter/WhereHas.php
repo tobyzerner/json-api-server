@@ -49,10 +49,9 @@ class WhereHas extends Filter
             );
         }
 
-        $field =
-            $this->field instanceof Relationship
-                ? $this->field
-                : $context->fields($resource)[$this->field ?: $this->name] ?? null;
+        $field = $this->field instanceof Relationship
+            ? $this->field
+            : $context->fields($resource)[$this->field ?: $this->name] ?? null;
 
         if (!$field instanceof Relationship || count($field->collections) !== 1) {
             throw new LogicException(
@@ -68,10 +67,12 @@ class WhereHas extends Filter
         foreach ($value as $operator => $v) {
             $method = match ($operator) {
                 'ne', 'notin' => 'whereDoesntHave',
-                'null', 'notnull' => ($operator === 'null' xor
-                !filter_var($v, FILTER_VALIDATE_BOOLEAN))
-                    ? 'whereDoesntHave'
-                    : 'whereHas',
+                'null', 'notnull' => (
+                    $operator === 'null'
+                    xor !filter_var($v, FILTER_VALIDATE_BOOLEAN)
+                )
+                        ? 'whereDoesntHave'
+                        : 'whereHas',
                 default => 'whereHas',
             };
 
@@ -95,7 +96,10 @@ class WhereHas extends Filter
                 }
 
                 if ($ids = $this->extractIds($v)) {
-                    $resource = $context->resourceForModel([$relatedCollection], $query->getModel());
+                    $resource = $context->resourceForModel(
+                        [$relatedCollection],
+                        $query->getModel(),
+                    );
 
                     if ($resource instanceof EloquentResource) {
                         $resource->whereIds($query, $ids);
@@ -147,8 +151,10 @@ class WhereHas extends Filter
     {
         // Relation filters may receive nested filter objects at the operator level;
         // only treat the value as operators when every top-level key is supported.
-        return is_array($value) &&
-            !array_is_list($value) &&
-            array_diff(array_keys($value), $operators) === [];
+        return (
+            is_array($value)
+            && !array_is_list($value)
+            && array_diff(array_keys($value), $operators) === []
+        );
     }
 }

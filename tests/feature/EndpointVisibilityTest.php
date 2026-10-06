@@ -64,9 +64,7 @@ class EndpointVisibilityTest extends AbstractTestCase
     public function test_endpoint_allowed(string $method, string $uri, ?array $body = null)
     {
         $response = $this->api->handle(
-            $this->buildRequest($method, $uri)
-                ->withParsedBody($body)
-                ->withHeader('Token', '1'),
+            $this->buildRequest($method, $uri)->withParsedBody($body)->withHeader('Token', '1'),
         );
 
         $this->assertTrue($response->getStatusCode() >= 200 && $response->getStatusCode() < 300);

@@ -6,8 +6,9 @@ use Tobyz\JsonApiServer\Exception\BadRequestException;
 
 class InvalidSortException extends BadRequestException
 {
-    public function __construct(public readonly string $sort)
-    {
+    public function __construct(
+        public readonly string $sort,
+    ) {
         parent::__construct("Invalid sort: $sort");
 
         $this->meta(['sort' => $this->sort]);

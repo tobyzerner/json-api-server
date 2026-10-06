@@ -27,9 +27,10 @@ class CollectionAction implements Endpoint, ProvidesRootSchema
 
     private string $method = 'POST';
 
-    public function __construct(public string $name, public Closure $handler)
-    {
-    }
+    public function __construct(
+        public string $name,
+        public Closure $handler,
+    ) {}
 
     public static function make(string $name, Closure $handler): static
     {

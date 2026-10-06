@@ -10,8 +10,9 @@ class MockErrorException extends Exception implements ErrorProvider
 {
     use JsonApiError;
 
-    public function __construct(private readonly string $status = '400')
-    {
+    public function __construct(
+        private readonly string $status = '400',
+    ) {
         parent::__construct('Mock error');
     }
 

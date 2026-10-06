@@ -28,12 +28,11 @@ trait SupportsOperators
             return parent::operatorPayloadType($operator);
         }
 
-        $type =
-            [
-                'null' => Type\Boolean::make(),
-                'notnull' => Type\Boolean::make(),
-            ][$operator] ?? parent::operatorPayloadType($operator);
-        
+        $type = [
+            'null' => Type\Boolean::make(),
+            'notnull' => Type\Boolean::make(),
+        ][$operator] ?? parent::operatorPayloadType($operator);
+
         $listOperator = in_array($operator, ['eq', 'ne', 'in', 'notin'], true);
 
         if (!$listOperator && $type instanceof Type\Arr) {

@@ -110,10 +110,9 @@ abstract class Relationship extends Field
 
     public function serializeValue($value, Context $context): array
     {
-        $relationship =
-            $context->include !== null || $this->hasLinkage($context)
-                ? $this->serializeData($value, $context)
-                : [];
+        $relationship = $context->include !== null || $this->hasLinkage($context)
+            ? $this->serializeData($value, $context)
+            : [];
 
         if ($meta = $this->serializeMeta($context)) {
             $relationship['meta'] = $meta;
@@ -201,12 +200,13 @@ abstract class Relationship extends Field
             $links[$link->name] = $link->getSchema($context);
         }
 
-        return $schema + [
+        return $schema
+        + [
             'type' => 'object',
             'properties' => [
                 'data' => $this->getDataSchema($context),
-                ...$links ? ['links' => ['type' => 'object', 'properties' => $links]] : [],
-                ...$meta ? ['meta' => ['type' => 'object', 'properties' => $meta]] : [],
+                ...($links ? ['links' => ['type' => 'object', 'properties' => $links]] : []),
+                ...($meta ? ['meta' => ['type' => 'object', 'properties' => $meta]] : []),
             ],
         ];
     }
@@ -276,11 +276,13 @@ abstract class Relationship extends Field
                     'properties' => [
                         'type' => [
                             'type' => 'string',
-                            ...count($resources) === 1
-                                ? ['const' => $resources[0]]
-                                : ['enum' => $resources],
+                            ...(
+                                count($resources) === 1
+                                    ? ['const' => $resources[0]]
+                                    : ['enum' => $resources]
+                            ),
                         ],
-                        ...$meta ? ['meta' => ['type' => 'object', 'properties' => $meta]] : [],
+                        ...($meta ? ['meta' => ['type' => 'object', 'properties' => $meta]] : []),
                     ],
                 ],
             ],

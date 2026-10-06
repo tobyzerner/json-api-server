@@ -34,7 +34,7 @@ class RelationshipToOneTest extends AbstractTestCase
             new MockResource(
                 'users',
                 models: [
-                    ($user1 = (object) ['id' => '1']),
+                    $user1 = (object) ['id' => '1'],
                     (object) ['id' => '2', 'friend' => $user1],
                 ],
                 endpoints: [Show::make()],
@@ -87,7 +87,7 @@ class RelationshipToOneTest extends AbstractTestCase
             new MockResource(
                 'users',
                 models: [
-                    ($user1 = (object) ['id' => '1']),
+                    $user1 = (object) ['id' => '1'],
                     (object) ['id' => '2', 'friend' => $user1],
                 ],
                 endpoints: [Show::make()],
@@ -109,7 +109,7 @@ class RelationshipToOneTest extends AbstractTestCase
             new MockResource(
                 'users',
                 models: [
-                    ($user1 = (object) ['id' => '1']),
+                    $user1 = (object) ['id' => '1'],
                     (object) ['id' => '2', 'friend' => $user1],
                 ],
                 endpoints: [Show::make()],
@@ -144,14 +144,12 @@ class RelationshipToOneTest extends AbstractTestCase
             new MockResource(
                 'users',
                 models: [
-                    ($user1 = (object) ['id' => '1']),
+                    $user1 = (object) ['id' => '1'],
                     (object) ['id' => '2', 'friend' => $user1],
                 ],
                 endpoints: [Show::make()],
                 fields: [
-                    ToOne::make('friend')
-                        ->type('users')
-                        ->includable(),
+                    ToOne::make('friend')->type('users')->includable(),
                 ],
             ),
         );
@@ -179,10 +177,7 @@ class RelationshipToOneTest extends AbstractTestCase
                 models: [(object) ['id' => '1']],
                 endpoints: [Create::make()],
                 fields: [
-                    ToOne::make('friend')
-                        ->type('users')
-                        ->writable()
-                        ->includable(),
+                    ToOne::make('friend')->type('users')->writable()->includable(),
                 ],
             ),
         );
@@ -211,14 +206,12 @@ class RelationshipToOneTest extends AbstractTestCase
 
     public function test_to_one_create_resolves_linkage_with_field_on_context()
     {
-        $resource = new class (
+        $resource = new class(
             'users',
             models: [(object) ['id' => '1']],
             endpoints: [Create::make()],
             fields: [
-                ToOne::make('friend')
-                    ->type('users')
-                    ->writable(),
+                ToOne::make('friend')->type('users')->writable(),
             ],
         ) extends MockResource {
             public array $findFields = [];
@@ -263,10 +256,10 @@ class RelationshipToOneTest extends AbstractTestCase
         // Linkage meta may need more than the related model's ID
         $linkageOnly = !$linkageMeta;
 
-        $resource = new class (
+        $resource = new class(
             'users',
             models: [
-                ($user1 = (object) ['id' => '1']),
+                $user1 = (object) ['id' => '1'],
                 (object) ['id' => '2', 'friend' => $user1],
             ],
             endpoints: [Show::make(), Update::make()],
@@ -324,9 +317,7 @@ class RelationshipToOneTest extends AbstractTestCase
                 'users',
                 endpoints: [Create::make()],
                 fields: [
-                    ToOne::make('friend')
-                        ->type('users')
-                        ->writable(),
+                    ToOne::make('friend')->type('users')->writable(),
                 ],
             ),
         );
@@ -346,7 +337,7 @@ class RelationshipToOneTest extends AbstractTestCase
     public function test_to_one_create_polymorphic()
     {
         $this->api->resource(
-            new MockResource('animals', models: [($friend = (object) ['id' => '1'])]),
+            new MockResource('animals', models: [$friend = (object) ['id' => '1']]),
         );
 
         $this->api->resource(
@@ -355,9 +346,7 @@ class RelationshipToOneTest extends AbstractTestCase
                 models: [(object) ['id' => '1']],
                 endpoints: [Create::make()],
                 fields: [
-                    ToOne::make('friend')
-                        ->collection('creatures')
-                        ->writable(),
+                    ToOne::make('friend')->collection('creatures')->writable(),
                 ],
             ),
         );
@@ -384,7 +373,7 @@ class RelationshipToOneTest extends AbstractTestCase
         $this->api->collection(
             new MockCollection('animals', [
                 'dogs' => [(object) ['id' => '1']],
-                'cats' => [($cat = (object) ['id' => '1'])],
+                'cats' => [$cat = (object) ['id' => '1']],
             ]),
         );
 
@@ -396,9 +385,7 @@ class RelationshipToOneTest extends AbstractTestCase
                 models: [(object) ['id' => '1']],
                 endpoints: [Create::make()],
                 fields: [
-                    ToOne::make('pet')
-                        ->collection('animals')
-                        ->writable(),
+                    ToOne::make('pet')->collection('animals')->writable(),
                 ],
             ),
         );
@@ -424,10 +411,7 @@ class RelationshipToOneTest extends AbstractTestCase
                 models: [(object) ['id' => '1']],
                 endpoints: [Create::make()],
                 fields: [
-                    ToOne::make('friend')
-                        ->type('users')
-                        ->writable()
-                        ->includable(),
+                    ToOne::make('friend')->type('users')->writable()->includable(),
                 ],
             ),
         );

@@ -50,9 +50,7 @@ class FieldDefaultTest extends AbstractTestCase
                 'users',
                 endpoints: [Create::make()],
                 fields: [
-                    Attribute::make('name')
-                        ->writable()
-                        ->default('default'),
+                    Attribute::make('name')->writable()->default('default'),
                 ],
             ),
         );

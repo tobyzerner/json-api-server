@@ -33,10 +33,10 @@ class ToOne extends BaseToOne
         $model = $context->model;
 
         if (
-            !$this->foreignKeyLinkage ||
-            $this->getter ||
-            !$context->linkageOnly ||
-            !$model instanceof Model
+            !$this->foreignKeyLinkage
+            || $this->getter
+            || !$context->linkageOnly
+            || !$model instanceof Model
         ) {
             return parent::getValue($context);
         }
@@ -66,8 +66,8 @@ class ToOne extends BaseToOne
         // Without a morph type, a morph-to relation's related model is the
         // parent model itself, so there's nothing to link to.
         if (
-            $foreignKey === null ||
-            ($relation instanceof MorphTo && !$model->getAttribute($relation->getMorphType()))
+            $foreignKey === null
+            || $relation instanceof MorphTo && !$model->getAttribute($relation->getMorphType())
         ) {
             return null;
         }

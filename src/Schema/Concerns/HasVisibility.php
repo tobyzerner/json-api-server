@@ -40,8 +40,10 @@ trait HasVisibility
             return $this->visible;
         }
 
-        return (bool) (isset($context->model)
-            ? ($this->visible)($context->model, $context)
-            : ($this->visible)($context));
+        return (bool) (
+            isset($context->model)
+                ? ($this->visible)($context->model, $context)
+                : ($this->visible)($context)
+        );
     }
 }

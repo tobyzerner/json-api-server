@@ -27,9 +27,7 @@ class ArrTest extends AbstractTestCase
                 'customers',
                 endpoints: [Create::make()],
                 fields: [
-                    Attribute::make('featureToggles')
-                        ->type(Arr::make())
-                        ->writable(),
+                    Attribute::make('featureToggles')->type(Arr::make())->writable(),
                 ],
             ),
         );
@@ -50,9 +48,7 @@ class ArrTest extends AbstractTestCase
                 'customers',
                 endpoints: [Create::make()],
                 fields: [
-                    Attribute::make('featureToggles')
-                        ->type(Arr::make()->minItems(1))
-                        ->writable(),
+                    Attribute::make('featureToggles')->type(Arr::make()->minItems(1))->writable(),
                 ],
             ),
         );
@@ -73,9 +69,7 @@ class ArrTest extends AbstractTestCase
                 'customers',
                 endpoints: [Create::make()],
                 fields: [
-                    Attribute::make('featureToggles')
-                        ->type(Arr::make()->maxItems(1))
-                        ->writable(),
+                    Attribute::make('featureToggles')->type(Arr::make()->maxItems(1))->writable(),
                 ],
             ),
         );
@@ -96,9 +90,7 @@ class ArrTest extends AbstractTestCase
                 'customers',
                 endpoints: [Create::make()],
                 fields: [
-                    Attribute::make('featureToggles')
-                        ->type(Arr::make()->uniqueItems())
-                        ->writable(),
+                    Attribute::make('featureToggles')->type(Arr::make()->uniqueItems())->writable(),
                 ],
             ),
         );
@@ -121,10 +113,7 @@ class ArrTest extends AbstractTestCase
                 fields: [
                     Attribute::make('featureToggles')
                         ->type(
-                            Arr::make()
-                                ->minItems(2)
-                                ->maxItems(4)
-                                ->uniqueItems(),
+                            Arr::make()->minItems(2)->maxItems(4)->uniqueItems(),
                         )
                         ->writable(),
                 ],

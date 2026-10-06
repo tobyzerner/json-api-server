@@ -49,8 +49,8 @@ trait SerializesDocument
         return [
             'type' => 'object',
             'properties' => [
-                ...$meta ? ['meta' => ['type' => 'object', 'properties' => $meta]] : [],
-                ...$links ? ['links' => ['type' => 'object', 'properties' => $links]] : [],
+                ...($meta ? ['meta' => ['type' => 'object', 'properties' => $meta]] : []),
+                ...($links ? ['links' => ['type' => 'object', 'properties' => $links]] : []),
             ],
         ];
     }

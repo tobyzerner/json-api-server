@@ -49,8 +49,7 @@ class MockResource extends AbstractResource implements
         private readonly array $sorts = [],
         private readonly ?string $defaultSort = null,
         private readonly ?Pagination $pagination = null,
-    ) {
-    }
+    ) {}
 
     public function type(): string
     {
@@ -119,7 +118,10 @@ class MockResource extends AbstractResource implements
         return array_values(
             array_filter(
                 $this->models,
-                fn($model) => in_array($context->forModel([$this], $model)->id($this, $model), $ids),
+                fn($model) => in_array(
+                    $context->forModel([$this], $model)->id($this, $model),
+                    $ids,
+                ),
             ),
         );
     }

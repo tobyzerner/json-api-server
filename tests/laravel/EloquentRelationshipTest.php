@@ -29,7 +29,10 @@ class EloquentRelationshipTest extends LaravelTestCase
         [$response, $queries] = $this->queries(fn() => $this->get('/posts?include=author'));
 
         $this->assertSame(['1', '2', '1'], array_column($this->linkage($response, 'author'), 'id'));
-        $this->assertEqualsCanonicalizing(['1', '2'], array_column($this->document($response)['included'], 'id'));
+        $this->assertEqualsCanonicalizing(
+            ['1', '2'],
+            array_column($this->document($response)['included'], 'id'),
+        );
         $this->assertQueryCount(1, 'users', $queries);
     }
 
@@ -38,7 +41,9 @@ class EloquentRelationshipTest extends LaravelTestCase
         $admin = User::create(['name' => 'Admin', 'is_admin' => true]);
         Post::create(['title' => 'A', 'user_id' => $admin->id]);
 
-        $this->resources(fields: ['posts' => [ToOne::make('author')->type('users')->includable()]], scopes: [
+        $this->resources(fields: ['posts' => [ToOne::make('author')
+            ->type('users')
+            ->includable()]], scopes: [
             'users' => fn($query) => $query->where('is_admin', false),
         ]);
 
@@ -92,7 +97,10 @@ class EloquentRelationshipTest extends LaravelTestCase
 
         [$response, $queries] = $this->queries(fn() => $this->get('/posts/1'));
 
-        $this->assertArrayNotHasKey('data', $this->document($response)['data']['relationships']['author'] ?? []);
+        $this->assertArrayNotHasKey(
+            'data',
+            $this->document($response)['data']['relationships']['author'] ?? [],
+        );
         $this->assertQueryCount(0, 'users', $queries);
     }
 
@@ -107,7 +115,9 @@ class EloquentRelationshipTest extends LaravelTestCase
 
         $this->resources(fields: ['posts' => [ToOne::make('author')
             ->type('users')
-            ->withLinkage()]], scopes: ['users' => function ($query, Context $context) use (&$linkageOnly) {
+            ->withLinkage()]], scopes: ['users' => function ($query, Context $context) use (
+            &$linkageOnly,
+        ) {
             $linkageOnly[] = $context->linkageOnly;
             $query->where('is_admin', false);
         }]);
@@ -116,7 +126,10 @@ class EloquentRelationshipTest extends LaravelTestCase
 
         $document = $this->document($response);
 
-        $this->assertSame(['type' => 'users', 'id' => '1'], $document['data'][0]['relationships']['author']['data']);
+        $this->assertSame(
+            ['type' => 'users', 'id' => '1'],
+            $document['data'][0]['relationships']['author']['data'],
+        );
         $this->assertNull($document['data'][1]['relationships']['author']['data']);
         $this->assertSame([true], $linkageOnly);
         $this->assertQueryCount(1, 'users', $queries);
@@ -138,7 +151,9 @@ class EloquentRelationshipTest extends LaravelTestCase
             }),
         ]], scopes: [
             // Load only IDs when only linkage is needed.
-            'users' => fn($query, Context $context) => $context->linkageOnly ? $query->select('users.id') : null,
+            'users' => fn($query, Context $context) => $context->linkageOnly
+                ? $query->select('users.id')
+                : null,
         ]);
 
         $document = $this->document($this->get('/posts'));
@@ -160,14 +175,19 @@ class EloquentRelationshipTest extends LaravelTestCase
                 ToOne::make('user')->type('users')->withLinkage()->includable(),
             ],
         ], scopes: [
-            'users' => fn($query, Context $context) => $context->linkageOnly ? $query->select('users.id') : null,
+            'users' => fn($query, Context $context) => $context->linkageOnly
+                ? $query->select('users.id')
+                : null,
         ]);
 
         // The comment's user is linkage-only, while the post's author is
         // included, so the author must be loaded in full.
         $document = $this->document($this->get('/comments/1?include=post.author'));
 
-        $users = array_filter($document['included'], fn($resource) => $resource['type'] === 'users');
+        $users = array_filter(
+            $document['included'],
+            fn($resource) => $resource['type'] === 'users',
+        );
 
         $this->assertSame(['Toby'], array_values($this->attributeValues($users, 'name')));
         $this->assertSame('1', $document['data']['relationships']['user']['data']['id']);
@@ -189,7 +209,10 @@ class EloquentRelationshipTest extends LaravelTestCase
 
         $document = $this->document($this->get('/posts/1?include=author.country'));
 
-        $this->assertEqualsCanonicalizing(['users', 'countries'], array_column($document['included'], 'type'));
+        $this->assertEqualsCanonicalizing(
+            ['users', 'countries'],
+            array_column($document['included'], 'type'),
+        );
     }
 
     public function test_relationship_property_maps_to_relation_method()
@@ -197,7 +220,10 @@ class EloquentRelationshipTest extends LaravelTestCase
         $user = User::create(['name' => 'Toby']);
         Post::create(['title' => 'A', 'user_id' => $user->id]);
 
-        $this->resources(fields: ['posts' => [ToOne::make('writer')->type('users')->property('author')->includable()]]);
+        $this->resources(fields: ['posts' => [ToOne::make('writer')
+            ->type('users')
+            ->property('author')
+            ->includable()]]);
 
         $document = $this->document($this->get('/posts/1?include=writer'));
 
@@ -210,7 +236,9 @@ class EloquentRelationshipTest extends LaravelTestCase
         Comment::create(['body' => 'Visible', 'post_id' => 1]);
         Comment::create(['body' => 'Hidden', 'post_id' => 1]);
 
-        $this->resources(fields: ['posts' => [ToMany::make('comments')->type('comments')->includable()]], scopes: [
+        $this->resources(fields: ['posts' => [ToMany::make('comments')
+            ->type('comments')
+            ->includable()]], scopes: [
             'comments' => fn($query) => $query->where('body', '!=', 'Hidden'),
         ]);
 
@@ -239,7 +267,10 @@ class EloquentRelationshipTest extends LaravelTestCase
 
         $document = $this->document($this->get('/posts/1?include=tags'));
 
-        $this->assertSame([['type' => 'tags', 'id' => '1']], $document['data']['relationships']['tags']['data']);
+        $this->assertSame(
+            [['type' => 'tags', 'id' => '1']],
+            $document['data']['relationships']['tags']['data'],
+        );
     }
 
     public function test_to_many_linkage()
@@ -248,11 +279,16 @@ class EloquentRelationshipTest extends LaravelTestCase
         Comment::create(['body' => 'One', 'post_id' => 1]);
         Comment::create(['body' => 'Two', 'post_id' => 1]);
 
-        $this->resources(fields: ['posts' => [ToMany::make('comments')->type('comments')->withLinkage()]]);
+        $this->resources(fields: ['posts' => [ToMany::make('comments')
+            ->type('comments')
+            ->withLinkage()]]);
 
         $document = $this->document($this->get('/posts/1'));
 
-        $this->assertSame(['1', '2'], array_column($document['data']['relationships']['comments']['data'], 'id'));
+        $this->assertSame(
+            ['1', '2'],
+            array_column($document['data']['relationships']['comments']['data'], 'id'),
+        );
     }
 
     public function test_related_endpoint_lists_with_scopes_and_pagination()
@@ -282,7 +318,9 @@ class EloquentRelationshipTest extends LaravelTestCase
         $user = User::create(['name' => 'Toby']);
         Post::create(['title' => 'A', 'user_id' => $user->id]);
 
-        $this->resources(fields: ['posts' => [ToOne::make('author')->type('users')->withLinkage()]]);
+        $this->resources(fields: ['posts' => [ToOne::make('author')
+            ->type('users')
+            ->withLinkage()]]);
 
         $document = $this->document($this->get('/posts/1/relationships/author'));
 
@@ -326,9 +364,14 @@ class EloquentRelationshipTest extends LaravelTestCase
         User::create(['name' => 'Franz']);
         Post::create(['title' => 'A', 'user_id' => 1]);
 
-        $this->resources(fields: ['posts' => [ToOne::make('author')->type('users')->writable()->nullable()]]);
+        $this->resources(fields: ['posts' => [ToOne::make('author')
+            ->type('users')
+            ->writable()
+            ->nullable()]]);
 
-        $this->update('posts', '1', relationships: ['author' => ['data' => ['type' => 'users', 'id' => '2']]]);
+        $this->update('posts', '1', relationships: [
+            'author' => ['data' => ['type' => 'users', 'id' => '2']],
+        ]);
 
         $this->assertSame(2, Post::find(1)->user_id);
 
@@ -342,7 +385,9 @@ class EloquentRelationshipTest extends LaravelTestCase
         User::create(['name' => 'Admin', 'is_admin' => true]);
         Post::create(['title' => 'A']);
 
-        $this->resources(fields: ['posts' => [ToOne::make('author')->type('users')->writable()]], scopes: [
+        $this->resources(fields: ['posts' => [ToOne::make('author')
+            ->type('users')
+            ->writable()]], scopes: [
             'users' => fn($query) => $query->where('is_admin', false),
         ]);
 
@@ -358,7 +403,10 @@ class EloquentRelationshipTest extends LaravelTestCase
         User::create(['name' => 'Toby']);
         Post::create(['title' => 'A']);
 
-        $this->resources(fields: ['posts' => [ToOne::make('author')->type('users')->writable()->withLinkage()]]);
+        $this->resources(fields: ['posts' => [ToOne::make('author')
+            ->type('users')
+            ->writable()
+            ->withLinkage()]]);
 
         $response = $this->send('PATCH', '/posts/1/relationships/author', [
             'data' => ['type' => 'users', 'id' => '1'],
@@ -394,11 +442,13 @@ class EloquentRelationshipTest extends LaravelTestCase
         $this->resources(fields: ['posts' => [ToMany::make('tags')->type('tags')->writable()]]);
 
         [, $queries] = $this->queries(fn() => $this->update('posts', '1', relationships: [
-            'tags' => ['data' => [
-                ['type' => 'tags', 'id' => '3'],
-                ['type' => 'tags', 'id' => '1'],
-                ['type' => 'tags', 'id' => '3'],
-            ]],
+            'tags' => [
+                'data' => [
+                    ['type' => 'tags', 'id' => '3'],
+                    ['type' => 'tags', 'id' => '1'],
+                    ['type' => 'tags', 'id' => '3'],
+                ],
+            ],
         ]));
 
         $this->assertQueryCount(1, 'tags', $queries);
@@ -411,16 +461,23 @@ class EloquentRelationshipTest extends LaravelTestCase
         Tag::create(['name' => 'php']);
         Tag::create(['name' => 'hidden']);
 
-        $this->resources(fields: ['posts' => [ToMany::make('tags')->type('tags')->writable()]], scopes: [
+        $this->resources(fields: ['posts' => [ToMany::make('tags')
+            ->type('tags')
+            ->writable()]], scopes: [
             'tags' => fn($query) => $query->where('name', '!=', 'hidden'),
         ]);
 
         $e = $this->exception(fn() => $this->update('posts', '1', relationships: [
-            'tags' => ['data' => [['type' => 'tags', 'id' => '1'], ['type' => 'tags', 'id' => '2']]],
+            'tags' => [
+                'data' => [['type' => 'tags', 'id' => '1'], ['type' => 'tags', 'id' => '2']],
+            ],
         ]));
 
         $this->assertInstanceOf(ResourceNotFoundException::class, $e);
-        $this->assertSame('/data/relationships/tags/data/1', $e->getJsonApiError()['source']['pointer']);
+        $this->assertSame(
+            '/data/relationships/tags/data/1',
+            $e->getJsonApiError()['source']['pointer'],
+        );
     }
 
     public function test_attaches_and_detaches_belongs_to_many()
@@ -443,7 +500,10 @@ class EloquentRelationshipTest extends LaravelTestCase
             ],
         ]);
 
-        $this->assertEqualsCanonicalizing([$php->id, $laravel->id], $post->tags()->pluck('tags.id')->all());
+        $this->assertEqualsCanonicalizing(
+            [$php->id, $laravel->id],
+            $post->tags()->pluck('tags.id')->all(),
+        );
 
         $this->send('DELETE', '/posts/1/relationships/tags', [
             'data' => [['type' => 'tags', 'id' => (string) $php->id]],

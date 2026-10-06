@@ -3,7 +3,6 @@
 namespace Tobyz\JsonApiServer\Laravel;
 
 use Exception;
-use Throwable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -12,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Pagination\Cursor;
 use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Support\Str;
+use Throwable;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\Pagination\InvalidPageCursorException;
 use Tobyz\JsonApiServer\Exception\Pagination\RangePaginationNotSupportedException;
@@ -88,7 +88,10 @@ abstract class EloquentResource extends AbstractResource implements
 
         // A belongs-to relationship without a foreign key can't be related to
         // anything, so there's no need to query for it.
-        if ($relation instanceof BelongsTo && $model->getAttribute($relation->getForeignKeyName()) === null) {
+        if (
+            $relation instanceof BelongsTo
+            && $model->getAttribute($relation->getForeignKeyName()) === null
+        ) {
             return null;
         }
 
@@ -131,9 +134,7 @@ abstract class EloquentResource extends AbstractResource implements
     /**
      * Hook to scope a query for this resource.
      */
-    public function scope(Builder $query, Context $context): void
-    {
-    }
+    public function scope(Builder $query, Context $context): void {}
 
     public function results(object $query, Context $context): array
     {
@@ -228,9 +229,9 @@ abstract class EloquentResource extends AbstractResource implements
         // timezone, we will need to convert it to the app's configured
         // timezone ourselves before storage.
         if (
-            $field instanceof Attribute &&
-            $field->type instanceof DateTime &&
-            $value instanceof \DateTimeInterface
+            $field instanceof Attribute
+            && $field->type instanceof DateTime
+            && $value instanceof \DateTimeInterface
         ) {
             $value = \DateTime::createFromInterface($value)->setTimezone(
                 new \DateTimeZone(config('app.timezone')),
@@ -386,7 +387,9 @@ abstract class EloquentResource extends AbstractResource implements
      */
     private function attributeName(Model $model, Field $field): string
     {
-        return $field instanceof Id && !$field->property ? $model->getKeyName() : $this->modelProperty($field);
+        return $field instanceof Id && !$field->property
+            ? $model->getKeyName()
+            : $this->modelProperty($field);
     }
 
     /**

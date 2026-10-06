@@ -158,8 +158,11 @@ class FilteringTest extends AbstractTestCase
             fields: [ToMany::make('children')],
             filters: [CustomFilter::make('status')->type(Type\Integer::make())],
         ) extends MockResource {
-            public function relatedQuery(object $model, ToMany $relationship, Context $context): ?object
-            {
+            public function relatedQuery(
+                object $model,
+                ToMany $relationship,
+                Context $context,
+            ): ?object {
                 $query = parent::relatedQuery($model, $relationship, $context);
                 $query->models = array_filter(
                     $query->models,
@@ -170,7 +173,10 @@ class FilteringTest extends AbstractTestCase
             }
         });
 
-        $response = $this->api->handle($this->buildRequest('GET', '/parents/1/children?filter[status]=published'));
+        $response = $this->api->handle($this->buildRequest(
+            'GET',
+            '/parents/1/children?filter[status]=published',
+        ));
 
         $document = json_decode($response->getBody(), true);
         $this->assertSame(['1'], array_column($document['data'], 'id'));
@@ -196,7 +202,10 @@ class FilteringTest extends AbstractTestCase
         $this->assertSame([1, 2], $context->filter('ids'));
         $this->assertSame(FilteringTestStatus::Published, $context->filter('status'));
         $this->assertSame('2026-09-24', $context->filter('created')[0]->format('Y-m-d'));
-        $this->assertSame([['active' => false], ['score' => ['gt' => 10.0]]], $context->filter('or'));
+        $this->assertSame(
+            [['active' => false], ['score' => ['gt' => 10.0]]],
+            $context->filter('or'),
+        );
 
         $otherCollection = new MockResource('other', filters: [
             CustomFilter::make('ids')->type(Type\Str::make()),
@@ -211,12 +220,16 @@ class FilteringTest extends AbstractTestCase
             endpoints: [Index::make()],
             filters: [
                 CustomFilter::make('status')->type(Type\Str::make()),
-                CustomFilter::make('status')->type(Type\Integer::make())->hidden(),
+                CustomFilter::make('status')
+                    ->type(Type\Integer::make())
+                    ->hidden(),
             ],
         ));
 
         $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage("Filter 'status' is defined more than once in collection 'variants'.");
+        $this->expectExceptionMessage(
+            "Filter 'status' is defined more than once in collection 'variants'.",
+        );
 
         $this->api->handle($this->buildRequest('GET', '/variants?filter[status]=12'));
     }
@@ -239,14 +252,18 @@ class FilteringTest extends AbstractTestCase
 
     public function test_context_filter_errors_identify_the_request_parameter(): void
     {
-        $context = $this->filterContext(['or' => [['ids' => 'nope']]])
-            ->withCollection($this->api->getResource('items'));
+        $context = $this->filterContext([
+            'or' => [['ids' => 'nope']],
+        ])->withCollection($this->api->getResource('items'));
 
         try {
             $context->filters();
             $this->fail('Expected invalid filter values to be rejected.');
         } catch (JsonApiErrorsException $e) {
-            $this->assertSame('filter[or][0][ids][0]', $e->errors[0]->getJsonApiError()['source']['parameter']);
+            $this->assertSame(
+                'filter[or][0][ids][0]',
+                $e->errors[0]->getJsonApiError()['source']['parameter'],
+            );
         }
     }
 
@@ -277,9 +294,14 @@ class FilteringTest extends AbstractTestCase
             CustomFilter::make('active', $capture)
                 ->type(Type\Boolean::make())
                 ->visible(
-                    fn(Context $context) => $context->filters() === $expected && $context->filter('active') === true,
+                    fn(Context $context) => (
+                        $context->filters() === $expected
+                        && $context->filter('active') === true
+                    ),
                 ),
-            CustomFilter::make('ids', $capture)->type(Type\Arr::make()->items(Type\Integer::make())),
+            CustomFilter::make('ids', $capture)->type(
+                Type\Arr::make()->items(Type\Integer::make()),
+            ),
         ]);
 
         \Tobyz\JsonApiServer\apply_filters(
@@ -309,10 +331,15 @@ class FilteringTest extends AbstractTestCase
             ->withFilters(['ids' => '2']);
         $this->assertSame([2], $context->filter('ids'));
 
-        $replaced = $context->withRequest($context->request->withQueryParams(['filter' => ['ids' => '3']]));
+        $replaced = $context->withRequest($context->request->withQueryParams(['filter' => [
+            'ids' => '3',
+        ]]));
 
         $this->assertSame([], $replaced->filters());
-        $this->assertSame([3], $replaced->withParameters([$this->filterParameter()])->filter('ids'));
+        $this->assertSame(
+            [3],
+            $replaced->withParameters([$this->filterParameter()])->filter('ids'),
+        );
         $this->assertSame([2], $context->filter('ids'));
         $this->assertSame([1], $context->withParameters([$this->filterParameter()])->filter('ids'));
         $this->assertSame([4], $context->withFilters(['ids' => '4'])->filter('ids'));
@@ -529,7 +556,9 @@ class FilteringTest extends AbstractTestCase
     public function test_falsy_scalar_filter_parameter_is_invalid(): void
     {
         try {
-            $this->api->handle($this->buildRequest('GET', '/items')->withQueryParams(['filter' => '0']));
+            $this->api->handle($this->buildRequest('GET', '/items')->withQueryParams([
+                'filter' => '0',
+            ]));
         } catch (JsonApiErrorsException $e) {
             $error = $e->errors[0];
 
@@ -603,12 +632,10 @@ class FilteringTest extends AbstractTestCase
 
     private function filterContext(array $filters): Context
     {
-        return (
-            new Context(
-                $this->api,
-                $this->buildRequest('GET', '/')->withQueryParams(['filter' => $filters]),
-            )
-        )->withParameters([$this->filterParameter()]);
+        return (new Context(
+            $this->api,
+            $this->buildRequest('GET', '/')->withQueryParams(['filter' => $filters]),
+        ))->withParameters([$this->filterParameter()]);
     }
 
     private function filterParameter(): Parameter

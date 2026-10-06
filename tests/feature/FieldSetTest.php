@@ -90,9 +90,9 @@ class FieldSetTest extends AbstractTestCase
                 endpoints: [Create::make()],
                 fields: [
                     Attribute::make('raw')->writable(),
-                    Attribute::make('setter')
-                        ->writable()
-                        ->set(fn($model, $value) => ($model->setter = strtoupper($value))),
+                    Attribute::make('setter')->writable()->set(
+                        fn($model, $value) => $model->setter = strtoupper($value),
+                    ),
                 ],
             ),
         );
@@ -122,7 +122,7 @@ class FieldSetTest extends AbstractTestCase
                     Attribute::make('raw')->writable(),
                     Attribute::make('saver')
                         ->writable()
-                        ->save(fn($model, $value) => ($model->saver = strtoupper($value))),
+                        ->save(fn($model, $value) => $model->saver = strtoupper($value)),
                 ],
             ),
         );

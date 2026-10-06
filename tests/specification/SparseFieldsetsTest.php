@@ -25,13 +25,13 @@ class SparseFieldsetsTest extends AbstractTestCase
         $this->api->resource(
             new MockResource(
                 'users',
-                models: [($user1 = (object) ['id' => '1', 'name' => 'Toby', 'color' => 'yellow'])],
+                models: [$user1 = (object) ['id' => '1', 'name' => 'Toby', 'color' => 'yellow']],
                 fields: [Attribute::make('name'), Attribute::make('color')],
             ),
         );
 
         $this->api->resource(
-            new class (
+            new class(
                 'articles',
                 models: [
                     '1' => (object) [
@@ -47,12 +47,12 @@ class SparseFieldsetsTest extends AbstractTestCase
                     Attribute::make('title'),
                     Attribute::make('body'),
                     Attribute::make('exclude')->sparse(),
-                    Attribute::make('conditional')
-                        ->get(fn() => 'qux')
-                        ->sparse(fn(Context $context) => $context->request->getHeaderLine('X-Sparse') === 'yes'),
-                    ToOne::make('author')
-                        ->type('users')
-                        ->includable(),
+                    Attribute::make('conditional')->get(fn() => 'qux')->sparse(
+                        fn(Context $context) => (
+                            $context->request->getHeaderLine('X-Sparse') === 'yes'
+                        ),
+                    ),
+                    ToOne::make('author')->type('users')->includable(),
                 ],
             ) extends MockResource {
                 public function find(array $ids, Context $context): array
@@ -117,7 +117,10 @@ class SparseFieldsetsTest extends AbstractTestCase
 
         $document = json_decode($response->getBody(), true);
 
-        $this->assertSame(['title' => 'foo', 'body' => 'bar', 'conditional' => 'qux'], $document['data']['attributes']);
+        $this->assertSame(
+            ['title' => 'foo', 'body' => 'bar', 'conditional' => 'qux'],
+            $document['data']['attributes'],
+        );
     }
 
     public function test_conditionally_sparse_field_is_excluded_by_default_when_condition_is_true(): void
@@ -143,7 +146,10 @@ class SparseFieldsetsTest extends AbstractTestCase
     public function test_conditionally_sparse_field_is_included_when_requested(): void
     {
         $response = $this->api->handle(
-            $this->buildRequest('GET', '/articles/1?fields[articles]=conditional')->withHeader('X-Sparse', 'yes'),
+            $this->buildRequest('GET', '/articles/1?fields[articles]=conditional')->withHeader(
+                'X-Sparse',
+                'yes',
+            ),
         );
 
         $document = json_decode($response->getBody(), true);
@@ -166,10 +172,16 @@ class SparseFieldsetsTest extends AbstractTestCase
     public function test_invalid_fieldset(): void
     {
         try {
-            $this->api->handle($this->buildRequest('GET', '/articles/1?fields[articles][invalid]=title'));
+            $this->api->handle($this->buildRequest(
+                'GET',
+                '/articles/1?fields[articles][invalid]=title',
+            ));
             $this->fail('Expected invalid fields to be rejected.');
         } catch (JsonApiErrorsException $e) {
-            $this->assertSame('fields[articles]', $e->errors[0]->getJsonApiError()['source']['parameter']);
+            $this->assertSame(
+                'fields[articles]',
+                $e->errors[0]->getJsonApiError()['source']['parameter'],
+            );
         }
     }
 }

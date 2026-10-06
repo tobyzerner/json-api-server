@@ -248,10 +248,10 @@ Attribute::make('firstName')->deserialize(
 ```
 
 For typed attributes, the schema describes the input to this conversion. The
-server parses and checks that input before calling your deserializer, so an integer
-ID can become a model object without that object being checked against the integer
-schema. Custom validators receive the converted value and can check application
-rules, such as whether the model is available for use.
+server parses and checks that input before calling your deserializer, so an
+integer ID can become a model object without that object being checked against
+the integer schema. Custom validators receive the converted value and can check
+application rules, such as whether the model is available for use.
 
 ### Validation
 

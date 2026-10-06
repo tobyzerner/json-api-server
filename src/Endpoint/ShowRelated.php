@@ -94,8 +94,10 @@ class ShowRelated implements Endpoint, ProvidesRootSchema, ProvidesRelationshipL
             $schemaProviders = [];
 
             if (
-                ($collection = $this->listableRelationshipCollection($field, $resourceContext)) &&
-                ($pagination = $field->pagination ?? $collection->pagination())
+                ($collection = $this->listableRelationshipCollection(
+                    $field,
+                    $resourceContext,
+                )) && ($pagination = $field->pagination ?? $collection->pagination())
             ) {
                 $schemaProviders[] = $pagination;
             }
@@ -145,9 +147,9 @@ class ShowRelated implements Endpoint, ProvidesRootSchema, ProvidesRelationshipL
 
     public function relationshipLinks(Relationship $field, SchemaContext $context): array
     {
-        return $this->hasRelatedLink($field, $context)
-            ? [$this->relatedLinkDefinition($field)]
-            : [];
+        return (
+            $this->hasRelatedLink($field, $context) ? [$this->relatedLinkDefinition($field)] : []
+        );
     }
 
     private function hasRelatedLink(Relationship $field, SchemaContext $context): bool
@@ -156,10 +158,9 @@ class ShowRelated implements Endpoint, ProvidesRootSchema, ProvidesRelationshipL
             return true;
         }
 
-        $collection =
-            count($field->collections) === 1
-                ? $context->api->getCollection($field->collections[0])
-                : null;
+        $collection = count($field->collections) === 1
+            ? $context->api->getCollection($field->collections[0])
+            : null;
 
         return $field instanceof ToMany
             ? $collection instanceof Listable

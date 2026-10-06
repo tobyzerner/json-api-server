@@ -9,9 +9,9 @@ abstract class Sort
 {
     use HasVisibility;
 
-    public function __construct(public string $name)
-    {
-    }
+    public function __construct(
+        public string $name,
+    ) {}
 
     abstract public function apply(object $query, string $direction, Context $context): void;
 }

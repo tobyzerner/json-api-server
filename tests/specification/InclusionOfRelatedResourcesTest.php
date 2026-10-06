@@ -28,8 +28,8 @@ class InclusionOfRelatedResourcesTest extends AbstractTestCase
             new MockResource(
                 'users',
                 models: [
-                    ($user1 = (object) ['id' => '1', 'name' => 'Toby']),
-                    ($user2 = (object) ['id' => '2', 'name' => 'Franz']),
+                    $user1 = (object) ['id' => '1', 'name' => 'Toby'],
+                    $user2 = (object) ['id' => '2', 'name' => 'Franz'],
                 ],
                 fields: [Attribute::make('name')],
             ),
@@ -39,13 +39,11 @@ class InclusionOfRelatedResourcesTest extends AbstractTestCase
             new MockResource(
                 'comments',
                 models: [
-                    ($comment1 = (object) ['id' => '1', 'author' => $user1]),
-                    ($comment2 = (object) ['id' => '2', 'author' => $user2]),
+                    $comment1 = (object) ['id' => '1', 'author' => $user1],
+                    $comment2 = (object) ['id' => '2', 'author' => $user2],
                 ],
                 fields: [
-                    ToOne::make('author')
-                        ->type('users')
-                        ->includable(),
+                    ToOne::make('author')->type('users')->includable(),
                 ],
             ),
         );
@@ -64,9 +62,7 @@ class InclusionOfRelatedResourcesTest extends AbstractTestCase
                 endpoints: [Show::make(), Index::make()],
                 fields: [
                     Attribute::make('title'),
-                    ToOne::make('author')
-                        ->type('users')
-                        ->includable(),
+                    ToOne::make('author')->type('users')->includable(),
                     ToMany::make('comments')->includable(),
                 ],
             ),
@@ -243,12 +239,18 @@ class InclusionOfRelatedResourcesTest extends AbstractTestCase
             ),
         );
 
-        $response = $this->api->handle($this->buildRequest('GET', '/notifications?include=subject.author.owner'));
+        $response = $this->api->handle($this->buildRequest(
+            'GET',
+            '/notifications?include=subject.author.owner',
+        ));
         $document = json_decode($response->getBody(), true);
 
         $this->assertEqualsCanonicalizing(
             ['articles:1', 'announcements:1', 'users:1', 'teams:1', 'users:2'],
-            array_map(fn($resource) => $resource['type'] . ':' . $resource['id'], $document['included']),
+            array_map(
+                fn($resource) => $resource['type'] . ':' . $resource['id'],
+                $document['included'],
+            ),
         );
     }
 
@@ -275,7 +277,11 @@ class InclusionOfRelatedResourcesTest extends AbstractTestCase
         }
 
         $this->api->collection(
-            new MockCollection('subjects', ['posts' => [], 'videos' => []], endpoints: [Index::make()]),
+            new MockCollection(
+                'subjects',
+                ['posts' => [], 'videos' => []],
+                endpoints: [Index::make()],
+            ),
         );
 
         $depth = 3;
@@ -283,7 +289,10 @@ class InclusionOfRelatedResourcesTest extends AbstractTestCase
         $response = $this->api->handle($this->buildRequest('GET', '/subjects?include=' . $include));
 
         $this->assertSame([], json_decode($response->getBody(), true)['data']);
-        $this->assertLessThanOrEqual(count($resources) * $depth, array_sum(array_column($resources, 'fieldCalls')));
+        $this->assertLessThanOrEqual(
+            count($resources) * $depth,
+            array_sum(array_column($resources, 'fieldCalls')),
+        );
     }
 
     public function test_relationship_inclusion_for_polymorphic_relationship()
@@ -293,7 +302,7 @@ class InclusionOfRelatedResourcesTest extends AbstractTestCase
         $api->resource(
             new MockResource(
                 'users',
-                models: [($user1 = (object) ['id' => '1', 'name' => 'Toby'])],
+                models: [$user1 = (object) ['id' => '1', 'name' => 'Toby']],
                 fields: [Attribute::make('name')],
             ),
         );
@@ -301,11 +310,9 @@ class InclusionOfRelatedResourcesTest extends AbstractTestCase
         $api->resource(
             new MockResource(
                 'posts',
-                models: [($post1 = (object) ['id' => '1', 'author' => $user1])],
+                models: [$post1 = (object) ['id' => '1', 'author' => $user1]],
                 fields: [
-                    ToOne::make('author')
-                        ->type('users')
-                        ->includable(),
+                    ToOne::make('author')->type('users')->includable(),
                 ],
             ),
         );
@@ -321,14 +328,12 @@ class InclusionOfRelatedResourcesTest extends AbstractTestCase
             new MockResource(
                 'notifications',
                 models: [
-                    ((object) ['id' => '1', 'subject' => $post1]),
-                    ((object) ['id' => '2', 'subject' => $user1]),
+                    (object) ['id' => '1', 'subject' => $post1],
+                    (object) ['id' => '2', 'subject' => $user1],
                 ],
                 endpoints: [Index::make()],
                 fields: [
-                    ToOne::make('subject')
-                        ->collection('subjects')
-                        ->includable(),
+                    ToOne::make('subject')->collection('subjects')->includable(),
                 ],
             ),
         );

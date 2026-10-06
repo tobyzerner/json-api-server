@@ -17,9 +17,7 @@ class ObjectTest extends AbstractTestCase
     {
         return [
             [
-                Obj::make()
-                    ->property('name', Str::make())
-                    ->property('age', Integer::make()),
+                Obj::make()->property('name', Str::make())->property('age', Integer::make()),
                 ['name' => 'John', 'age' => 30],
                 ['name' => 'John', 'age' => 30],
             ],
@@ -43,9 +41,7 @@ class ObjectTest extends AbstractTestCase
     {
         return [
             [
-                Obj::make()
-                    ->property('birthday', Date::make())
-                    ->additionalProperties(Date::make()),
+                Obj::make()->property('birthday', Date::make())->additionalProperties(Date::make()),
                 ['birthday' => '1993-04-04', 'joined' => '2024-01-01'],
                 [
                     'birthday' => new \DateTime('1993-04-04'),
@@ -78,16 +74,12 @@ class ObjectTest extends AbstractTestCase
             [Obj::make()->additionalProperties(false), ['extra' => 'value'], false],
             [Obj::make()->additionalProperties(true), ['extra' => 'value'], true],
             [
-                Obj::make()
-                    ->property('name', Str::make())
-                    ->additionalProperties(false),
+                Obj::make()->property('name', Str::make())->additionalProperties(false),
                 ['name' => 'John'],
                 true,
             ],
             [
-                Obj::make()
-                    ->property('name', Str::make())
-                    ->additionalProperties(false),
+                Obj::make()->property('name', Str::make())->additionalProperties(false),
                 ['name' => 'John', 'extra' => 'value'],
                 false,
             ],

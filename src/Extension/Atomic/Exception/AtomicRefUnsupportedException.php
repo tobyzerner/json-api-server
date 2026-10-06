@@ -4,6 +4,4 @@ namespace Tobyz\JsonApiServer\Extension\Atomic\Exception;
 
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 
-class AtomicRefUnsupportedException extends BadRequestException
-{
-}
+class AtomicRefUnsupportedException extends BadRequestException {}

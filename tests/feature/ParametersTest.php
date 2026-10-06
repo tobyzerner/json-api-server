@@ -34,7 +34,10 @@ class ParametersTest extends AbstractTestCase
                 $this->assertSame($product, $value);
             });
 
-        $this->assertSame(['product' => ['id' => 2]], $this->parameterValues([$parameter], ['product' => '2']));
+        $this->assertSame(
+            ['product' => ['id' => 2]],
+            $this->parameterValues([$parameter], ['product' => '2']),
+        );
         $this->assertSame(['product' => ['id' => 2]], $this->parameterValues([$parameter], []));
     }
 
@@ -249,7 +252,9 @@ class ParametersTest extends AbstractTestCase
                 ->deserialize(fn($value) => strtolower($value)),
         ]);
 
-        $response = $api->handle($this->buildRequest('GET', '/users/1')->withQueryParams(['include' => 'pets']));
+        $response = $api->handle($this->buildRequest('GET', '/users/1')->withQueryParams([
+            'include' => 'pets',
+        ]));
         $document = json_decode($response->getBody(), true);
 
         $this->assertSame('en', $document['data']['attributes']['lookupLocale']);
@@ -293,7 +298,9 @@ class ParametersTest extends AbstractTestCase
         $api->parameters([Parameter::make('locale')->type(Type\Str::make()->enum(['en']))]);
 
         try {
-            $api->handle($this->buildRequest('GET', '/users/missing/pets')->withQueryParams(['locale' => 'fr']));
+            $api->handle($this->buildRequest('GET', '/users/missing/pets')->withQueryParams([
+                'locale' => 'fr',
+            ]));
             $this->fail('Expected parameter validation to fail before model lookup.');
         } catch (JsonApiErrorsException $e) {
             $this->assertSame('locale', $e->errors[0]->getJsonApiError()['source']['parameter']);
@@ -303,7 +310,9 @@ class ParametersTest extends AbstractTestCase
     public function test_endpoint_overrides_are_merged_by_location_and_name_in_runtime_and_openapi(): void
     {
         $api = $this->api(Show::make()->parameters([
-            Parameter::make('locale')->deserialize(fn() => $this->fail('Superseded definition ran.')),
+            Parameter::make('locale')->deserialize(
+                fn() => $this->fail('Superseded definition ran.'),
+            ),
             Parameter::make('locale')
                 ->default('fr')
                 ->type(Type\Str::make()->enum(['fr'])),
@@ -318,7 +327,10 @@ class ParametersTest extends AbstractTestCase
                 ->type(Type\Str::make()),
         ]);
 
-        $response = $api->handle($this->buildRequest('GET', '/users/1')->withHeader('locale', 'de'));
+        $response = $api->handle($this->buildRequest('GET', '/users/1')->withHeader(
+            'locale',
+            'de',
+        ));
         $document = json_decode($response->getBody(), true);
         $this->assertSame('fr', $document['data']['attributes']['locale']);
         $this->assertSame('de', $document['data']['attributes']['headerLocale']);
@@ -335,8 +347,12 @@ class ParametersTest extends AbstractTestCase
         $this->assertSame('header', $parameters[1]['in']);
         $this->assertTrue($parameters[1]['required']);
 
-        $relationshipParameters = $definition['paths']['/users/{id}/relationships/pets']['get']['parameters'];
-        $this->assertCount(2, array_filter($relationshipParameters, fn($parameter) => $parameter['name'] === 'locale'));
+        $relationshipParameters =
+            $definition['paths']['/users/{id}/relationships/pets']['get']['parameters'];
+        $this->assertCount(2, array_filter(
+            $relationshipParameters,
+            fn($parameter) => $parameter['name'] === 'locale',
+        ));
     }
 
     public function test_header_parameters_require_an_explicit_location(): void
@@ -344,7 +360,10 @@ class ParametersTest extends AbstractTestCase
         $api = $this->api();
         $api->parameters([Parameter::make('locale')->in('header')]);
 
-        $response = $api->handle($this->buildRequest('GET', '/users/1')->withHeader('locale', 'de'));
+        $response = $api->handle($this->buildRequest('GET', '/users/1')->withHeader(
+            'locale',
+            'de',
+        ));
         $attributes = json_decode($response->getBody(), true)['data']['attributes'];
 
         $this->assertNull($attributes['locale']);
@@ -375,7 +394,9 @@ class ParametersTest extends AbstractTestCase
     public function test_api_rejects_endpoint_owned_query_parameters(string $name): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage("Query parameter '$name' is reserved for endpoint configuration.");
+        $this->expectExceptionMessage(
+            "Query parameter '$name' is reserved for endpoint configuration.",
+        );
 
         (new JsonApi())->parameters([Parameter::make($name)]);
     }
@@ -419,7 +440,9 @@ class ParametersTest extends AbstractTestCase
         ));
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage("Pagination parameter 'limit' must be a page[...] query parameter.");
+        $this->expectExceptionMessage(
+            "Pagination parameter 'limit' must be a page[...] query parameter.",
+        );
 
         (new OpenApiGenerator())->generate($api);
     }
@@ -451,18 +474,22 @@ class ParametersTest extends AbstractTestCase
         ));
 
         $response = $api->handle(
-            $this->buildRequest('GET', '/users')
+            $this
+                ->buildRequest('GET', '/users')
                 ->withHeader('filter', 'shared context')
                 ->withHeader('sort', 'name'),
         );
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame([
-            'headerFilter' => 'shared context',
-            'headerSort' => 'name',
-            'filters' => [],
-            'sortRequested' => false,
-        ], json_decode($response->getBody(), true)['data'][0]['attributes']);
+        $this->assertSame(
+            [
+                'headerFilter' => 'shared context',
+                'headerSort' => 'name',
+                'filters' => [],
+                'sortRequested' => false,
+            ],
+            json_decode($response->getBody(), true)['data'][0]['attributes'],
+        );
     }
 
     /**
@@ -473,7 +500,7 @@ class ParametersTest extends AbstractTestCase
         $api = new JsonApi();
 
         $api->resource(
-            $resource = new class (
+            $resource = new class(
                 'users',
                 models: [(object) ['id' => '1']],
                 endpoints: [Show::make()->parameters($parameters)],
@@ -561,7 +588,9 @@ class ParametersTest extends AbstractTestCase
             new MockResource(
                 'pets',
                 models: $pets,
-                fields: [Attribute::make('locale')->get(fn($model, Context $context) => $context->parameter('locale'))],
+                fields: [Attribute::make('locale')->get(
+                    fn($model, Context $context) => $context->parameter('locale'),
+                )],
                 pagination: new OffsetPagination(),
             ),
         );
@@ -571,7 +600,9 @@ class ParametersTest extends AbstractTestCase
             endpoints: [$show ?? Show::make()],
             fields: [
                 Attribute::make('lookupLocale'),
-                Attribute::make('locale')->get(fn($model, Context $context) => $context->parameter('locale')),
+                Attribute::make('locale')->get(
+                    fn($model, Context $context) => $context->parameter('locale'),
+                ),
                 Attribute::make('headerLocale')->get(
                     fn($model, Context $context) => $context->parameter('locale', 'header'),
                 ),

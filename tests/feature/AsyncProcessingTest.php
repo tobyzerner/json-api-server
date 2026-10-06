@@ -154,9 +154,9 @@ class AsyncProcessingTest extends AbstractTestCase
             models: [$job],
             endpoints: [
                 Show::make()->headers([
-                    Header::make('Retry-After')
-                        ->type(Integer::make())
-                        ->get(fn($model) => $model->done ? null : $model->retry_after),
+                    Header::make('Retry-After')->type(Integer::make())->get(
+                        fn($model) => $model->done ? null : $model->retry_after,
+                    ),
                 ]),
             ],
             fields: [Attribute::make('status'), Attribute::make('done')],

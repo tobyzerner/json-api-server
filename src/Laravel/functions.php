@@ -15,11 +15,11 @@ function rules($rules, array $messages = [], array $customAttributes = []): Clos
         $rules = [$rules];
     }
 
-    return function (
-        $value,
-        callable $fail,
-        Context $context,
-    ) use ($rules, $messages, $customAttributes) {
+    return function ($value, callable $fail, Context $context) use (
+        $rules,
+        $messages,
+        $customAttributes,
+    ) {
         $key = $context->field->name;
 
         $validatorRules = [$key => []];

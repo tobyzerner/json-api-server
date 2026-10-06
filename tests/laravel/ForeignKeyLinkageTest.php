@@ -17,11 +17,16 @@ class ForeignKeyLinkageTest extends LaravelTestCase
         Post::create(['title' => 'A', 'user_id' => $user->id]);
         Post::create(['title' => 'B']);
 
-        $this->resources(fields: ['posts' => [ToOne::make('author')->type('users')->withForeignKeyLinkage()]]);
+        $this->resources(fields: ['posts' => [ToOne::make('author')
+            ->type('users')
+            ->withForeignKeyLinkage()]]);
 
         [$response, $queries] = $this->queries(fn() => $this->get('/posts'));
 
-        $this->assertSame([['type' => 'users', 'id' => '1'], null], $this->linkage($response, 'author'));
+        $this->assertSame(
+            [['type' => 'users', 'id' => '1'], null],
+            $this->linkage($response, 'author'),
+        );
         $this->assertQueryCount(0, 'users', $queries);
     }
 
@@ -30,11 +35,16 @@ class ForeignKeyLinkageTest extends LaravelTestCase
         $admin = User::create(['name' => 'Admin', 'is_admin' => true]);
         Post::create(['title' => 'A', 'user_id' => $admin->id]);
 
-        $this->resources(fields: ['posts' => [ToOne::make('author')->type('users')->withForeignKeyLinkage()]], scopes: [
+        $this->resources(fields: ['posts' => [ToOne::make('author')
+            ->type('users')
+            ->withForeignKeyLinkage()]], scopes: [
             'users' => fn($query) => $query->where('is_admin', false),
         ]);
 
-        $this->assertSame([['type' => 'users', 'id' => '1']], $this->linkage($this->get('/posts'), 'author'));
+        $this->assertSame(
+            [['type' => 'users', 'id' => '1']],
+            $this->linkage($this->get('/posts'), 'author'),
+        );
     }
 
     public function test_included_relationships_are_loaded_through_scopes()
@@ -67,12 +77,18 @@ class ForeignKeyLinkageTest extends LaravelTestCase
 
         [$response, $queries] = $this->queries(fn() => $this->get('/posts'));
 
-        $this->assertArrayNotHasKey('data', $this->document($response)['data'][0]['relationships']['author'] ?? []);
+        $this->assertArrayNotHasKey(
+            'data',
+            $this->document($response)['data'][0]['relationships']['author'] ?? [],
+        );
         $this->assertQueryCount(0, 'users', $queries);
 
         $show = true;
 
-        $this->assertSame([['type' => 'users', 'id' => '1']], $this->linkage($this->get('/posts'), 'author'));
+        $this->assertSame(
+            [['type' => 'users', 'id' => '1']],
+            $this->linkage($this->get('/posts'), 'author'),
+        );
     }
 
     public function test_with_linkage_changes_only_the_condition()
@@ -103,7 +119,10 @@ class ForeignKeyLinkageTest extends LaravelTestCase
 
         // A false condition still marks the field for foreign key linkage, so
         // a later withLinkage() builds it from the foreign key.
-        $this->assertSame([['type' => 'users', 'id' => '1']], $this->linkage($this->get('/posts'), 'author'));
+        $this->assertSame(
+            [['type' => 'users', 'id' => '1']],
+            $this->linkage($this->get('/posts'), 'author'),
+        );
     }
 
     public function test_relationship_endpoint_uses_foreign_key()
@@ -111,7 +130,9 @@ class ForeignKeyLinkageTest extends LaravelTestCase
         $admin = User::create(['name' => 'Admin', 'is_admin' => true]);
         Post::create(['title' => 'A', 'user_id' => $admin->id]);
 
-        $this->resources(fields: ['posts' => [ToOne::make('author')->type('users')->withForeignKeyLinkage()]], scopes: [
+        $this->resources(fields: ['posts' => [ToOne::make('author')
+            ->type('users')
+            ->withForeignKeyLinkage()]], scopes: [
             'users' => fn($query) => $query->where('is_admin', false),
         ]);
 
@@ -155,7 +176,10 @@ class ForeignKeyLinkageTest extends LaravelTestCase
             ToOne::make('authorByEmail')->type('users')->withForeignKeyLinkage(),
         ]]);
 
-        $this->assertSame([['type' => 'users', 'id' => '2']], $this->linkage($this->get('/posts'), 'authorByEmail'));
+        $this->assertSame(
+            [['type' => 'users', 'id' => '2']],
+            $this->linkage($this->get('/posts'), 'authorByEmail'),
+        );
     }
 
     public function test_morph_to_loads_only_types_whose_id_is_not_the_key()
@@ -167,7 +191,9 @@ class ForeignKeyLinkageTest extends LaravelTestCase
         Image::create(['url' => 'b', 'imageable_type' => Post::class, 'imageable_id' => $post->id]);
 
         $this->resources(
-            fields: ['images' => [ToOne::make('imageable')->type(['users', 'posts'])->withForeignKeyLinkage()]],
+            fields: ['images' => [ToOne::make('imageable')
+                ->type(['users', 'posts'])
+                ->withForeignKeyLinkage()]],
             ids: ['users' => Id::make()->property('uuid')],
         );
 
@@ -187,13 +213,18 @@ class ForeignKeyLinkageTest extends LaravelTestCase
         Post::create(['title' => 'A', 'author_email' => $user->email]);
 
         $this->resources(
-            fields: ['posts' => [ToOne::make('authorByEmail')->type('users')->withForeignKeyLinkage()]],
+            fields: ['posts' => [ToOne::make('authorByEmail')
+                ->type('users')
+                ->withForeignKeyLinkage()]],
             ids: ['users' => Id::make()->property('email')],
         );
 
         [$response, $queries] = $this->queries(fn() => $this->get('/posts'));
 
-        $this->assertSame([['type' => 'users', 'id' => 'toby@example.com']], $this->linkage($response, 'authorByEmail'));
+        $this->assertSame(
+            [['type' => 'users', 'id' => 'toby@example.com']],
+            $this->linkage($response, 'authorByEmail'),
+        );
         $this->assertQueryCount(0, 'users', $queries);
     }
 
@@ -202,7 +233,9 @@ class ForeignKeyLinkageTest extends LaravelTestCase
         $user = User::create(['name' => 'Toby']);
         Post::create(['title' => 'A', 'user_id' => $user->id]);
 
-        $this->resources(fields: ['posts' => [ToOne::make('author')->type('users')->withForeignKeyLinkage()]]);
+        $this->resources(fields: ['posts' => [ToOne::make('author')
+            ->type('users')
+            ->withForeignKeyLinkage()]]);
 
         // A collection may need the model's attributes to tell its type.
         $this->usersResolvableOnlyWithKey();
@@ -219,7 +252,9 @@ class ForeignKeyLinkageTest extends LaravelTestCase
         Post::create(['title' => 'A', 'author_email' => 'toby@example.com']);
 
         $this->resources(
-            fields: ['posts' => [ToOne::make('authorByEmail')->type('users')->withForeignKeyLinkage()]],
+            fields: ['posts' => [ToOne::make('authorByEmail')
+                ->type('users')
+                ->withForeignKeyLinkage()]],
             ids: ['users' => Id::make()->property('email')],
         );
 
@@ -228,7 +263,10 @@ class ForeignKeyLinkageTest extends LaravelTestCase
 
         [$response, $queries] = $this->queries(fn() => $this->get('/posts'));
 
-        $this->assertSame([['type' => 'users', 'id' => 'toby@example.com']], $this->linkage($response, 'authorByEmail'));
+        $this->assertSame(
+            [['type' => 'users', 'id' => 'toby@example.com']],
+            $this->linkage($response, 'authorByEmail'),
+        );
         $this->assertQueryCount(1, 'users', $queries);
     }
 
@@ -237,7 +275,9 @@ class ForeignKeyLinkageTest extends LaravelTestCase
         $user = User::create(['name' => 'Toby']);
         Post::create(['title' => 'A', 'user_id' => $user->id]);
 
-        $this->resources(fields: ['posts' => [ToOne::make('author')->type('users')->withForeignKeyLinkage()]], scopes: [
+        $this->resources(fields: ['posts' => [ToOne::make('author')
+            ->type('users')
+            ->withForeignKeyLinkage()]], scopes: [
             'posts' => fn($query) => $query->with([
                 'author' => fn($query) => $query->where('is_admin', true),
             ]),
@@ -255,7 +295,9 @@ class ForeignKeyLinkageTest extends LaravelTestCase
 
         $this->resources(fields: ['users' => [ToOne::make('latestPost')
             ->type('posts')
-            ->withForeignKeyLinkage()]], scopes: ['posts' => fn($query) => $query->where('title', '!=', 'Hidden')]);
+            ->withForeignKeyLinkage()]], scopes: [
+            'posts' => fn($query) => $query->where('title', '!=', 'Hidden'),
+        ]);
 
         $this->assertSame([null], $this->linkage($this->get('/users'), 'latestPost'));
     }
@@ -281,7 +323,7 @@ class ForeignKeyLinkageTest extends LaravelTestCase
     private function usersResolvableOnlyWithKey(?Id $id = null): void
     {
         $this->api->resource(
-            new class ('users', User::class, id: $id) extends TestResource {
+            new class('users', User::class, id: $id) extends TestResource {
                 public function resource(object $model, Context $context): ?string
                 {
                     return $model->getKey() ? parent::resource($model, $context) : null;

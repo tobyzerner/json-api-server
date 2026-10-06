@@ -64,9 +64,9 @@ trait ResolvesList
         if ($pagination instanceof ProvidesParameters) {
             foreach ($pagination->parameters() as $parameter) {
                 if (
-                    $parameter->in !== 'query' ||
-                    !str_starts_with($parameter->name, 'page[') ||
-                    !str_ends_with($parameter->name, ']')
+                    $parameter->in !== 'query'
+                    || !str_starts_with($parameter->name, 'page[')
+                    || !str_ends_with($parameter->name, ']')
                 ) {
                     throw new InvalidArgumentException(
                         "Pagination parameter '$parameter->name' must be a page[...] query parameter.",
@@ -94,8 +94,8 @@ trait ResolvesList
 
         if ($pagination ??= $collection->pagination()) {
             if (
-                $collection instanceof Countable &&
-                !is_null($total = $collection->count($query, $context))
+                $collection instanceof Countable
+                && !is_null($total = $collection->count($query, $context))
             ) {
                 $context->documentMeta['page']['total'] = $total;
             }

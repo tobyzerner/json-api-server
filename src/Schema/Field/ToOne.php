@@ -13,9 +13,7 @@ class ToOne extends Relationship
         parent::__construct($name);
 
         $this->type(
-            InflectorFactory::create()
-                ->build()
-                ->pluralize($name),
+            InflectorFactory::create()->build()->pluralize($name),
         );
     }
 
