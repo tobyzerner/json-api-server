@@ -14,6 +14,10 @@ use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
 use Tobyz\JsonApiServer\Exception\NotFoundException;
 use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\Extension\Extension;
+use Tobyz\JsonApiServer\Extension\Hook\HandleRequest;
+use Tobyz\JsonApiServer\Extension\Hook\Hook;
+use Tobyz\JsonApiServer\Extension\Hook\HookParameters;
+use Tobyz\JsonApiServer\Extension\Hook\ParameterizedHook;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Resource;
 use Tobyz\JsonApiServer\Schema\Concerns\HasMeta;
@@ -50,6 +54,11 @@ class JsonApi implements RequestHandlerInterface
     protected array $parameters = [];
 
     /**
+     * @var array<string, Hook[]>
+     */
+    private array $hooks = [];
+
+    /**
      * @var array<string, Collection[]>
      */
     private array $collectionsByResource = [];
@@ -84,28 +93,66 @@ class JsonApi implements RequestHandlerInterface
     }
 
     /**
-     * Merge API, extension, and endpoint parameters by location and name, with later
-     * definitions winning.
+     * Merge API and endpoint parameters by location and name, with later
+     * definitions winning. Hook parameter placeholders are replaced by the
+     * parameters of the matching hooks of the given extensions.
      *
-     * @param Parameter[] $parameters
+     * @param (Parameter|HookParameters)[] $parameters
      * @param Extension[] $extensions
      * @return Parameter[]
      */
     public function getParameters(array $parameters = [], array $extensions = []): array
     {
-        $merged = [];
+        return array_column($this->resolveParameters($parameters, $extensions), 0);
+    }
 
-        foreach ([
-            $this->parameters,
-            ...array_map(fn(Extension $extension) => $extension->parameters(), $extensions),
-            $parameters,
-        ] as $group) {
-            foreach ($group as $parameter) {
-                $merged[$parameter->key()] = $parameter;
+    /**
+     * Merge parameters as `getParameters` does, also returning the URI of the
+     * extension each parameter comes from, if any.
+     *
+     * @param (Parameter|HookParameters)[] $parameters
+     * @param Extension[] $extensions
+     * @return list<array{Parameter, string|null}>
+     */
+    public function resolveParameters(array $parameters = [], array $extensions = []): array
+    {
+        $resolved = [];
+
+        foreach ([...$this->parameters, ...$parameters] as $parameter) {
+            if (!$parameter instanceof HookParameters) {
+                $resolved[$parameter->key()] = [$parameter, null];
+                continue;
+            }
+
+            foreach ($this->getHooks($extensions, $parameter->hook) as $uri => $hook) {
+                foreach ($hook->getParameters() as $hookParameter) {
+                    $resolved[$hookParameter->key()] = [$hookParameter, $uri];
+                }
             }
         }
 
-        return array_values($merged);
+        return array_values($resolved);
+    }
+
+    /**
+     * Get the hooks of the given extensions, keyed by extension URI.
+     *
+     * @param Extension[] $extensions
+     * @template T of Hook
+     * @param class-string<T> $class
+     * @return iterable<string, T>
+     */
+    public function getHooks(array $extensions, string $class): iterable
+    {
+        foreach ($extensions as $extension) {
+            $uri = $extension->uri();
+
+            foreach ($this->hooks[$uri] ?? [] as $hook) {
+                if ($hook instanceof $class) {
+                    yield $uri => $hook;
+                }
+            }
+        }
     }
 
     /**
@@ -113,6 +160,7 @@ class JsonApi implements RequestHandlerInterface
      */
     public function extension(Extension $extension): void
     {
+        $uri = $extension->uri();
         $namespace = $extension->namespace();
 
         if ($namespace !== null) {
@@ -123,10 +171,7 @@ class JsonApi implements RequestHandlerInterface
             }
 
             foreach ($this->extensions as $registered) {
-                if (
-                    $registered->namespace() === $namespace
-                    && $registered->uri() !== $extension->uri()
-                ) {
+                if ($registered->namespace() === $namespace && $registered->uri() !== $uri) {
                     throw new InvalidArgumentException(
                         "Extension namespace '$namespace' is already used by {$registered->uri()}.",
                     );
@@ -134,18 +179,33 @@ class JsonApi implements RequestHandlerInterface
             }
         }
 
-        foreach ($extension->parameters() as $parameter) {
-            if (
-                $parameter->in === 'query'
-                && ($namespace === null || !str_starts_with($parameter->name, "$namespace:"))
-            ) {
+        $hooks = $extension->hooks();
+
+        foreach ($hooks as $hook) {
+            if (!$hook instanceof Hook) {
                 throw new InvalidArgumentException(
-                    "Extension query parameter '$parameter->name' must be prefixed with the extension's namespace.",
+                    "Extension $uri must only return Hook instances from hooks().",
                 );
+            }
+
+            if (!$hook instanceof ParameterizedHook) {
+                continue;
+            }
+
+            foreach ($hook->getParameters() as $parameter) {
+                if (
+                    $parameter->in === 'query'
+                    && ($namespace === null || !str_starts_with($parameter->name, "$namespace:"))
+                ) {
+                    throw new InvalidArgumentException(
+                        "Extension query parameter '$parameter->name' must be prefixed with the extension's namespace.",
+                    );
+                }
             }
         }
 
-        $this->extensions[$extension->uri()] = $extension;
+        $this->extensions[$uri] = $extension;
+        $this->hooks[$uri] = $hooks;
     }
 
     /**
@@ -224,18 +284,7 @@ class JsonApi implements RequestHandlerInterface
     {
         $context = new Context($this, $request);
 
-        $response = null;
-
-        foreach ($context->negotiatedExtensions() as $extension) {
-            if ($response = $extension->handle($context)) {
-                if (!$response->hasHeader('Content-Type')) {
-                    $response = $response->withHeader('Content-Type', self::MEDIA_TYPE);
-                }
-
-                $context->activateExtension($extension->uri());
-                break;
-            }
-        }
+        $response = $context->firstHookResult(HandleRequest::class, $context);
 
         if (!$response) {
             $segments = $context->pathSegments();

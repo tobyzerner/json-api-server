@@ -2,6 +2,7 @@
 
 namespace Tobyz\JsonApiServer\Endpoint\Concerns;
 
+use Tobyz\JsonApiServer\Extension\Hook\HookParameters;
 use Tobyz\JsonApiServer\Schema\Parameter;
 use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\JsonApiServer\SchemaContext;
@@ -9,25 +10,16 @@ use Tobyz\JsonApiServer\SchemaContext;
 trait BuildsOpenApiPaths
 {
     /**
-     * @param Parameter[] $parameters
+     * @param (Parameter|HookParameters)[] $parameters
      */
     private function openApiParameters(SchemaContext $context, array $parameters): array
     {
-        $extensionParameters = [];
-        $extensionUris = [];
-
-        foreach ($context->api->extensions as $extension) {
-            foreach ($extension->parameters() as $parameter) {
-                $extensionParameters[] = $parameter;
-                $extensionUris[spl_object_id($parameter)] = $extension->uri();
-            }
-        }
-
         return array_map(
-            function (Parameter $parameter) use ($context, $extensionUris) {
+            function (array $resolved) use ($context) {
+                [$parameter, $uri] = $resolved;
                 $schema = $parameter->getSchema($context);
 
-                if ($uri = $extensionUris[spl_object_id($parameter)] ?? null) {
+                if ($uri) {
                     $schema['description'] = ltrim(
                         ($schema['description'] ?? '') . " Requires the $uri extension.",
                     );
@@ -35,7 +27,7 @@ trait BuildsOpenApiPaths
 
                 return $schema;
             },
-            $context->api->getParameters([...$extensionParameters, ...$parameters]),
+            $context->api->resolveParameters($parameters, $context->api->extensions),
         );
     }
 

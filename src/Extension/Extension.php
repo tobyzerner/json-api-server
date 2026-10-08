@@ -2,13 +2,9 @@
 
 namespace Tobyz\JsonApiServer\Extension;
 
-use Psr\Http\Message\ResponseInterface as Response;
-use Tobyz\JsonApiServer\Context;
-use Tobyz\JsonApiServer\Endpoint\ProvidesParameters;
-use Tobyz\JsonApiServer\Resource\Resource;
-use Tobyz\JsonApiServer\Schema\Parameter;
+use Tobyz\JsonApiServer\Extension\Hook\Hook;
 
-abstract class Extension implements ProvidesParameters
+abstract class Extension
 {
     /**
      * The URI that uniquely identifies this extension.
@@ -29,41 +25,15 @@ abstract class Extension implements ProvidesParameters
     }
 
     /**
-     * Get the query and header parameters this extension accepts.
+     * Get the hooks through which this extension changes how requests are handled.
      *
-     * They are loaded and validated alongside endpoint parameters for requests
-     * that include this extension in the media type, and documented in the
-     * OpenAPI definition. Query parameter names must be prefixed with the
-     * extension's namespace.
+     * Called once when the extension is registered. Hooks only run for requests
+     * that include this extension in the media type.
      *
-     * @return Parameter[]
+     * @return Hook[]
      */
-    public function parameters(): array
+    public function hooks(): array
     {
         return [];
-    }
-
-    /**
-     * Resolve the sparse fieldset for a resource.
-     *
-     * Return the names of the fields to serialize, or null to defer to other
-     * extensions and the `fields` parameter. Unknown names are ignored. The
-     * extension is activated when it returns a fieldset.
-     *
-     * @return string[]|null
-     */
-    public function sparseFields(Resource $resource, Context $context): ?array
-    {
-        return null;
-    }
-
-    /**
-     * Handle a request.
-     *
-     * A response without a Content-Type is given the JSON:API media type.
-     */
-    public function handle(Context $context): ?Response
-    {
-        return null;
     }
 }

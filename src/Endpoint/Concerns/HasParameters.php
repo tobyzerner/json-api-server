@@ -2,19 +2,20 @@
 
 namespace Tobyz\JsonApiServer\Endpoint\Concerns;
 
+use Tobyz\JsonApiServer\Extension\Hook\HookParameters;
 use Tobyz\JsonApiServer\Schema\Parameter;
 
 trait HasParameters
 {
     /**
-     * @var Parameter[]
+     * @var (Parameter|HookParameters)[]
      */
     protected array $parameters = [];
 
     /**
      * Set custom parameters for the request.
      *
-     * @param Parameter[] $parameters
+     * @param (Parameter|HookParameters)[] $parameters
      */
     public function parameters(array $parameters): static
     {

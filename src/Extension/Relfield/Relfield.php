@@ -4,6 +4,7 @@ namespace Tobyz\JsonApiServer\Extension\Relfield;
 
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Extension\Extension;
+use Tobyz\JsonApiServer\Extension\Hook\SparseFields;
 use Tobyz\JsonApiServer\Extension\Relfield\Exception\RelfieldFieldsConflictException;
 use Tobyz\JsonApiServer\Resource\Resource;
 use Tobyz\JsonApiServer\Schema\Parameter;
@@ -14,7 +15,7 @@ use Tobyz\JsonApiServer\Schema\Type;
  *
  * @see https://github.com/ThorstenSuckow/relfield
  */
-class Relfield extends Extension
+final class Relfield extends Extension
 {
     public const URI = 'https://conjoon.org/json-api/ext/relfield';
     public const NAMESPACE = 'relfield';
@@ -22,41 +23,45 @@ class Relfield extends Extension
 
     public function uri(): string
     {
-        return static::URI;
+        return self::URI;
     }
 
     public function namespace(): string
     {
-        return static::NAMESPACE;
+        return self::NAMESPACE;
     }
 
-    public function parameters(): array
+    public function hooks(): array
     {
         return [
-            Parameter::make(static::PARAMETER)
-                ->description(
-                    'Comma-separated sparse fieldsets keyed by type, relative to the default fieldset',
-                )
-                ->type(Type\Obj::make()->additionalProperties(Type\Str::make()))
-                ->validate(function (array $value, callable $fail, Context $context) {
-                    // Endpoint parameters like `fields` are loaded after extension
-                    // parameters, so read the raw query value.
-                    $fields = $context->request->getQueryParams()['fields'] ?? null;
+            SparseFields::make($this->sparseFields(...))->parameters([
+                Parameter::make(self::PARAMETER)
+                    ->description(
+                        'Comma-separated sparse fieldsets keyed by type, relative to the default fieldset',
+                    )
+                    ->type(Type\Obj::make()->additionalProperties(Type\Str::make()))
+                    ->validate(function (array $value, callable $fail, Context $context) {
+                        // Read the raw value so the check doesn't depend on
+                        // whether `fields` has been loaded yet.
+                        $fields = $context->request->getQueryParams()['fields'] ?? null;
 
-                    if (!is_array($fields)) {
-                        return;
-                    }
+                        if (!is_array($fields)) {
+                            return;
+                        }
 
-                    foreach (array_keys(array_intersect_key($value, $fields)) as $type) {
-                        $fail((new RelfieldFieldsConflictException())->prependSourcePath($type));
-                    }
-                }),
+                        foreach (array_keys(array_intersect_key($value, $fields)) as $type) {
+                            $fail(
+                                (new RelfieldFieldsConflictException())->prependSourcePath($type),
+                            );
+                        }
+                    }),
+            ]),
         ];
     }
 
-    public function sparseFields(Resource $resource, Context $context): ?array
+    private function sparseFields(Resource $resource, Context $context): ?array
     {
-        $value = $context->parameter(static::PARAMETER)[$resource->type()] ?? null;
+        $value = $context->parameter(self::PARAMETER)[$resource->type()] ?? null;
 
         if ($value === null) {
             return null;

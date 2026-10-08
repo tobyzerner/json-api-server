@@ -10,6 +10,12 @@ and this project adheres to
 
 ### ⚠️ Breaking Changes
 
+- `Extension::handle()` has been replaced by hooks: return a
+  `Tobyz\JsonApiServer\Extension\Hook\HandleRequest` hook from
+  `Extension::hooks()` instead
+- The `Atomic` and `Relfield` extensions are now `final`, and `Atomic::handle()`
+  is no longer public; customize behavior by writing an extension with its own
+  hooks
 - `Findable::find()` now receives an array of IDs and returns an array of the
   models it finds, in any order. To-many relationship data is resolved with one
   `find()` call per related type instead of one per identifier, and
@@ -65,13 +71,16 @@ and this project adheres to
     - Add `Extension::namespace()` for extensions to declare the namespace of
       the members and query parameters they introduce. Unknown query parameters
       in the namespace of a negotiated extension are rejected
-    - Add `Extension::parameters()` for extensions to define query and header
-      parameters, which are loaded for requests that negotiate the extension and
-      included in the OpenAPI definition
-    - Add `Extension::sparseFields()` for extensions to customize how sparse
+    - Add `Extension::hooks()`, which returns hook objects such as
+      `HandleRequest` and `SparseFields` (`Tobyz\JsonApiServer\Extension\Hook`)
+    - Hooks can define parameters, which are loaded and documented wherever the
+      hook runs. Endpoints declare the hook parameters they load with
+      `HookParameters::for()`
+    - Add the `SparseFields` hook for extensions to customize how sparse
       fieldsets are resolved
-    - Add `Context::negotiatedExtensions()` and `Context::activateExtension()`;
-      active extensions are included in the response media type
+    - Add `Context::negotiatedExtensions()`, `Context::activateExtension()` and
+      `Context::$activeExtensions`; active extensions are included in the
+      response media type
     - Add `JsonApiMediaType` for parsing and formatting the JSON:API media type
       with its `ext` and `profile` parameters
 - Add `Context::defaultFields()` to get the fields included when no sparse

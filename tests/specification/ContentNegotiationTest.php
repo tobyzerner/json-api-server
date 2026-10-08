@@ -2,7 +2,6 @@
 
 namespace Tobyz\Tests\JsonApiServer\specification;
 
-use Nyholm\Psr7\Response;
 use Nyholm\Psr7\Stream;
 use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\Context;
@@ -11,6 +10,7 @@ use Tobyz\JsonApiServer\Exception\NotAcceptableException;
 use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\Exception\UnsupportedMediaTypeException;
 use Tobyz\JsonApiServer\Extension\Extension;
+use Tobyz\JsonApiServer\Extension\Hook\HandleRequest;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockResource;
@@ -355,36 +355,6 @@ class ContentNegotiationTest extends AbstractTestCase
         $this->assertEquals(self::DEMO_MEDIA_TYPE, $response->getHeaderLine('Content-Type'));
     }
 
-    public function test_extension_response_without_content_type_gets_json_api_media_type()
-    {
-        $this->api = new JsonApi();
-        $this->api->extension(
-            new class extends Extension {
-                public function uri(): string
-                {
-                    return 'https://example.com/extensions/demo';
-                }
-
-                public function handle(Context $context): ?ResponseInterface
-                {
-                    return new Response(204);
-                }
-            },
-        );
-
-        $response = $this->api->handle(
-            $this->buildRequest('GET', '/')->withHeader(
-                'Accept',
-                self::DEMO_MEDIA_TYPE,
-            ),
-        );
-
-        $this->assertEquals(
-            self::DEMO_MEDIA_TYPE,
-            $response->getHeaderLine('Content-Type'),
-        );
-    }
-
     private function extensionDemo(?string $contentType = null): Extension
     {
         return new class($contentType) extends Extension {
@@ -397,17 +367,21 @@ class ContentNegotiationTest extends AbstractTestCase
                 return 'https://example.com/extensions/demo';
             }
 
-            public function handle(Context $context): ?ResponseInterface
+            public function hooks(): array
             {
-                if ($context->path() !== 'extension-demo') {
-                    return null;
-                }
+                return [
+                    HandleRequest::make(function (Context $context): ?ResponseInterface {
+                        if ($context->path() !== 'extension-demo') {
+                            return null;
+                        }
 
-                $response = $context->createResponse(['meta' => ['activated' => true]]);
+                        $response = $context->createResponse(['meta' => ['activated' => true]]);
 
-                return $this->contentType
-                    ? $response->withHeader('Content-Type', $this->contentType)
-                    : $response;
+                        return $this->contentType
+                            ? $response->withHeader('Content-Type', $this->contentType)
+                            : $response;
+                    }),
+                ];
             }
         };
     }

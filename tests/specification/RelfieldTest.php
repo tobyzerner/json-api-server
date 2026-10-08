@@ -3,6 +3,7 @@
 namespace Tobyz\Tests\JsonApiServer\specification;
 
 use Nyholm\Psr7\ServerRequest;
+use Tobyz\JsonApiServer\Endpoint\Delete;
 use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
 use Tobyz\JsonApiServer\Exception\Request\InvalidQueryParameterException;
@@ -51,7 +52,7 @@ class RelfieldTest extends AbstractTestCase
                         'author' => $user,
                     ],
                 ],
-                endpoints: [Show::make()],
+                endpoints: [Show::make(), Delete::make()],
                 fields: [
                     Attribute::make('title'),
                     Attribute::make('body'),
@@ -212,5 +213,26 @@ class RelfieldTest extends AbstractTestCase
             'Requires the ' . Relfield::URI . ' extension.',
             $parameters[Relfield::PARAMETER]['description'],
         );
+    }
+
+    public function test_parameter_is_not_accepted_on_endpoints_without_sparse_fieldsets(): void
+    {
+        $this->expectException(InvalidQueryParameterException::class);
+
+        $this->api->handle(
+            $this->request('/articles/1?relfield:fields[articles]=version')->withMethod('DELETE'),
+        );
+    }
+
+    public function test_parameter_is_not_documented_on_endpoints_without_sparse_fieldsets(): void
+    {
+        $definition = (new OpenApiGenerator())->generate($this->api);
+
+        $names = array_column(
+            $definition['paths']['/articles/{id}']['delete']['parameters'],
+            'name',
+        );
+
+        $this->assertNotContains(Relfield::PARAMETER, $names);
     }
 }

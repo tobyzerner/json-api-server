@@ -12,18 +12,24 @@ use Tobyz\JsonApiServer\Extension\Atomic\Exception\AtomicRefUnsupportedException
 use Tobyz\JsonApiServer\Extension\Atomic\Exception\InvalidAtomicOperationException;
 use Tobyz\JsonApiServer\Extension\Atomic\Exception\InvalidAtomicOperationsException;
 use Tobyz\JsonApiServer\Extension\Extension;
+use Tobyz\JsonApiServer\Extension\Hook\HandleRequest;
 use Tobyz\JsonApiServer\JsonApiMediaType;
 use Tobyz\JsonApiServer\OpenApi\ProvidesRootSchema;
 use Tobyz\JsonApiServer\SchemaContext;
 
-class Atomic extends Extension implements ProvidesRootSchema
+final class Atomic extends Extension implements ProvidesRootSchema
 {
     public const URI = 'https://jsonapi.org/ext/atomic';
 
     /**
      * Operation members that are not forwarded in the operation's request body.
      */
-    private const OPERATION_MEMBERS = ['op', 'href', 'ref', 'params'];
+    private const OPERATION_MEMBERS = [
+        'op' => true,
+        'href' => true,
+        'ref' => true,
+        'params' => true,
+    ];
 
     public function __construct(
         private readonly string $path = 'operations',
@@ -31,7 +37,7 @@ class Atomic extends Extension implements ProvidesRootSchema
 
     public function uri(): string
     {
-        return static::URI;
+        return self::URI;
     }
 
     public function namespace(): string
@@ -39,7 +45,12 @@ class Atomic extends Extension implements ProvidesRootSchema
         return 'atomic';
     }
 
-    public function handle(Context $context): ?Response
+    public function hooks(): array
+    {
+        return [HandleRequest::make($this->handle(...))];
+    }
+
+    private function handle(Context $context): ?Response
     {
         if ($context->path() !== $this->path) {
             return null;
@@ -120,7 +131,7 @@ class Atomic extends Extension implements ProvidesRootSchema
             ->withParsedBody(
                 array_diff_key(
                     $this->replaceLids($operation, $lids),
-                    array_flip(static::OPERATION_MEMBERS),
+                    self::OPERATION_MEMBERS,
                 ),
             );
 
@@ -151,7 +162,7 @@ class Atomic extends Extension implements ProvidesRootSchema
             ->withMethod('PATCH')
             ->withUri(new Uri($uri))
             ->withQueryParams($operation['params'] ?? [])
-            ->withParsedBody(array_diff_key($operation, array_flip(static::OPERATION_MEMBERS)));
+            ->withParsedBody(array_diff_key($operation, self::OPERATION_MEMBERS));
 
         return $context->api->handle($request);
     }
@@ -172,7 +183,7 @@ class Atomic extends Extension implements ProvidesRootSchema
             ->withMethod('DELETE')
             ->withUri(new Uri($uri))
             ->withQueryParams($operation['params'] ?? [])
-            ->withParsedBody(array_diff_key($operation, array_flip(static::OPERATION_MEMBERS)));
+            ->withParsedBody(array_diff_key($operation, self::OPERATION_MEMBERS));
 
         return $context->api->handle($request);
     }
@@ -196,7 +207,7 @@ class Atomic extends Extension implements ProvidesRootSchema
 
     public function rootSchema(SchemaContext $context): array
     {
-        $mediaType = (string) new JsonApiMediaType([static::URI]);
+        $mediaType = (string) new JsonApiMediaType([self::URI]);
 
         return [
             'paths' => [

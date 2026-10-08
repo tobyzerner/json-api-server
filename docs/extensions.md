@@ -79,24 +79,28 @@ document members or query parameters, implement the `namespace` method to return
 the [namespace](https://jsonapi.org/format/1.1/#extension-rules) they are
 prefixed with. Namespaces may only contain letters and digits.
 
-The other methods are hooks that are only called for requests that include your
-extension in the media type, and you can implement whichever ones you need:
+Extensions change how requests are handled through hooks, returned from the
+`hooks` method. Hooks only run for requests that include your extension in the
+media type:
 
-| Method         | Purpose                                         |
-| -------------- | ----------------------------------------------- |
-| `parameters`   | Define query and header parameters              |
-| `handle`       | Handle a request instead of the API's endpoints |
-| `sparseFields` | Change how sparse fieldsets are resolved        |
+| Hook                                  | Purpose                                         |
+| ------------------------------------- | ----------------------------------------------- |
+| [`HandleRequest`](#handling-requests) | Handle a request instead of the API's endpoints |
+| [`SparseFields`](#sparse-fieldsets)   | Change how sparse fieldsets are resolved        |
 
 ::: info  
 Extensions can only change the behavior of standard requests through these
-hooks. If you need a hook that isn't available, please
+hooks. To add to the [OpenAPI definition](openapi.md), an extension can also
+implement `Tobyz\JsonApiServer\OpenApi\ProvidesRootSchema`. If you need a hook
+that isn't available, please
 [create an issue](https://github.com/tobyzerner/json-api-server/issues/new)
 describing your use case.  
 :::
 
 ```php
+use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Extension\Extension;
+use Tobyz\JsonApiServer\Extension\Hook\HandleRequest;
 
 class MyExtension extends Extension
 {
@@ -109,50 +113,54 @@ class MyExtension extends Extension
     {
         return 'myext';
     }
+
+    public function hooks(): array
+    {
+        return [
+            HandleRequest::make(function (Context $context) {
+                // ...
+            }),
+        ];
+    }
 }
 ```
 
 ### Parameters
 
-The `parameters` method returns the
-[parameters](resources.md#request-parameters) your extension accepts. They are
-loaded and validated alongside each endpoint's parameters and are included in
-the [OpenAPI definition](openapi.md). Query parameter names must be prefixed
-with your extension's namespace:
+Hooks can define the [parameters](resources.md#request-parameters) they use. A
+hook's parameters are loaded and validated on the endpoints that run the hook,
+and are included in the [OpenAPI definition](openapi.md) for those endpoints.
+Query parameter names must be prefixed with your extension's namespace:
 
 ```php
+use Tobyz\JsonApiServer\Extension\Hook\SparseFields;
 use Tobyz\JsonApiServer\Schema\Parameter;
 use Tobyz\JsonApiServer\Schema\Type;
 
-public function parameters(): array
-{
-    return [
-        Parameter::make('myext:option')
-            ->type(Type\Str::make()->enum(['a', 'b'])),
-    ];
-}
+SparseFields::make($this->sparseFields(...))->parameters([
+    Parameter::make('myext:option')->type(Type\Str::make()->enum(['a', 'b'])),
+]);
 ```
 
-Once an endpoint has loaded its parameters, the validated value can be read
-using `$context->parameter('myext:option')`, for example in the `sparseFields`
-hook. Parameters are not loaded yet when `handle` is called.
-
-When your extension is negotiated, unknown query parameters prefixed with its
-namespace are rejected with a `400 Bad Request` error, just like unknown
-standard parameters.
+The validated value can be read in the hook using
+`$context->parameter('myext:option')`. When your extension is negotiated,
+unknown query parameters prefixed with its namespace are rejected with a
+`400 Bad Request` error, just like unknown standard parameters.
 
 ### Handling Requests
 
-The `handle` method lets your extension respond to a request itself. If your
-extension is able to handle the request, it should return a PSR-7 response.
-Otherwise, return `null` to let the normal handling of the request take place:
+The `HandleRequest` hook lets your extension respond to a request itself. It
+runs before the request is dispatched to an endpoint, so unlike other hooks it
+doesn't take parameters. If your extension is able to handle the request, return
+a PSR-7 response. Otherwise, return `null` to let the normal handling of the
+request take place:
 
 ```php
 use Psr\Http\Message\ResponseInterface;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Extension\Hook\HandleRequest;
 
-public function handle(Context $context): ?ResponseInterface
-{
+HandleRequest::make(function (Context $context): ?ResponseInterface {
     if ($context->path() === 'my-extension') {
         return $context->createResponse([
             'myext:greeting' => 'Hello world!',
@@ -160,12 +168,12 @@ public function handle(Context $context): ?ResponseInterface
     }
 
     return null;
-}
+});
 ```
 
 ### Sparse Fieldsets
 
-The `sparseFields` method lets your extension change which fields are serialized
+The `SparseFields` hook lets your extension change which fields are serialized
 for a resource. It should return the names of the fields to serialize, or `null`
 to fall back to the `fields` parameter. Unknown names are ignored. Use
 `array_keys($context->defaultFields($resource))` to get the names of the fields
@@ -173,17 +181,21 @@ included by default:
 
 ```php
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Extension\Hook\SparseFields;
 use Tobyz\JsonApiServer\Resource\Resource;
 
-public function sparseFields(Resource $resource, Context $context): ?array
-{
+SparseFields::make(function (Resource $resource, Context $context): ?array {
     if ($resource->type() !== 'articles') {
         return null;
     }
 
     return ['title'];
-}
+});
 ```
+
+Its parameters are loaded on endpoints that serialize resource documents. A
+custom endpoint that serializes resources can include them by adding
+`HookParameters::for(SparseFields::class)` to its parameters.
 
 ### Activating Extensions
 

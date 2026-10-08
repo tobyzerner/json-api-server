@@ -4,6 +4,8 @@ namespace Tobyz\JsonApiServer\Endpoint\Concerns;
 
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\ProvidesResourceMeta;
+use Tobyz\JsonApiServer\Extension\Hook\HookParameters;
+use Tobyz\JsonApiServer\Extension\Hook\SparseFields;
 use Tobyz\JsonApiServer\Schema\Parameter;
 use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\JsonApiServer\SchemaContext;
@@ -30,6 +32,8 @@ trait SerializesResourceDocument
             Parameter::make('fields')
                 ->description('Comma-separated sparse fieldsets keyed by type')
                 ->type(Type\Obj::make()->additionalProperties(Type\Str::make())),
+
+            HookParameters::for(SparseFields::class),
         ];
     }
 

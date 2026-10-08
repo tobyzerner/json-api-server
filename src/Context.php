@@ -21,6 +21,9 @@ use Tobyz\JsonApiServer\Exception\Request\InvalidSparseFieldsetsException;
 use Tobyz\JsonApiServer\Exception\Sourceable;
 use Tobyz\JsonApiServer\Exception\UnsupportedMediaTypeException;
 use Tobyz\JsonApiServer\Extension\Extension;
+use Tobyz\JsonApiServer\Extension\Hook\Hook;
+use Tobyz\JsonApiServer\Extension\Hook\HookParameters;
+use Tobyz\JsonApiServer\Extension\Hook\SparseFields;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Resource\Resource;
@@ -177,14 +180,7 @@ class Context extends SchemaContext
             return $this->sparseFields[$resource];
         }
 
-        $names = null;
-
-        foreach ($this->negotiatedExtensions() as $extension) {
-            if (($names = $extension->sparseFields($resource, $this)) !== null) {
-                $this->activateExtension($extension->uri());
-                break;
-            }
-        }
+        $names = $this->firstHookResult(SparseFields::class, $resource, $this);
 
         $type = $resource->type();
         $fieldsParam = $this->parameter('fields');
@@ -467,6 +463,24 @@ class Context extends SchemaContext
         return $this;
     }
 
+    /**
+     * Run the hooks of a class from the negotiated extensions until one returns a
+     * result, activating its extension.
+     *
+     * @param class-string<Hook> $class
+     */
+    public function firstHookResult(string $class, mixed ...$args): mixed
+    {
+        foreach ($this->api->getHooks($this->negotiatedExtensions(), $class) as $uri => $hook) {
+            if (($result = $hook(...$args)) !== null) {
+                $this->activateExtension($uri);
+                return $result;
+            }
+        }
+
+        return null;
+    }
+
     public function activateExtension(string $uri): static
     {
         $this->activeExtensions[$uri] = true;
@@ -480,7 +494,7 @@ class Context extends SchemaContext
      * With allowUnknown, load inherited and supplied definitions without rejecting other
      * query parameters. Call again with the full definitions to validate those too.
      *
-     * @param Parameter[] $parameters
+     * @param (Parameter|HookParameters)[] $parameters
      */
     public function withParameters(array $parameters, bool $allowUnknown = false): static
     {
