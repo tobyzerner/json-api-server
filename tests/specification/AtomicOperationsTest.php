@@ -7,6 +7,7 @@ use Tobyz\JsonApiServer\Endpoint\Delete;
 use Tobyz\JsonApiServer\Endpoint\Update;
 use Tobyz\JsonApiServer\Exception\BadRequestException;
 use Tobyz\JsonApiServer\Extension\Atomic\Atomic;
+use Tobyz\JsonApiServer\Extension\Relfield\Relfield;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\OpenApi\OpenApiGenerator;
 use Tobyz\JsonApiServer\Schema\Field\Attribute;
@@ -18,7 +19,7 @@ use Tobyz\Tests\JsonApiServer\MockResource;
  */
 class AtomicOperationsTest extends AbstractTestCase
 {
-    private const MEDIA_TYPE = JsonApi::MEDIA_TYPE . '; ext=' . Atomic::URI;
+    private const MEDIA_TYPE = JsonApi::MEDIA_TYPE . '; ext="' . Atomic::URI . '"';
 
     private JsonApi $api;
 
@@ -100,6 +101,83 @@ class AtomicOperationsTest extends AbstractTestCase
             ],
             $response->getBody(),
         );
+    }
+
+    public function test_extensions_applied_to_operations_are_included_in_media_type()
+    {
+        $this->api->extension(new Relfield());
+
+        $mediaType = JsonApi::MEDIA_TYPE . '; ext="' . Atomic::URI . ' ' . Relfield::URI . '"';
+
+        $response = $this->api->handle(
+            $this
+                ->buildRequest('POST', '/operations')
+                ->withHeader('Accept', $mediaType)
+                ->withHeader('Content-Type', $mediaType)
+                ->withParsedBody([
+                    'atomic:operations' => [
+                        [
+                            'op' => 'update',
+                            'params' => ['relfield:fields' => ['users' => '-name']],
+                            'data' => [
+                                'type' => 'users',
+                                'id' => '1',
+                                'attributes' => ['name' => 'Franz'],
+                            ],
+                        ],
+                    ],
+                ]),
+        );
+
+        $document = json_decode($response->getBody(), true);
+
+        $this->assertArrayNotHasKey('attributes', $document['atomic:results'][0]['data']);
+        $this->assertSame(
+            JsonApi::MEDIA_TYPE . '; ext="' . Relfield::URI . ' ' . Atomic::URI . '"',
+            $response->getHeaderLine('Content-Type'),
+        );
+    }
+
+    public function test_operation_members_are_not_forwarded_in_request_body()
+    {
+        $body = null;
+
+        $this->api = new JsonApi();
+        $this->api->extension(new Atomic());
+        $this->api->resource(
+            new MockResource(
+                'users',
+                models: [(object) ['id' => '1', 'name' => 'Toby']],
+                endpoints: [
+                    Update::make()->saved(function ($model, $context) use (&$body) {
+                        $body = $context->body();
+                    }),
+                ],
+                fields: [Attribute::make('name')->writable()],
+            ),
+        );
+
+        $this->api->handle(
+            $this
+                ->buildRequest('POST', '/operations')
+                ->withHeader('Accept', static::MEDIA_TYPE)
+                ->withHeader('Content-Type', static::MEDIA_TYPE)
+                ->withParsedBody([
+                    'atomic:operations' => [
+                        [
+                            'op' => 'update',
+                            'params' => ['include' => ''],
+                            'data' => [
+                                'type' => 'users',
+                                'id' => '1',
+                                'attributes' => ['name' => 'Franz'],
+                            ],
+                        ],
+                    ],
+                ]),
+        );
+
+        $this->assertSame(['data'], array_keys($body));
     }
 
     public function test_atomic_operations_error_prefix()

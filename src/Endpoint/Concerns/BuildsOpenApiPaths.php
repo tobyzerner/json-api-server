@@ -13,9 +13,29 @@ trait BuildsOpenApiPaths
      */
     private function openApiParameters(SchemaContext $context, array $parameters): array
     {
+        $extensionParameters = [];
+        $extensionUris = [];
+
+        foreach ($context->api->extensions as $extension) {
+            foreach ($extension->parameters() as $parameter) {
+                $extensionParameters[] = $parameter;
+                $extensionUris[spl_object_id($parameter)] = $extension->uri();
+            }
+        }
+
         return array_map(
-            fn(Parameter $parameter) => $parameter->getSchema($context),
-            $context->api->getParameters($parameters),
+            function (Parameter $parameter) use ($context, $extensionUris) {
+                $schema = $parameter->getSchema($context);
+
+                if ($uri = $extensionUris[spl_object_id($parameter)] ?? null) {
+                    $schema['description'] = ltrim(
+                        ($schema['description'] ?? '') . " Requires the $uri extension.",
+                    );
+                }
+
+                return $schema;
+            },
+            $context->api->getParameters([...$extensionParameters, ...$parameters]),
         );
     }
 

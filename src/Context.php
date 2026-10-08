@@ -19,6 +19,8 @@ use Tobyz\JsonApiServer\Exception\NotAcceptableException;
 use Tobyz\JsonApiServer\Exception\Request\InvalidQueryParameterException;
 use Tobyz\JsonApiServer\Exception\Request\InvalidSparseFieldsetsException;
 use Tobyz\JsonApiServer\Exception\Sourceable;
+use Tobyz\JsonApiServer\Exception\UnsupportedMediaTypeException;
+use Tobyz\JsonApiServer\Extension\Extension;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Listable;
 use Tobyz\JsonApiServer\Resource\Resource;
@@ -38,6 +40,7 @@ class Context extends SchemaContext
     public ArrayObject $documentMeta;
     public ArrayObject $documentLinks;
     public ArrayObject $activeProfiles;
+    public ArrayObject $activeExtensions;
     public WeakMap $resourceMeta;
 
     private ?array $body;
@@ -53,6 +56,9 @@ class Context extends SchemaContext
     /** @var WeakMap<Resource, WeakMap<object, string>> */
     private WeakMap $modelIds;
     private WeakMap $sparseFields;
+
+    /** @var array<string, Extension>|null */
+    private ?array $negotiatedExtensions = null;
 
     public function __construct(
         JsonApi $api,
@@ -70,6 +76,7 @@ class Context extends SchemaContext
         $this->documentMeta = new ArrayObject();
         $this->documentLinks = new ArrayObject();
         $this->activeProfiles = new ArrayObject();
+        $this->activeExtensions = new ArrayObject();
 
         $this->resourceMeta = new WeakMap();
     }
@@ -170,11 +177,19 @@ class Context extends SchemaContext
             return $this->sparseFields[$resource];
         }
 
-        $fields = $this->fields($resource);
+        $names = null;
+
+        foreach ($this->negotiatedExtensions() as $extension) {
+            if (($names = $extension->sparseFields($resource, $this)) !== null) {
+                $this->activateExtension($extension->uri());
+                break;
+            }
+        }
+
         $type = $resource->type();
         $fieldsParam = $this->parameter('fields');
 
-        if (is_array($fieldsParam) && array_key_exists($type, $fieldsParam)) {
+        if ($names === null && is_array($fieldsParam) && array_key_exists($type, $fieldsParam)) {
             $requested = $fieldsParam[$type];
 
             if (!is_string($requested)) {
@@ -183,12 +198,23 @@ class Context extends SchemaContext
                 ]);
             }
 
-            $fields = array_intersect_key($fields, array_flip(explode(',', $requested)));
-        } else {
-            $fields = array_filter($fields, fn(Field $field) => !$field->isSparse($this));
+            $names = explode(',', $requested);
         }
 
-        return $this->sparseFields[$resource] = $fields;
+        return $this->sparseFields[$resource] = $names === null
+            ? $this->defaultFields($resource)
+            : array_intersect_key($this->fields($resource), array_flip($names));
+    }
+
+    /**
+     * Get the fields included for the given resource when no sparse fieldset is
+     * requested, keyed by name.
+     *
+     * @return array<string, Field>
+     */
+    public function defaultFields(Resource $resource): array
+    {
+        return array_filter($this->fields($resource), fn(Field $field) => !$field->isSparse($this));
     }
 
     /**
@@ -251,6 +277,71 @@ class Context extends SchemaContext
         return $this->requestedExtensions;
     }
 
+    /**
+     * Get the registered extensions negotiated for the request, keyed by URI.
+     *
+     * Extensions must be requested in the Accept header and, if the request has
+     * a body, in the Content-Type header.
+     *
+     * @return array<string, Extension>
+     */
+    public function negotiatedExtensions(): array
+    {
+        if ($this->negotiatedExtensions !== null) {
+            return $this->negotiatedExtensions;
+        }
+
+        $uris = $this->requestedExtensions();
+
+        if ($this->request->hasHeader('Content-Type')) {
+            $contentTypeUris = $this->parseContentTypeExtensions();
+
+            // Extensions only need to be declared in the Content-Type when there
+            // is a request body for them to apply to.
+            if ($this->hasBody()) {
+                $uris = array_intersect($uris, $contentTypeUris);
+            }
+        }
+
+        return $this->negotiatedExtensions = array_intersect_key(
+            $this->api->extensions,
+            array_flip($uris),
+        );
+    }
+
+    private function hasBody(): bool
+    {
+        return (
+            $this->request->getParsedBody()
+            || $this->request->getBody()->getSize() > 0
+            || (int) $this->request->getHeaderLine('Content-Length') > 0
+            || $this->request->hasHeader('Transfer-Encoding')
+        );
+    }
+
+    private function parseContentTypeExtensions(): array
+    {
+        if (!($contentType = $this->request->getHeaderLine('Content-Type'))) {
+            return [];
+        }
+
+        $type = JsonApiMediaType::parse($contentType);
+
+        if (!$this->isSupportedMediaType($type)) {
+            throw new UnsupportedMediaTypeException();
+        }
+
+        return $type->extensions;
+    }
+
+    /**
+     * Determine whether a JSON:API media type only uses registered extensions.
+     */
+    private function isSupportedMediaType(?JsonApiMediaType $type): bool
+    {
+        return $type && !array_diff($type->extensions, array_keys($this->api->extensions));
+    }
+
     private function parseAcceptHeader(): void
     {
         $accept = $this->request->getHeaderLine('Accept');
@@ -268,24 +359,14 @@ class Context extends SchemaContext
                 continue;
             }
 
-            if (array_diff(array_keys($mediaType->parameters()), ['ext', 'profile'])) {
+            $type = JsonApiMediaType::fromParameters($mediaType);
+
+            if (!$this->isSupportedMediaType($type)) {
                 continue;
             }
 
-            $extensionUris = $mediaType->hasParamater('ext')
-                ? explode(' ', $mediaType->getParameter('ext'))
-                : [];
-
-            if (array_diff($extensionUris, array_keys($this->api->extensions))) {
-                continue;
-            }
-
-            $profileUris = $mediaType->hasParamater('profile')
-                ? explode(' ', $mediaType->getParameter('profile'))
-                : [];
-
-            $this->requestedProfiles = $profileUris;
-            $this->requestedExtensions = $extensionUris;
+            $this->requestedExtensions = $type->extensions;
+            $this->requestedProfiles = $type->profiles;
             return;
         }
 
@@ -305,6 +386,7 @@ class Context extends SchemaContext
         $new->pathSegments = null;
         $new->requestedProfiles = null;
         $new->requestedExtensions = null;
+        $new->negotiatedExtensions = null;
         $new->parseAcceptHeader();
         return $new;
     }
@@ -385,6 +467,13 @@ class Context extends SchemaContext
         return $this;
     }
 
+    public function activateExtension(string $uri): static
+    {
+        $this->activeExtensions[$uri] = true;
+
+        return $this;
+    }
+
     /**
      * Load and validate parameters that have not already been loaded from the request.
      *
@@ -395,7 +484,7 @@ class Context extends SchemaContext
      */
     public function withParameters(array $parameters, bool $allowUnknown = false): static
     {
-        $parameters = $this->api->getParameters($parameters);
+        $parameters = $this->api->getParameters($parameters, $this->negotiatedExtensions());
 
         $context = clone $this;
         $context->activeFilters = null;
@@ -516,8 +605,15 @@ class Context extends SchemaContext
 
     private function validateQueryParameters(array $parameters): void
     {
+        $namespaces = array_filter(
+            array_map(
+                fn(Extension $extension) => $extension->namespace(),
+                $this->negotiatedExtensions(),
+            ),
+        );
+
         foreach ($this->request->getQueryParams() as $key => $value) {
-            if (!ctype_lower($key)) {
+            if (!ctype_lower($key) && !in_array(strstr($key, ':', true), $namespaces, true)) {
                 continue;
             }
 

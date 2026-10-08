@@ -2,7 +2,10 @@
 
 namespace Tobyz\Tests\JsonApiServer\specification;
 
+use Nyholm\Psr7\Response;
+use Nyholm\Psr7\Stream;
 use Psr\Http\Message\ResponseInterface;
+use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\Exception\NotAcceptableException;
 use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
@@ -17,6 +20,8 @@ use Tobyz\Tests\JsonApiServer\MockResource;
  */
 class ContentNegotiationTest extends AbstractTestCase
 {
+    private const DEMO_MEDIA_TYPE = 'application/vnd.api+json; ext="https://example.com/extensions/demo"';
+
     private JsonApi $api;
 
     public function setUp(): void
@@ -208,15 +213,36 @@ class ContentNegotiationTest extends AbstractTestCase
         $response = $this->api->handle(
             $this->buildRequest('GET', '/extension-demo')->withHeader(
                 'Accept',
-                'application/vnd.api+json; ext="https://example.com/extensions/demo"',
+                self::DEMO_MEDIA_TYPE,
             ),
         );
 
         $this->assertEquals(200, $response->getStatusCode());
         $this->assertEquals(
-            'application/vnd.api+json; ext=https://example.com/extensions/demo',
+            self::DEMO_MEDIA_TYPE,
             $response->getHeaderLine('Content-Type'),
         );
+        $this->assertJsonApiDocumentSubset(
+            ['meta' => ['activated' => true]],
+            (string) $response->getBody(),
+        );
+    }
+
+    public function test_content_type_does_not_restrict_extensions_without_a_body()
+    {
+        $this->api = new JsonApi();
+        $this->api->extension($this->extensionDemo());
+
+        $response = $this->api->handle(
+            $this
+                ->buildRequest('GET', '/extension-demo')
+                ->withHeader(
+                    'Accept',
+                    self::DEMO_MEDIA_TYPE,
+                )
+                ->withHeader('Content-Type', 'application/vnd.api+json'),
+        );
+
         $this->assertJsonApiDocumentSubset(
             ['meta' => ['activated' => true]],
             (string) $response->getBody(),
@@ -235,28 +261,153 @@ class ContentNegotiationTest extends AbstractTestCase
                 ->buildRequest('POST', '/extension-demo')
                 ->withHeader(
                     'Accept',
-                    'application/vnd.api+json; ext="https://example.com/extensions/demo"',
+                    self::DEMO_MEDIA_TYPE,
                 )
                 ->withHeader('Content-Type', 'application/vnd.api+json')
                 ->withParsedBody(['data' => ['type' => 'users']]),
         );
     }
 
-    private function extensionDemo(): Extension
+    public function test_extension_already_in_response_media_type_is_not_duplicated()
     {
-        return new class extends Extension {
+        $this->api = new JsonApi();
+        $this->api->extension($this->extensionDemo(self::DEMO_MEDIA_TYPE));
+
+        $response = $this->api->handle(
+            $this->buildRequest('GET', '/extension-demo')->withHeader(
+                'Accept',
+                self::DEMO_MEDIA_TYPE,
+            ),
+        );
+
+        $this->assertEquals(self::DEMO_MEDIA_TYPE, $response->getHeaderLine('Content-Type'));
+    }
+
+    public function test_content_type_restricts_extensions_when_content_length_indicates_a_body()
+    {
+        $this->api = new JsonApi();
+        $this->api->extension($this->extensionDemo());
+
+        $this->expectException(ResourceNotFoundException::class);
+
+        $this->api->handle(
+            $this
+                ->buildRequest('POST', '/extension-demo')
+                ->withHeader(
+                    'Accept',
+                    self::DEMO_MEDIA_TYPE,
+                )
+                ->withHeader('Content-Type', 'application/vnd.api+json')
+                ->withHeader('Content-Length', '2'),
+        );
+    }
+
+    public function test_content_type_restricts_extensions_when_the_body_is_only_in_the_stream()
+    {
+        $this->api = new JsonApi();
+        $this->api->extension($this->extensionDemo());
+
+        $this->expectException(ResourceNotFoundException::class);
+
+        $this->api->handle(
+            $this
+                ->buildRequest('POST', '/extension-demo')
+                ->withHeader('Accept', self::DEMO_MEDIA_TYPE)
+                ->withHeader('Content-Type', 'application/vnd.api+json')
+                ->withBody(Stream::create('{"data":{"type":"users"}}')),
+        );
+    }
+
+    public function test_extension_response_with_other_media_type_parameters_gets_ext()
+    {
+        $this->api = new JsonApi();
+        $this->api->extension($this->extensionDemo('application/vnd.api+json; charset=utf-8'));
+
+        $response = $this->api->handle(
+            $this->buildRequest('GET', '/extension-demo')->withHeader(
+                'Accept',
+                self::DEMO_MEDIA_TYPE,
+            ),
+        );
+
+        $this->assertEquals(
+            self::DEMO_MEDIA_TYPE,
+            $response->getHeaderLine('Content-Type'),
+        );
+    }
+
+    public function test_empty_media_type_uris_are_ignored()
+    {
+        $this->api = new JsonApi();
+        $this->api->extension(
+            $this->extensionDemo(
+                'application/vnd.api+json; ext="  https://example.com/extensions/demo "',
+            ),
+        );
+
+        $response = $this->api->handle(
+            $this->buildRequest('GET', '/extension-demo')->withHeader(
+                'Accept',
+                self::DEMO_MEDIA_TYPE,
+            ),
+        );
+
+        $this->assertEquals(self::DEMO_MEDIA_TYPE, $response->getHeaderLine('Content-Type'));
+    }
+
+    public function test_extension_response_without_content_type_gets_json_api_media_type()
+    {
+        $this->api = new JsonApi();
+        $this->api->extension(
+            new class extends Extension {
+                public function uri(): string
+                {
+                    return 'https://example.com/extensions/demo';
+                }
+
+                public function handle(Context $context): ?ResponseInterface
+                {
+                    return new Response(204);
+                }
+            },
+        );
+
+        $response = $this->api->handle(
+            $this->buildRequest('GET', '/')->withHeader(
+                'Accept',
+                self::DEMO_MEDIA_TYPE,
+            ),
+        );
+
+        $this->assertEquals(
+            self::DEMO_MEDIA_TYPE,
+            $response->getHeaderLine('Content-Type'),
+        );
+    }
+
+    private function extensionDemo(?string $contentType = null): Extension
+    {
+        return new class($contentType) extends Extension {
+            public function __construct(
+                private readonly ?string $contentType,
+            ) {}
+
             public function uri(): string
             {
                 return 'https://example.com/extensions/demo';
             }
 
-            public function handle(\Tobyz\JsonApiServer\Context $context): ?ResponseInterface
+            public function handle(Context $context): ?ResponseInterface
             {
                 if ($context->path() !== 'extension-demo') {
                     return null;
                 }
 
-                return $context->createResponse(['meta' => ['activated' => true]]);
+                $response = $context->createResponse(['meta' => ['activated' => true]]);
+
+                return $this->contentType
+                    ? $response->withHeader('Content-Type', $this->contentType)
+                    : $response;
             }
         };
     }

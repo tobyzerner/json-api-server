@@ -12,13 +12,18 @@ use Tobyz\JsonApiServer\Extension\Atomic\Exception\AtomicRefUnsupportedException
 use Tobyz\JsonApiServer\Extension\Atomic\Exception\InvalidAtomicOperationException;
 use Tobyz\JsonApiServer\Extension\Atomic\Exception\InvalidAtomicOperationsException;
 use Tobyz\JsonApiServer\Extension\Extension;
-use Tobyz\JsonApiServer\JsonApi;
+use Tobyz\JsonApiServer\JsonApiMediaType;
 use Tobyz\JsonApiServer\OpenApi\ProvidesRootSchema;
 use Tobyz\JsonApiServer\SchemaContext;
 
 class Atomic extends Extension implements ProvidesRootSchema
 {
     public const URI = 'https://jsonapi.org/ext/atomic';
+
+    /**
+     * Operation members that are not forwarded in the operation's request body.
+     */
+    private const OPERATION_MEMBERS = ['op', 'href', 'ref', 'params'];
 
     public function __construct(
         private readonly string $path = 'operations',
@@ -27,6 +32,11 @@ class Atomic extends Extension implements ProvidesRootSchema
     public function uri(): string
     {
         return static::URI;
+    }
+
+    public function namespace(): string
+    {
+        return 'atomic';
     }
 
     public function handle(Context $context): ?Response
@@ -67,10 +77,33 @@ class Atomic extends Extension implements ProvidesRootSchema
                 throw $e->prependSourcePointer("/atomic:operations/$i");
             }
 
+            $this->activateMediaTypeParameters($context, $response);
+
             $results[] = json_decode($response->getBody(), true);
         }
 
         return $context->createResponse(['atomic:results' => $results]);
+    }
+
+    /**
+     * Activate the extensions and profiles applied to an operation's response, so
+     * that they are included in the media type of the atomic results document.
+     */
+    private function activateMediaTypeParameters(Context $context, Response $response): void
+    {
+        $type = JsonApiMediaType::parse($response->getHeaderLine('Content-Type'), strict: false);
+
+        if (!$type) {
+            return;
+        }
+
+        foreach ($type->extensions as $uri) {
+            $context->activateExtension($uri);
+        }
+
+        foreach ($type->profiles as $uri) {
+            $context->activateProfile($uri);
+        }
     }
 
     private function add(Context $context, array $operation, array &$lids): Response
@@ -85,12 +118,10 @@ class Atomic extends Extension implements ProvidesRootSchema
             ->withUri(new Uri($operation['href'] ?? "/{$operation['data']['type']}"))
             ->withQueryParams($operation['params'] ?? [])
             ->withParsedBody(
-                array_diff_key($this->replaceLids($operation, $lids), [
-                    'op',
-                    'href',
-                    'ref',
-                    'params',
-                ]),
+                array_diff_key(
+                    $this->replaceLids($operation, $lids),
+                    array_flip(static::OPERATION_MEMBERS),
+                ),
             );
 
         $response = $context->api->handle($request);
@@ -120,7 +151,7 @@ class Atomic extends Extension implements ProvidesRootSchema
             ->withMethod('PATCH')
             ->withUri(new Uri($uri))
             ->withQueryParams($operation['params'] ?? [])
-            ->withParsedBody(array_diff_key($operation, ['op', 'href', 'ref', 'params']));
+            ->withParsedBody(array_diff_key($operation, array_flip(static::OPERATION_MEMBERS)));
 
         return $context->api->handle($request);
     }
@@ -141,7 +172,7 @@ class Atomic extends Extension implements ProvidesRootSchema
             ->withMethod('DELETE')
             ->withUri(new Uri($uri))
             ->withQueryParams($operation['params'] ?? [])
-            ->withParsedBody(array_diff_key($operation, ['op', 'href', 'ref', 'params']));
+            ->withParsedBody(array_diff_key($operation, array_flip(static::OPERATION_MEMBERS)));
 
         return $context->api->handle($request);
     }
@@ -165,7 +196,7 @@ class Atomic extends Extension implements ProvidesRootSchema
 
     public function rootSchema(SchemaContext $context): array
     {
-        $mediaType = JsonApi::MEDIA_TYPE . '; ext=' . static::URI;
+        $mediaType = (string) new JsonApiMediaType([static::URI]);
 
         return [
             'paths' => [

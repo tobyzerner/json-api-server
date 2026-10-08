@@ -17,7 +17,6 @@ trait SerializesResourceDocument
     protected function resourceDocumentParameters(): array
     {
         $include = Parameter::make('include')
-            ->in('query')
             ->description('Comma-separated list of relationship paths to include')
             ->type(Type\Str::make());
 
@@ -29,7 +28,6 @@ trait SerializesResourceDocument
             $include,
 
             Parameter::make('fields')
-                ->in('query')
                 ->description('Comma-separated sparse fieldsets keyed by type')
                 ->type(Type\Obj::make()->additionalProperties(Type\Str::make())),
         ];

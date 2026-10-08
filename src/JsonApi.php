@@ -2,7 +2,6 @@
 
 namespace Tobyz\JsonApiServer;
 
-use HttpAccept\ContentTypeParser;
 use InvalidArgumentException;
 use Nyholm\Psr7\ServerRequest;
 use Psr\Http\Message\ResponseInterface;
@@ -14,7 +13,6 @@ use Tobyz\JsonApiServer\Exception\InternalServerErrorException;
 use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
 use Tobyz\JsonApiServer\Exception\NotFoundException;
 use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
-use Tobyz\JsonApiServer\Exception\UnsupportedMediaTypeException;
 use Tobyz\JsonApiServer\Extension\Extension;
 use Tobyz\JsonApiServer\Resource\Collection;
 use Tobyz\JsonApiServer\Resource\Resource;
@@ -86,17 +84,25 @@ class JsonApi implements RequestHandlerInterface
     }
 
     /**
-     * Merge API and endpoint parameters by location and name, with later definitions winning.
+     * Merge API, extension, and endpoint parameters by location and name, with later
+     * definitions winning.
      *
      * @param Parameter[] $parameters
+     * @param Extension[] $extensions
      * @return Parameter[]
      */
-    public function getParameters(array $parameters = []): array
+    public function getParameters(array $parameters = [], array $extensions = []): array
     {
         $merged = [];
 
-        foreach ([...$this->parameters, ...$parameters] as $parameter) {
-            $merged[$parameter->in . ':' . $parameter->name] = $parameter;
+        foreach ([
+            $this->parameters,
+            ...array_map(fn(Extension $extension) => $extension->parameters(), $extensions),
+            $parameters,
+        ] as $group) {
+            foreach ($group as $parameter) {
+                $merged[$parameter->key()] = $parameter;
+            }
         }
 
         return array_values($merged);
@@ -107,6 +113,38 @@ class JsonApi implements RequestHandlerInterface
      */
     public function extension(Extension $extension): void
     {
+        $namespace = $extension->namespace();
+
+        if ($namespace !== null) {
+            if (!preg_match('/^[a-zA-Z0-9]+\z/', $namespace)) {
+                throw new InvalidArgumentException(
+                    "Extension namespace '$namespace' must contain only alphanumeric characters.",
+                );
+            }
+
+            foreach ($this->extensions as $registered) {
+                if (
+                    $registered->namespace() === $namespace
+                    && $registered->uri() !== $extension->uri()
+                ) {
+                    throw new InvalidArgumentException(
+                        "Extension namespace '$namespace' is already used by {$registered->uri()}.",
+                    );
+                }
+            }
+        }
+
+        foreach ($extension->parameters() as $parameter) {
+            if (
+                $parameter->in === 'query'
+                && ($namespace === null || !str_starts_with($parameter->name, "$namespace:"))
+            ) {
+                throw new InvalidArgumentException(
+                    "Extension query parameter '$parameter->name' must be prefixed with the extension's namespace.",
+                );
+            }
+        }
+
         $this->extensions[$extension->uri()] = $extension;
     }
 
@@ -186,7 +224,18 @@ class JsonApi implements RequestHandlerInterface
     {
         $context = new Context($this, $request);
 
-        $response = $this->runExtensions($context);
+        $response = null;
+
+        foreach ($context->negotiatedExtensions() as $extension) {
+            if ($response = $extension->handle($context)) {
+                if (!$response->hasHeader('Content-Type')) {
+                    $response = $response->withHeader('Content-Type', self::MEDIA_TYPE);
+                }
+
+                $context->activateExtension($extension->uri());
+                break;
+            }
+        }
 
         if (!$response) {
             $segments = $context->pathSegments();
@@ -207,76 +256,33 @@ class JsonApi implements RequestHandlerInterface
             throw new NotFoundException();
         }
 
-        if (count($context->activeProfiles)) {
-            $contentType = $response->getHeaderLine('Content-Type');
-
-            if (str_starts_with($contentType, self::MEDIA_TYPE)) {
-                $profileUris = array_keys(array_filter($context->activeProfiles->getArrayCopy()));
-                $contentType .= '; profile="' . implode(' ', $profileUris) . '"';
-                $response = $response->withHeader('Content-Type', $contentType);
-            }
-        }
+        $response = $this->withMediaTypeParameters($response, $context);
 
         return $response->withAddedHeader('Vary', 'Accept');
     }
 
-    private function runExtensions(Context $context): ?ResponseInterface
-    {
-        $acceptExtensionUris = $context->requestedExtensions();
+    /**
+     * Add the active extensions and profiles to a JSON:API response's media type,
+     * merging them with any the response already declares.
+     */
+    private function withMediaTypeParameters(
+        ResponseInterface $response,
+        Context $context,
+    ): ResponseInterface {
+        $extensions = array_keys(array_filter($context->activeExtensions->getArrayCopy()));
+        $profiles = array_keys(array_filter($context->activeProfiles->getArrayCopy()));
 
-        $requestedExtensionUris = !$context->request->hasHeader('Content-Type')
-            ? $acceptExtensionUris
-            : array_values(
-                array_intersect(
-                    $acceptExtensionUris,
-                    $this->getContentTypeExtensionUris($context->request),
-                ),
-            );
-
-        $activeExtensions = array_intersect_key(
-            $this->extensions,
-            array_flip($requestedExtensionUris),
-        );
-
-        foreach ($activeExtensions as $extension) {
-            if ($response = $extension->handle($context)) {
-                return $response->withHeader(
-                    'Content-Type',
-                    self::MEDIA_TYPE . '; ext=' . $extension->uri(),
-                );
-            }
+        if (!$extensions && !$profiles) {
+            return $response;
         }
 
-        return null;
-    }
+        $type = JsonApiMediaType::parse($response->getHeaderLine('Content-Type'), strict: false);
 
-    private function getContentTypeExtensionUris(ServerRequestInterface $request): array
-    {
-        if (!($contentType = $request->getHeaderLine('Content-Type'))) {
-            return [];
+        if (!$type) {
+            return $response;
         }
 
-        try {
-            $type = (new ContentTypeParser())->parse($contentType);
-        } catch (InvalidArgumentException) {
-            throw new UnsupportedMediaTypeException();
-        }
-
-        if ($type->name() !== JsonApi::MEDIA_TYPE) {
-            throw new UnsupportedMediaTypeException();
-        }
-
-        if (!empty(array_diff(array_keys($type->parameters()), ['ext', 'profile']))) {
-            throw new UnsupportedMediaTypeException();
-        }
-
-        $extensionUris = $type->hasParamater('ext') ? explode(' ', $type->getParameter('ext')) : [];
-
-        if (!empty(array_diff($extensionUris, array_keys($this->extensions)))) {
-            throw new UnsupportedMediaTypeException();
-        }
-
-        return $extensionUris;
+        return $response->withHeader('Content-Type', (string) $type->with($extensions, $profiles));
     }
 
     /**

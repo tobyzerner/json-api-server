@@ -8,6 +8,8 @@ use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Endpoint\Index;
 use Tobyz\JsonApiServer\Endpoint\Show;
 use Tobyz\JsonApiServer\Exception\JsonApiErrorsException;
+use Tobyz\JsonApiServer\Extension\Extension;
+use Tobyz\JsonApiServer\Extension\Relfield\Relfield;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\OpenApi\OpenApiGenerator;
 use Tobyz\JsonApiServer\Pagination\OffsetPagination;
@@ -419,6 +421,74 @@ class ParametersTest extends AbstractTestCase
         $api = (new JsonApi())->parameters($parameters);
 
         $this->assertSame($parameters, $api->getParameters());
+    }
+
+    #[DataProvider('unnamespacedExtensionParameters')]
+    public function test_extension_query_parameters_must_be_namespaced(string $name): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            "Extension query parameter '$name' must be prefixed with the extension's namespace.",
+        );
+
+        (new JsonApi())->extension($this->extension('ext', [Parameter::make($name)]));
+    }
+
+    public function test_extension_namespaces_must_be_unique(): void
+    {
+        $api = new JsonApi();
+        $api->extension(new Relfield());
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            "Extension namespace 'relfield' is already used by " . Relfield::URI . '.',
+        );
+
+        $api->extension($this->extension('relfield'));
+    }
+
+    public function test_extension_namespaces_must_be_alphanumeric(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            "Extension namespace 'my-ext' must contain only alphanumeric characters.",
+        );
+
+        (new JsonApi())->extension($this->extension('my-ext'));
+    }
+
+    public static function unnamespacedExtensionParameters(): iterable
+    {
+        yield 'unprefixed' => ['fields'];
+        yield 'other namespace' => ['other:option'];
+    }
+
+    /**
+     * @param Parameter[] $parameters
+     */
+    private function extension(string $namespace, array $parameters = []): Extension
+    {
+        return new class($namespace, $parameters) extends Extension {
+            public function __construct(
+                private readonly string $namespace,
+                private readonly array $parameters,
+            ) {}
+
+            public function uri(): string
+            {
+                return 'https://example.com/ext';
+            }
+
+            public function namespace(): string
+            {
+                return $this->namespace;
+            }
+
+            public function parameters(): array
+            {
+                return $this->parameters;
+            }
+        };
     }
 
     public function test_custom_pagination_rejects_parameters_outside_the_page_family(): void

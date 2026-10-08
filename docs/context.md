@@ -58,6 +58,9 @@ class Context
     // Active JSON:API profile URIs for the current response
     public ArrayObject $activeProfiles;
 
+    // Active JSON:API extension URIs for the current response
+    public ArrayObject $activeExtensions;
+
     // Get the request method
     public function method(): string;
 
@@ -97,6 +100,9 @@ class Context
     // Get only the requested fields for the given resource
     public function sparseFields(Resource $resource): array;
 
+    // Get the fields included when no sparse fieldset is requested
+    public function defaultFields(Resource $resource): array;
+
     // Determine whether a field has been requested in a sparse fieldset
     public function fieldRequested(string $type, string $field): bool;
 
@@ -112,8 +118,14 @@ class Context
     // Get all requested extension URIs from the Accept header
     public function requestedExtensions(): array;
 
+    // Get the registered extensions negotiated for the request, keyed by URI
+    public function negotiatedExtensions(): array;
+
     // Activate a JSON:API profile for the current response
     public function activateProfile(string $uri): static;
+
+    // Activate a JSON:API extension for the current response
+    public function activateExtension(string $uri): static;
 
     // Create a JSON:API response with document data
     public function createResponse(array $document = []): Response;

@@ -24,6 +24,14 @@ class Parameter extends Field
         return $this;
     }
 
+    /**
+     * Get a key that uniquely identifies the parameter by location and name.
+     */
+    public function key(): string
+    {
+        return $this->in . ':' . $this->name;
+    }
+
     protected function deserializeTypeValue(mixed $value): mixed
     {
         return $this->in === 'query'

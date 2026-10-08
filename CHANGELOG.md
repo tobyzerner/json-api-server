@@ -57,6 +57,26 @@ and this project adheres to
   has linkage meta), so scopes can load only the IDs needed for linkage
 - Allow `Field::sparse()` to take a closure that decides whether the field is
   sparse for the current request
+- Add an implementation of the
+  [relfield](https://github.com/ThorstenSuckow/relfield) extension at
+  `Tobyz\JsonApiServer\Extension\Relfield\Relfield`, which lets clients add
+  fields to or exclude fields from the default fieldset
+- Allow extensions to augment standard requests:
+    - Add `Extension::namespace()` for extensions to declare the namespace of
+      the members and query parameters they introduce. Unknown query parameters
+      in the namespace of a negotiated extension are rejected
+    - Add `Extension::parameters()` for extensions to define query and header
+      parameters, which are loaded for requests that negotiate the extension and
+      included in the OpenAPI definition
+    - Add `Extension::sparseFields()` for extensions to customize how sparse
+      fieldsets are resolved
+    - Add `Context::negotiatedExtensions()` and `Context::activateExtension()`;
+      active extensions are included in the response media type
+    - Add `JsonApiMediaType` for parsing and formatting the JSON:API media type
+      with its `ext` and `profile` parameters
+- Add `Context::defaultFields()` to get the fields included when no sparse
+  fieldset is requested
+- Add `Parameter::key()` to identify a parameter by its location and name
 
 ### Changed
 
@@ -68,6 +88,7 @@ and this project adheres to
 - Improve serialization performance and readability
   ([#123](https://github.com/tobyzerner/json-api-server/pull/123) by @mkszepp)
 - Replace Prettier with Mago for formatting
+- The `ext` media type parameter in responses is now quoted
 - Only call `Countable::count()` for paginated lists; unpaginated list documents
   no longer include `meta.page.total`
 

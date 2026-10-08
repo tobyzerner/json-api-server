@@ -161,6 +161,9 @@ Attribute::make('itemCount')->sparse(
 );
 ```
 
+To let clients request sparse fields without listing every default field, use
+the [relfield extension](extensions.md#relative-sparse-fieldsets).
+
 ## Writing
 
 By default, fields are read-only. You can allow a field to be written to in the
