@@ -86,7 +86,7 @@ class WhereHas extends Filter
                 $relatedContext,
             ) {
                 if ($relatedCollection instanceof EloquentResource) {
-                    $relatedCollection->scope($query, $relatedContext);
+                    $relatedCollection->scopeRelated($query, $field, $relatedContext);
                 }
 
                 if (($field instanceof ToMany || $field instanceof ToOne) && $field->scope) {

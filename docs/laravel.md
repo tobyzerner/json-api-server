@@ -115,7 +115,7 @@ class PostsResource extends EloquentResource
 {
     // ...
 
-    public function scope(Builder $query, Context $context)
+    public function scope(Builder $query, Context $context): void
     {
         $query->whereBelongsTo(Auth::user());
     }
@@ -125,6 +125,23 @@ class PostsResource extends EloquentResource
 This method will also be used to scope queries when retrieving related models
 for a relationship. In that case, `$context->field` is the relationship being
 queried.
+
+To further constrain only queries that list models – the index endpoint and
+to-many relationships – override `scopeList`. It isn't applied when a model is
+looked up by its ID (show, update and delete endpoints, and linkage written by a
+client) or loaded as a to-one relationship. This is useful for models that
+shouldn't be discoverable. For example, to keep unlisted posts out of lists, so
+that only clients who know a post's ID can reach it:
+
+```php
+class PostsResource extends EloquentResource
+{
+    public function scopeList(Builder $query, Context $context): void
+    {
+        $query->where('is_listed', true);
+    }
+}
+```
 
 ### Foreign Key Linkage
 

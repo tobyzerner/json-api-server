@@ -61,6 +61,9 @@ and this project adheres to
 - Laravel: A resource's `scope()` receives the relationship being queried as
   `$context->field` when it scopes related models for related endpoints,
   includes and `WhereHas` filters
+- Laravel: Add `EloquentResource::scopeList()` to further scope only queries
+  that list models (the index endpoint and to-many relationships), not lookups
+  by ID or to-one relationships
 - Add `Context::$linkageOnly`, which is `true` while serializing a relationship
   that is not included and on relationship endpoints (unless the relationship
   has linkage meta), so scopes can load only the IDs needed for linkage

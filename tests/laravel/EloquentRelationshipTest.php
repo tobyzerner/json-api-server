@@ -629,6 +629,98 @@ class EloquentRelationshipTest extends LaravelTestCase
         $this->assertSame([$imageable, $imageable], $fields);
     }
 
+    public function test_resolving_linkage_does_not_apply_list_scope()
+    {
+        User::create(['name' => 'A', 'is_admin' => true]);
+        User::create(['name' => 'B', 'is_admin' => true]);
+        $post = Post::create(['title' => 'A']);
+        Tag::create(['name' => 'unlisted']);
+        Tag::create(['name' => 'unlisted']);
+
+        $this->resources(
+            fields: ['posts' => [
+                ToOne::make('author')->type('users')->writable(),
+                ToMany::make('tags')->type('tags')->writable()->attachable(),
+            ]],
+            listScopes: [
+                'users' => fn($query) => $query->where('is_admin', false),
+                'tags' => fn($query) => $query->where('name', '!=', 'unlisted'),
+            ],
+        );
+
+        $this->update('posts', '1', relationships: [
+            'author' => ['data' => ['type' => 'users', 'id' => '1']],
+            'tags' => ['data' => [['type' => 'tags', 'id' => '1']]],
+        ]);
+
+        $this->assertSame(1, Post::find(1)->user_id);
+        $this->assertSame([1], $post->tags()->pluck('tags.id')->all());
+
+        $this->send('PATCH', '/posts/1/relationships/author', [
+            'data' => ['type' => 'users', 'id' => '2'],
+        ]);
+        $this->send('POST', '/posts/1/relationships/tags', [
+            'data' => [['type' => 'tags', 'id' => '2']],
+        ]);
+
+        $this->assertSame(2, Post::find(1)->user_id);
+        $this->assertEqualsCanonicalizing([1, 2], $post->tags()->pluck('tags.id')->all());
+    }
+
+    public function test_to_one_related_model_does_not_apply_list_scope()
+    {
+        $admin = User::create(['name' => 'Admin', 'is_admin' => true]);
+        Post::create(['title' => 'A', 'user_id' => $admin->id]);
+
+        $this->resources(
+            fields: ['posts' => [ToOne::make('author')
+                ->type('users')
+                ->includable()
+                ->withLinkage()]],
+            listScopes: ['users' => fn($query) => $query->where('is_admin', false)],
+        );
+
+        $author = ['type' => 'users', 'id' => '1'];
+        $data = fn($uri) => $this->document($this->get($uri))['data'];
+
+        $this->assertSame($author, $data('/posts/1')['relationships']['author']['data']);
+        $this->assertSame(
+            $author,
+            $data('/posts/1?include=author')['relationships']['author']['data'],
+        );
+        $this->assertSame('1', $data('/posts/1/author')['id']);
+        $this->assertSame($author, $data('/posts/1/relationships/author'));
+    }
+
+    public function test_list_scope_applies_only_to_lists()
+    {
+        Post::create(['title' => 'A']);
+        Comment::create(['body' => 'Unlisted', 'post_id' => 1]);
+        Comment::create(['body' => 'Listed', 'post_id' => 1]);
+
+        $this->resources(
+            fields: ['posts' => [ToMany::make('comments')
+                ->type('comments')
+                ->includable()
+                ->withLinkage()]],
+            listScopes: ['comments' => fn($query) => $query->where('body', '!=', 'Unlisted')],
+        );
+
+        $data = fn($uri) => $this->document($this->get($uri))['data'];
+
+        $this->assertSame(['2'], $this->ids($this->get('/comments')));
+        $this->assertSame('1', $data('/comments/1')['id']);
+        $this->assertSame(['2'], $this->ids($this->get('/posts/1/comments')));
+        $linkage = fn($uri) => array_column(
+            $data($uri)['relationships']['comments']['data'],
+            'id',
+        );
+
+        $this->assertSame(['2'], $linkage('/posts/1'));
+        $this->assertSame(['2'], $linkage('/posts/1?include=comments'));
+        $this->assertSame(['2'], array_column($data('/posts/1/relationships/comments'), 'id'));
+    }
+
     /**
      * Build a scope that records the field on its context.
      */

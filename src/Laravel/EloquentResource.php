@@ -33,6 +33,7 @@ use Tobyz\JsonApiServer\Schema\Field\Attribute;
 use Tobyz\JsonApiServer\Schema\Field\Field;
 use Tobyz\JsonApiServer\Schema\Field\Relationship;
 use Tobyz\JsonApiServer\Schema\Field\ToMany;
+use Tobyz\JsonApiServer\Schema\Field\ToOne;
 use Tobyz\JsonApiServer\Schema\Id;
 use Tobyz\JsonApiServer\Schema\Type\DateTime;
 
@@ -108,9 +109,9 @@ abstract class EloquentResource extends AbstractResource implements
 
     public function query(Context $context): object
     {
-        $query = $this->newModel($context)->query();
+        $query = $this->scopedQuery($context);
 
-        $this->scope($query, $context);
+        $this->scopeList($query, $context);
 
         return $query;
     }
@@ -127,7 +128,7 @@ abstract class EloquentResource extends AbstractResource implements
         $query = $relation->getQuery();
 
         // Related resource scopes see the relationship being queried, so they
-        // can tell they're being listed through it.
+        // can tell which relationship they're queried through.
         static::scopeRelatedQuery(
             $relationship,
             $relation,
@@ -139,9 +140,30 @@ abstract class EloquentResource extends AbstractResource implements
     }
 
     /**
-     * Hook to scope a query for this resource.
+     * Hook to scope every query for this resource: lists, lookups by ID, and
+     * related models of both to-one and to-many relationships.
      */
     public function scope(Builder $query, Context $context): void {}
+
+    /**
+     * Hook to further scope a query that lists models of this resource: its
+     * index, or a to-many relationship's related models.
+     */
+    public function scopeList(Builder $query, Context $context): void {}
+
+    /**
+     * Scope a query for this resource's models related through a
+     * relationship. A to-many relationship's related models are a list, but
+     * a to-one relationship's related model isn't.
+     */
+    public function scopeRelated(Builder $query, Relationship $relationship, Context $context): void
+    {
+        $this->scope($query, $context);
+
+        if (!$relationship instanceof ToOne) {
+            $this->scopeList($query, $context);
+        }
+    }
 
     public function results(object $query, Context $context): array
     {
@@ -213,7 +235,7 @@ abstract class EloquentResource extends AbstractResource implements
 
     public function find(array $ids, Context $context): array
     {
-        return $this->whereIds($this->query($context), $ids)->get()->all();
+        return $this->whereIds($this->scopedQuery($context), $ids)->get()->all();
     }
 
     public function setValue(object $model, Field $field, mixed $value, Context $context): void
@@ -386,6 +408,18 @@ abstract class EloquentResource extends AbstractResource implements
     public function whereIds(Builder $query, array $ids): Builder
     {
         return $query->whereIn($query->qualifyColumn($this->idColumn($query->getModel())), $ids);
+    }
+
+    /**
+     * Build a query for this resource with scope() applied.
+     */
+    private function scopedQuery(Context $context): Builder
+    {
+        $query = $this->newModel($context)->query();
+
+        $this->scope($query, $context);
+
+        return $query;
     }
 
     /**

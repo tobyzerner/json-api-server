@@ -43,11 +43,12 @@ trait ScopesRelatedResourceQueries
                 }
 
                 $constrain[$modelClass] = function ($query) use (
+                    $relationship,
                     $resource,
                     $context,
                     $applyRelationshipScope,
                 ) {
-                    $resource->scope($query, $context);
+                    $resource->scopeRelated($query, $relationship, $context);
                     $applyRelationshipScope();
                 };
             }

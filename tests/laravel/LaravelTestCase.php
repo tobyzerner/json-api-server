@@ -218,6 +218,7 @@ abstract class LaravelTestCase extends AbstractTestCase
     protected function resources(
         array $fields = [],
         array $scopes = [],
+        array $listScopes = [],
         array $filters = [],
         array $ids = [],
     ): void {
@@ -239,6 +240,7 @@ abstract class LaravelTestCase extends AbstractTestCase
                     fields: $fields[$type] ?? [Attribute::make($attribute)],
                     filters: $filters[$type] ?? [],
                     scope: $scopes[$type] ?? null,
+                    listScope: $listScopes[$type] ?? null,
                     id: $ids[$type] ?? null,
                 ),
             );

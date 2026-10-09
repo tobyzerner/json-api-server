@@ -319,6 +319,24 @@ class EloquentFilterTest extends LaravelTestCase
         $this->assertSame([$author, $author], $fields);
     }
 
+    public function test_where_has_applies_related_list_scope_only_to_to_many()
+    {
+        $this->resources(
+            fields: ['posts' => [
+                ToOne::make('author')->type('users'),
+                ToMany::make('comments')->type('comments'),
+            ]],
+            listScopes: [
+                'users' => fn($query) => $query->where('is_admin', false),
+                'comments' => fn($query) => $query->where('body', '!=', 'One'),
+            ],
+            filters: ['posts' => [WhereHas::make('author'), WhereHas::make('comments')]],
+        );
+
+        $this->assertSame(['1'], $this->filter('filter[author]=1'));
+        $this->assertSame([], $this->filter('filter[comments]=1'));
+    }
+
     public function test_where_count()
     {
         $this->posts([

@@ -26,6 +26,7 @@ class TestResource extends EloquentResource
         private readonly array $sorts = [],
         private readonly ?string $defaultSort = null,
         private readonly ?Closure $scope = null,
+        private readonly ?Closure $listScope = null,
         private readonly array $meta = [],
         private readonly ?Id $id = null,
     ) {}
@@ -79,6 +80,13 @@ class TestResource extends EloquentResource
     {
         if ($this->scope) {
             ($this->scope)($query, $context);
+        }
+    }
+
+    public function scopeList(Builder $query, Context $context): void
+    {
+        if ($this->listScope) {
+            ($this->listScope)($query, $context);
         }
     }
 }
