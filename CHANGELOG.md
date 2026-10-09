@@ -58,6 +58,9 @@ and this project adheres to
   `WhereHas` filters by ID and `ToOne::withForeignKeyLinkage()`
 - Add `Context::resourceForModel()` to find the resource that represents a
   model, or null
+- Laravel: A resource's `scope()` receives the relationship being queried as
+  `$context->field` when it scopes related models for related endpoints,
+  includes and `WhereHas` filters
 - Add `Context::$linkageOnly`, which is `true` while serializing a relationship
   that is not included and on relationship endpoints (unless the relationship
   has linkage meta), so scopes can load only the IDs needed for linkage

@@ -49,7 +49,11 @@ trait ResolvesRelationship
 
     protected function resolveRelationshipValue(Context $context, Relationship $field): mixed
     {
-        return resolve_value((clone $field)->withLinkage()->getValue($context));
+        // Related resource scopes see the declared relationship, not this copy,
+        // so they can tell they're being loaded through it.
+        return resolve_value(
+            (clone $field)->withLinkage()->getValue($context->withField($field)),
+        );
     }
 
     protected function listableRelationshipCollection(

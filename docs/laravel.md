@@ -123,7 +123,8 @@ class PostsResource extends EloquentResource
 ```
 
 This method will also be used to scope queries when retrieving related models
-for a relationship.
+for a relationship. In that case, `$context->field` is the relationship being
+queried.
 
 ### Foreign Key Linkage
 

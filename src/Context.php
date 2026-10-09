@@ -427,7 +427,11 @@ class Context extends SchemaContext
     public function withField(?Field $field): static
     {
         $new = parent::withField($field);
-        $new->linkageOnly = false;
+
+        if ($field !== $this->field) {
+            $new->linkageOnly = false;
+        }
+
         return $new;
     }
 

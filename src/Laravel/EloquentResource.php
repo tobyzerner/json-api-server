@@ -126,7 +126,14 @@ abstract class EloquentResource extends AbstractResource implements
         $relation = $model->$method();
         $query = $relation->getQuery();
 
-        static::scopeRelatedQuery($relationship, $relation, $query, $context);
+        // Related resource scopes see the relationship being queried, so they
+        // can tell they're being listed through it.
+        static::scopeRelatedQuery(
+            $relationship,
+            $relation,
+            $query,
+            $context->withField($relationship),
+        );
 
         return $query;
     }

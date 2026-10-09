@@ -2,6 +2,7 @@
 
 namespace Tobyz\Tests\JsonApiServer\laravel;
 
+use Closure;
 use Tobyz\JsonApiServer\Context;
 use Tobyz\JsonApiServer\Exception\ResourceNotFoundException;
 use Tobyz\JsonApiServer\Laravel\Field\ToMany;
@@ -531,5 +532,110 @@ class EloquentRelationshipTest extends LaravelTestCase
             [['type' => 'users', 'id' => '1'], null, ['type' => 'posts', 'id' => '1'], null],
             $this->linkage($this->get('/images?include=imageable'), 'imageable'),
         );
+    }
+
+    public function test_related_resource_scope_sees_to_many_relationship()
+    {
+        Post::create(['title' => 'A']);
+        Comment::create(['body' => 'One', 'post_id' => 1]);
+
+        $comments = ToMany::make('comments')->type('comments')->includable()->withLinkage();
+        $fields = [];
+
+        $this->resources(fields: ['posts' => [$comments]], scopes: [
+            'comments' => $this->recordField($fields),
+        ]);
+
+        $this->get('/posts/1/comments');
+        $this->get('/posts/1?include=comments');
+        $this->get('/posts/1/relationships/comments');
+
+        $this->assertSame([$comments, $comments, $comments], $fields);
+    }
+
+    public function test_related_resource_scope_sees_to_one_relationship()
+    {
+        $user = User::create(['name' => 'Toby']);
+        Post::create(['title' => 'A', 'user_id' => $user->id]);
+
+        $author = ToOne::make('author')->type('users')->includable()->withLinkage();
+        $fields = [];
+
+        $this->resources(fields: ['posts' => [$author]], scopes: [
+            'users' => $this->recordField($fields),
+        ]);
+
+        $this->get('/posts/1/author');
+        $this->get('/posts/1?include=author');
+        $this->get('/posts/1/relationships/author');
+
+        $this->assertSame([$author, $author, $author], $fields);
+    }
+
+    public function test_to_one_relationship_endpoint_scopes_related_resource_for_linkage_only()
+    {
+        $user = User::create(['name' => 'Toby']);
+        Post::create(['title' => 'A', 'user_id' => $user->id]);
+
+        $linkageOnly = [];
+
+        $this->resources(fields: ['posts' => [ToOne::make('author')
+            ->type('users')
+            ->includable()]], scopes: [
+            'users' => function ($query, Context $context) use (&$linkageOnly) {
+                $linkageOnly[] = $context->linkageOnly;
+            },
+        ]);
+
+        $this->get('/posts/1/relationships/author');
+
+        $this->assertSame([true], $linkageOnly);
+    }
+
+    public function test_resource_scope_sees_no_relationship_on_its_own_endpoints()
+    {
+        Comment::create(['body' => 'One']);
+
+        $fields = [];
+
+        $this->resources(scopes: [
+            'comments' => $this->recordField($fields),
+        ]);
+
+        $this->get('/comments');
+        $this->get('/comments/1');
+
+        $this->assertSame([null, null], $fields);
+    }
+
+    public function test_morph_to_target_scopes_see_the_relationship()
+    {
+        User::create(['name' => 'Toby']);
+        Post::create(['title' => 'A']);
+
+        Image::create(['url' => 'a', 'imageable_type' => User::class, 'imageable_id' => 1]);
+        Image::create(['url' => 'b', 'imageable_type' => Post::class, 'imageable_id' => 1]);
+
+        $imageable = ToOne::make('imageable')->type(['users', 'posts'])->includable();
+        $fields = [];
+
+        $this->resources(fields: ['images' => [$imageable]], scopes: [
+            'users' => $this->recordField($fields),
+            'posts' => $this->recordField($fields),
+        ]);
+
+        $this->get('/images?include=imageable');
+
+        $this->assertSame([$imageable, $imageable], $fields);
+    }
+
+    /**
+     * Build a scope that records the field on its context.
+     */
+    private function recordField(array &$fields): Closure
+    {
+        return function ($query, Context $context) use (&$fields) {
+            $fields[] = $context->field;
+        };
     }
 }

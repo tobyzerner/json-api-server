@@ -63,6 +63,7 @@ class WhereHas extends Filter
         }
 
         $relatedCollection = $context->api->getCollection($field->collections[0]);
+        $relatedContext = $context->withField($field);
 
         foreach ($value as $operator => $v) {
             $method = match ($operator) {
@@ -82,13 +83,14 @@ class WhereHas extends Filter
                 $relatedCollection,
                 $field,
                 $context,
+                $relatedContext,
             ) {
                 if ($relatedCollection instanceof EloquentResource) {
-                    $relatedCollection->scope($query, $context);
+                    $relatedCollection->scope($query, $relatedContext);
                 }
 
                 if (($field instanceof ToMany || $field instanceof ToOne) && $field->scope) {
-                    ($field->scope)($query, $context);
+                    ($field->scope)($query, $relatedContext);
                 }
 
                 if (in_array($operator, ['null', 'notnull'])) {

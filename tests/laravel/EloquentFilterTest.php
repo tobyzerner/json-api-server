@@ -303,6 +303,22 @@ class EloquentFilterTest extends LaravelTestCase
         $this->assertSame(['1'], $this->filter('filter[comments][notnull]=true'));
     }
 
+    public function test_where_has_related_scopes_see_the_relationship()
+    {
+        $fields = [];
+        $record = function ($query, Context $context) use (&$fields) {
+            $fields[] = $context->field;
+        };
+
+        $author = ToOne::make('author')->type('users')->scope($record);
+
+        $this->posts([WhereHas::make('author')], [$author], usersScope: $record);
+
+        $this->filter('filter[author]=1');
+
+        $this->assertSame([$author, $author], $fields);
+    }
+
     public function test_where_count()
     {
         $this->posts([
