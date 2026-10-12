@@ -61,7 +61,7 @@ class ToOne extends BaseToOne
             return $model->getRelation($method);
         }
 
-        $foreignKey = $model->getAttribute($relation->getForeignKeyName());
+        $foreignKey = $relation->getParentKey();
 
         // Without a morph type, a morph-to relation's related model is the
         // parent model itself, so there's nothing to link to.

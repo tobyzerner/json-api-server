@@ -142,6 +142,25 @@ class ForeignKeyLinkageTest extends LaravelTestCase
         $this->assertQueryCount(0, 'users', $queries);
     }
 
+    public function test_foreign_key_is_read_through_the_relation()
+    {
+        $user = User::create(['name' => 'Toby']);
+        Post::create(['title' => 'A', 'user_id' => $user->id]);
+        Post::create(['title' => 'Draft', 'user_id' => $user->id]);
+
+        $this->resources(fields: ['posts' => [ToOne::make('publishedAuthor')
+            ->type('users')
+            ->withForeignKeyLinkage()]]);
+
+        [$response, $queries] = $this->queries(fn() => $this->get('/posts'));
+
+        $this->assertSame(
+            [['type' => 'users', 'id' => '1'], null],
+            $this->linkage($response, 'publishedAuthor'),
+        );
+        $this->assertQueryCount(0, 'users', $queries);
+    }
+
     public function test_morph_to()
     {
         $user = User::create(['name' => 'Toby']);

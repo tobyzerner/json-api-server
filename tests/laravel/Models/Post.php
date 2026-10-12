@@ -3,6 +3,7 @@
 namespace Tobyz\Tests\JsonApiServer\laravel\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -22,6 +23,21 @@ class Post extends Model
     public function authorByEmail(): BelongsTo
     {
         return $this->belongsTo(User::class, 'author_email', 'email');
+    }
+
+    /**
+     * The author, unless the post is a draft. The relation reads its foreign
+     * key conditionally, like a belongs-to over one type of a morph key.
+     */
+    public function publishedAuthor(): BelongsTo
+    {
+        return new class(User::query(), $this, 'user_id', 'id', 'publishedAuthor') extends
+            BelongsTo {
+            protected function getForeignKeyFrom(EloquentModel $model)
+            {
+                return $model->title === 'Draft' ? null : parent::getForeignKeyFrom($model);
+            }
+        };
     }
 
     public function comments(): HasMany

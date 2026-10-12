@@ -89,10 +89,7 @@ abstract class EloquentResource extends AbstractResource implements
 
         // A belongs-to relationship without a foreign key can't be related to
         // anything, so there's no need to query for it.
-        if (
-            $relation instanceof BelongsTo
-            && $model->getAttribute($relation->getForeignKeyName()) === null
-        ) {
+        if ($relation instanceof BelongsTo && $relation->getParentKey() === null) {
             return null;
         }
 
