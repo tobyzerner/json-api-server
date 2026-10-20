@@ -68,6 +68,10 @@ class ShowRelated implements Endpoint, ProvidesRootSchema, ProvidesRelationshipL
 
         $context = $context->withParameters($this->getParameters($field, $context));
 
+        if ($collection = $this->listableRelationshipCollection($field, $context)) {
+            $context = $context->withPrimaryCollection($collection);
+        }
+
         $relatedData = $this->resolveRelationshipData($context, $field);
 
         $relatedCollections = array_map($context->api->getCollection(...), $field->collections);

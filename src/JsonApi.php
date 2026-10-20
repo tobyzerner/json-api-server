@@ -296,7 +296,7 @@ class JsonApi implements RequestHandlerInterface
             $collectionName = array_shift($segments);
             $collection = $this->getCollection($collectionName);
 
-            $context = $context->withCollection($collection)->withPathSegments($segments);
+            $context = $context->withPrimaryCollection($collection)->withPathSegments($segments);
 
             $response = $this->dispatchEndpoints($collection->endpoints(), $context);
         }

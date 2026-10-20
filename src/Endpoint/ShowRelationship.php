@@ -69,6 +69,10 @@ class ShowRelationship implements Endpoint, ProvidesRootSchema, ProvidesRelation
             ->withParameters($this->getParameters($field, $context))
             ->forSerializedField($field);
 
+        if ($collection = $this->listableRelationshipCollection($field, $context)) {
+            $context = $context->withPrimaryCollection($collection);
+        }
+
         $relatedData = $this->resolveRelationshipData($context, $field);
 
         $document = $this->serializeRelationshipDocument($field, $relatedData, $context);

@@ -182,6 +182,40 @@ class FilteringTest extends AbstractTestCase
         $this->assertSame(['1'], array_column($document['data'], 'id'));
     }
 
+    public function test_included_resources_see_the_endpoints_filters(): void
+    {
+        $children = [(object) ['id' => '1']];
+        $this->api->resource(new MockResource(
+            'children',
+            models: $children,
+            fields: [
+                Attribute::make('status')->get(
+                    fn($model, Context $context) => $context->filter('status')->value,
+                ),
+            ],
+            filters: [CustomFilter::make('status')->type(Type\Integer::make())],
+        ));
+        $this->api->resource(new MockResource(
+            'parents',
+            models: [(object) ['id' => '1', 'children' => $children]],
+            endpoints: [Index::make()],
+            fields: [ToMany::make('children')->includable()],
+            filters: [
+                CustomFilter::make('status', fn() => null)->type(
+                    Type\Str::make()->enum(FilteringTestStatus::cases()),
+                ),
+            ],
+        ));
+
+        $response = $this->api->handle($this->buildRequest(
+            'GET',
+            '/parents?filter[status]=published&include=children',
+        ));
+
+        $document = json_decode($response->getBody(), true);
+        $this->assertSame('published', $document['included'][0]['attributes']['status']);
+    }
+
     public function test_context_normalizes_groups_operators_and_typed_values(): void
     {
         $request = $this->buildRequest('GET', '/')->withQueryParams([
@@ -206,11 +240,20 @@ class FilteringTest extends AbstractTestCase
             [['active' => false], ['score' => ['gt' => 10.0]]],
             $context->filter('or'),
         );
+    }
 
+    public function test_context_normalizes_request_filters_for_the_primary_collection(): void
+    {
         $otherCollection = new MockResource('other', filters: [
             CustomFilter::make('ids')->type(Type\Str::make()),
         ]);
-        $this->assertSame('1,2', $context->withCollection($otherCollection)->filter('ids'));
+        $context = $this
+            ->filterContext(['ids' => '1,2'])
+            ->withPrimaryCollection($this->api->getResource('items'))
+            ->withCollection($otherCollection);
+
+        $this->assertSame([1, 2], $context->filter('ids'));
+        $this->assertSame('1,2', $context->withFilters(['ids' => '1,2'])->filter('ids'));
     }
 
     public function test_duplicate_filter_names_are_rejected(): void

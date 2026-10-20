@@ -17,6 +17,7 @@ use WeakMap;
 class SchemaContext
 {
     public ?Collection $collection = null;
+    public ?Collection $primaryCollection = null;
     public ?Resource $resource = null;
     public ?Endpoint $endpoint = null;
     public ?Field $field = null;
@@ -190,6 +191,18 @@ class SchemaContext
     {
         $new = clone $this;
         $new->collection = $collection;
+        return $new;
+    }
+
+    /**
+     * Set the collection of the endpoint's primary data, and the collection
+     * being processed if there isn't one yet.
+     */
+    public function withPrimaryCollection(Collection $collection): static
+    {
+        $new = clone $this;
+        $new->primaryCollection = $collection;
+        $new->collection ??= $collection;
         return $new;
     }
 

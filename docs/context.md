@@ -16,8 +16,11 @@ class Context
     // The request that is currently being handled
     public ServerRequestInterface $request;
 
-    // The collection that the request is for
+    // The collection currently being processed
     public ?Collection $collection = null;
+
+    // The collection of the endpoint's primary data
+    public ?Collection $primaryCollection = null;
 
     // The resource that the request is for
     public ?Resource $resource = null;
@@ -73,14 +76,19 @@ class Context
     // Get the value of a validated query parameter or header
     public function parameter(string $name, string $in = 'query'): mixed;
 
-    // Get a top-level filter for the collection currently being processed
+    // Get a normalized filter value
     public function filter(string $name): mixed;
 
-    // Get the filters for the collection currently being processed
+    // Get the request's filters normalized for the primary collection, or the
+    // withFilters() bag normalized for the current collection
     public function filters(): array;
 
     // Return a copy with an active collection-level filter bag
     public function withFilters(array $filters): static;
+
+    // Return a copy with a different primary collection, also setting the
+    // current collection if there isn't one
+    public function withPrimaryCollection(Collection $collection): static;
 
     // Get the URL of the current request, optionally with query parameter overrides
     public function currentUrl(array $queryParams = []): string;

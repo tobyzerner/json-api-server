@@ -43,6 +43,8 @@ and this project adheres to
 
 ### Added
 
+- `Context::$primaryCollection` holds the collection of the endpoint's primary
+  data, set with `withPrimaryCollection()`
 - Add first-class typed filters. Filter values are now normalized according to
   their configured type, including arrays, objects, booleans, numbers, integers,
   dates, and `OneOf` values, before filter callbacks receive them.
@@ -115,6 +117,8 @@ and this project adheres to
 
 ### Fixed
 
+- `Context::filter()` and `filters()` now normalize the request's filters for
+  the primary collection, so related resources no longer reject valid filters
 - Laravel: Reject cursors that can't be decoded instead of ignoring them and
   returning the first page
 - Laravel: Fix `SortWithCount` without a scope

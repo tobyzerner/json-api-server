@@ -579,7 +579,7 @@ class Context extends SchemaContext
     }
 
     /**
-     * Get a normalized top-level filter for the collection currently being processed.
+     * Get a normalized filter value. See filters().
      */
     public function filter(string $name): mixed
     {
@@ -587,20 +587,24 @@ class Context extends SchemaContext
     }
 
     /**
-     * Get normalized filters for the current collection. Delegated filters may
-     * differ from the request's top-level filter parameter.
+     * Get normalized filters. These are the endpoint's filters, normalized for
+     * its primary collection even while related resources are being loaded.
+     * Delegated filters are normalized for the current collection.
      */
     public function filters(): array
     {
         $filters = $this->activeFilters ?? (array) $this->parameter('filter');
+        $collection = $this->activeFilters === null
+            ? $this->primaryCollection ?? $this->collection
+            : $this->collection;
 
-        if (!$filters || !$this->collection instanceof Listable) {
+        if (!$filters || !$collection instanceof Listable) {
             return $filters;
         }
 
         try {
-            return $this->normalizedFilters[$this->collection] ??= (new Filterer(
-                $this->collection,
+            return $this->normalizedFilters[$collection] ??= (new Filterer(
+                $collection,
                 $this,
             ))->normalize($filters);
         } catch (Sourceable $e) {
