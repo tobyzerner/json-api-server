@@ -3,6 +3,7 @@
 namespace Tobyz\Tests\JsonApiServer\unit;
 
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tobyz\JsonApiServer\Schema\Type\Arr;
 use Tobyz\JsonApiServer\Schema\Type\Date;
 use Tobyz\JsonApiServer\Schema\Type\Integer;
 use Tobyz\JsonApiServer\Schema\Type\Obj;
@@ -19,22 +20,55 @@ class ObjectTest extends AbstractTestCase
             [
                 Obj::make()->property('name', Str::make())->property('age', Integer::make()),
                 ['name' => 'John', 'age' => 30],
-                ['name' => 'John', 'age' => 30],
+                '{"name":"John","age":30}',
             ],
             [
                 Obj::make()->property('name', Str::make()),
                 ['name' => 'John', 'extra' => 'value'],
-                ['name' => 'John', 'extra' => 'value'],
+                '{"name":"John","extra":"value"}',
             ],
-            [Obj::make()->property('age', Integer::make()), ['age' => '30'], ['age' => 30]],
-            [Obj::make()->nullable(), null, null],
+            [Obj::make()->property('age', Integer::make()), ['age' => '30'], '{"age":30}'],
+            [Obj::make()->nullable(), null, 'null'],
+            [Obj::make(), [], '{}'],
+            [
+                Obj::make()->additionalProperties(Arr::make()->items(Str::make())),
+                ['x' => []],
+                '{"x":[]}',
+            ],
+            [
+                Obj::make()->additionalProperties(Str::make()),
+                ['0' => 'a', '1' => 'b'],
+                '{"0":"a","1":"b"}',
+            ],
+            [Obj::make()->property('inner', Obj::make()), ['inner' => []], '{"inner":{}}'],
+            [Arr::make()->items(Obj::make()), [[]], '[{}]'],
+            [
+                Obj::make()->property('birthday', Date::make()),
+                (object) ['birthday' => new \DateTime('1993-04-04')],
+                '{"birthday":"1993-04-04"}',
+            ],
+            [
+                Obj::make()->property('birthday', Date::make()),
+                new \ArrayObject(['birthday' => new \DateTime('1993-04-04')]),
+                '{"birthday":"1993-04-04"}',
+            ],
+            [
+                Obj::make()->property('age', Integer::make()),
+                new class implements \JsonSerializable {
+                    public function jsonSerialize(): array
+                    {
+                        return ['age' => '30'];
+                    }
+                },
+                '{"age":30}',
+            ],
         ];
     }
 
     #[DataProvider('serializationProvider')]
-    public function test_serialization(Type $type, mixed $value, mixed $expected)
+    public function test_serialization(Type $type, mixed $value, string $expected)
     {
-        $this->assertEquals($expected, $type->serialize($value));
+        $this->assertSame($expected, json_encode($type->serialize($value)));
     }
 
     public static function deserializationProvider(): array

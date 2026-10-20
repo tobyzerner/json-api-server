@@ -5,9 +5,12 @@ namespace Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\JsonApiServer\Exception\Type\RangeViolationException;
 use Tobyz\JsonApiServer\Exception\Type\TypeMismatchException;
 use Tobyz\JsonApiServer\Exception\Type\UniqueViolationException;
+use Tobyz\JsonApiServer\Schema\Type\Concerns\ConvertsObjectsToArrays;
 
 class Arr extends AbstractType
 {
+    use ConvertsObjectsToArrays;
+
     private int $minItems = 0;
     private ?int $maxItems = null;
     private bool $uniqueItems = false;
@@ -21,7 +24,14 @@ class Arr extends AbstractType
 
     protected function serializeValue(mixed $value): mixed
     {
-        return $this->mapItems($value, fn($item) => $this->items->serialize($item));
+        $value = $this->mapItems(
+            $this->objectToArray($value, preserveKeys: false),
+            fn($item) => $this->items->serialize($item),
+        );
+
+        // Discard keys so that non-sequential arrays (e.g. after filtering)
+        // are encoded as JSON lists rather than objects.
+        return is_array($value) ? array_values($value) : $value;
     }
 
     protected function deserializeValue(mixed $value): mixed

@@ -19,6 +19,35 @@ class ArrTest extends AbstractTestCase
             [Arr::make(), [1, 2, 3], [1, 2, 3]],
             [Arr::make()->items(Date::make()), [new \DateTime('1993-04-04')], ['1993-04-04']],
             [Arr::make(), [], []],
+            [Arr::make(), [0 => 'a', 2 => 'b'], ['a', 'b']],
+            [
+                Arr::make()->items(Date::make()),
+                ['x' => new \DateTime('1993-04-04')],
+                ['1993-04-04'],
+            ],
+            [
+                Arr::make()->items(Date::make()),
+                new \ArrayIterator([new \DateTime('1993-04-04')]),
+                ['1993-04-04'],
+            ],
+            [
+                Arr::make(),
+                new class implements \JsonSerializable {
+                    public function jsonSerialize(): array
+                    {
+                        return [1 => 'a'];
+                    }
+                },
+                ['a'],
+            ],
+            [
+                Arr::make(),
+                (function () {
+                    yield from ['a', 'b'];
+                    yield from ['c'];
+                })(),
+                ['a', 'b', 'c'],
+            ],
             [Arr::make()->nullable(), null, null],
         ];
     }

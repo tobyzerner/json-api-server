@@ -90,7 +90,9 @@ final class Atomic extends Extension implements ProvidesRootSchema
 
             $this->activateMediaTypeParameters($context, $response);
 
-            $results[] = json_decode($response->getBody(), true);
+            // Decode objects as stdClass so that empty objects aren't re-encoded
+            // as lists.
+            $results[] = json_decode($response->getBody());
         }
 
         return $context->createResponse(['atomic:results' => $results]);

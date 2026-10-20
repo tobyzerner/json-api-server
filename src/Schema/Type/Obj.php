@@ -5,9 +5,12 @@ namespace Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\JsonApiServer\Exception\Type\AdditionalPropertyException;
 use Tobyz\JsonApiServer\Exception\Type\RequiredPropertyException;
 use Tobyz\JsonApiServer\Exception\Type\TypeMismatchException;
+use Tobyz\JsonApiServer\Schema\Type\Concerns\ConvertsObjectsToArrays;
 
 class Obj extends AbstractType
 {
+    use ConvertsObjectsToArrays;
+
     private array $properties = [];
     private bool|Type|null $additionalProperties = null;
 
@@ -18,7 +21,11 @@ class Obj extends AbstractType
 
     protected function serializeValue(mixed $value): mixed
     {
-        return $this->mapValue($value, 'serialize');
+        $value = $this->objectToArray($value);
+
+        // Cast to an object so that empty values and sequential numeric keys
+        // are encoded as JSON objects rather than lists.
+        return is_array($value) ? (object) $this->mapValue($value, 'serialize') : $value;
     }
 
     protected function deserializeValue(mixed $value): mixed

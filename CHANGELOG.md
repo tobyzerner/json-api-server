@@ -34,6 +34,12 @@ and this project adheres to
   models are loaded through the related resource's scopes so that hidden
   resources aren't linked. Scopes can check `$context->linkageOnly` to only load
   IDs
+- `Type\Obj::serialize()` now returns a `stdClass` instead of an array, so that
+  empty objects and objects with sequential numeric keys are encoded as JSON
+  objects rather than lists
+- `Type\Arr` values are now always serialized as JSON lists; array keys are
+  discarded, so a non-sequential or string-keyed array is no longer encoded as a
+  JSON object
 
 ### Added
 
@@ -133,6 +139,8 @@ and this project adheres to
 - Set the field on the context while deserializing, setting, and saving field
   values, so callbacks and `find()` (when resolving relationship linkage) can
   see which field is being written
+- Serialize `Type\Obj` and `Type\Arr` values given as `stdClass`, `Traversable`
+  (e.g. collections), or `JsonSerializable` objects through their nested types
 
 ## [1.0.0-rc.1] - 2026-01-01
 

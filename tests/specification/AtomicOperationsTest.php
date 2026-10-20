@@ -11,6 +11,7 @@ use Tobyz\JsonApiServer\Extension\Relfield\Relfield;
 use Tobyz\JsonApiServer\JsonApi;
 use Tobyz\JsonApiServer\OpenApi\OpenApiGenerator;
 use Tobyz\JsonApiServer\Schema\Field\Attribute;
+use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\Tests\JsonApiServer\AbstractTestCase;
 use Tobyz\Tests\JsonApiServer\MockResource;
 
@@ -101,6 +102,42 @@ class AtomicOperationsTest extends AbstractTestCase
             ],
             $response->getBody(),
         );
+    }
+
+    public function test_empty_objects_in_results_are_encoded_as_objects()
+    {
+        $this->api->resource(
+            new MockResource(
+                'posts',
+                models: [(object) ['id' => '1', 'title' => 'Hello', 'settings' => []]],
+                endpoints: [Update::make()],
+                fields: [
+                    Attribute::make('title')->writable(),
+                    Attribute::make('settings')->type(Type\Obj::make()),
+                ],
+            ),
+        );
+
+        $response = $this->api->handle(
+            $this
+                ->buildRequest('POST', '/operations')
+                ->withHeader('Accept', static::MEDIA_TYPE)
+                ->withHeader('Content-Type', static::MEDIA_TYPE)
+                ->withParsedBody([
+                    'atomic:operations' => [
+                        [
+                            'op' => 'update',
+                            'data' => [
+                                'type' => 'posts',
+                                'id' => '1',
+                                'attributes' => ['title' => 'Hi'],
+                            ],
+                        ],
+                    ],
+                ]),
+        );
+
+        $this->assertStringContainsString('"settings":{}', (string) $response->getBody());
     }
 
     public function test_extensions_applied_to_operations_are_included_in_media_type()
