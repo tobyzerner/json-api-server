@@ -378,4 +378,99 @@ class InclusionOfRelatedResourcesTest extends AbstractTestCase
             $response->getBody(),
         );
     }
+
+    public function test_deeper_include_on_resource_already_reached_through_shallower_path()
+    {
+        $image = (object) ['id' => '1'];
+        $user = (object) ['id' => '1', 'avatar' => $image];
+
+        $this->api->resource(new MockResource('images', models: [$image]));
+
+        $this->api->resource(
+            new MockResource(
+                'people',
+                models: [$user],
+                fields: [ToOne::make('avatar')->type('images')->includable()],
+            ),
+        );
+
+        $this->api->resource(
+            new MockResource(
+                'posts',
+                models: [(object) ['id' => '1', 'author' => $user, 'editor' => $user]],
+                endpoints: [Show::make()],
+                fields: [
+                    ToOne::make('author')->type('people')->includable(),
+                    ToOne::make('editor')->type('people')->includable(),
+                ],
+            ),
+        );
+
+        $response = $this->api->handle(
+            $this->buildRequest('GET', '/posts/1?include=author,editor.avatar'),
+        );
+
+        $this->assertEqualsCanonicalizing(
+            ['people:1', 'images:1'],
+            $this->includedKeys($response->getBody()),
+        );
+    }
+
+    public function test_sibling_includes_on_resource_reached_through_two_paths()
+    {
+        $image = (object) ['id' => '1'];
+        $banner = (object) ['id' => '2'];
+        $team = (object) ['id' => '1', 'logo' => $image, 'banner' => $banner];
+        $user = (object) ['id' => '1', 'team' => $team];
+
+        $this->api->resource(new MockResource('images', models: [$image, $banner]));
+
+        $this->api->resource(
+            new MockResource(
+                'teams',
+                models: [$team],
+                fields: [
+                    ToOne::make('logo')->type('images')->includable(),
+                    ToOne::make('banner')->type('images')->includable(),
+                ],
+            ),
+        );
+
+        $this->api->resource(
+            new MockResource(
+                'people',
+                models: [$user],
+                fields: [ToOne::make('team')->type('teams')->includable()],
+            ),
+        );
+
+        $this->api->resource(
+            new MockResource(
+                'posts',
+                models: [(object) ['id' => '1', 'author' => $user, 'editor' => $user]],
+                endpoints: [Show::make()],
+                fields: [
+                    ToOne::make('author')->type('people')->includable(),
+                    ToOne::make('editor')->type('people')->includable(),
+                ],
+            ),
+        );
+
+        $response = $this->api->handle(
+            $this->buildRequest('GET', '/posts/1?include=author.team.logo,editor.team.banner'),
+        );
+
+        $this->assertEqualsCanonicalizing(
+            ['people:1', 'teams:1', 'images:1', 'images:2'],
+            $this->includedKeys($response->getBody()),
+        );
+    }
+
+    private function includedKeys(string $body): array
+    {
+        return array_map(
+            fn($resource) => $resource['type'] . ':' . $resource['id'],
+            json_decode($body, true)['included'] ?? [],
+        );
+    }
 }

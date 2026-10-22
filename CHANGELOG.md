@@ -117,6 +117,9 @@ and this project adheres to
 
 ### Fixed
 
+- Fix nested includes being dropped for a resource that an earlier include
+  path already reached with a shallower include
+  ([#125](https://github.com/tobyzerner/json-api-server/issues/125))
 - `Context::filter()` and `filters()` now normalize the request's filters for
   the primary collection, so related resources no longer reject valid filters
 - Laravel: Reject cursors that can't be decoded instead of ignoring them and
