@@ -156,14 +156,13 @@ class Serializer
     private function serializeFields(string $key, Context $context): void
     {
         foreach ($context->sparseFields($context->resource) as $field) {
-            if ($this->fieldProcessed($key, $field)) {
+            $include = $context->include[$field->name] ?? null;
+
+            if ($this->fieldProcessed($key, $field, $include)) {
                 continue;
             }
 
-            $fieldContext = $context->forSerializedField(
-                $field,
-                $context->include[$field->name] ?? null,
-            );
+            $fieldContext = $context->forSerializedField($field, $include);
 
             if (!$field->isVisible($fieldContext)) {
                 continue;
@@ -214,15 +213,52 @@ class Serializer
         }
     }
 
-    private function fieldProcessed(string $key, Field $field): bool
+    /**
+     * A resource can be reached through several include paths. A field that
+     * was already processed is processed again only if this path includes
+     * something the earlier paths did not, so its related resources get the
+     * deeper include.
+     */
+    private function fieldProcessed(string $key, Field $field, ?array $include): bool
     {
-        if (in_array($field, $this->processedFields[$key] ?? [], true)) {
-            return true;
+        // false marks a field processed without an include
+        $processed = $this->processedFields[$key][$field->name] ?? null;
+
+        if ($processed !== null) {
+            if (
+                $include === null
+                || $include === $processed
+                || $processed !== false && $this->includeCovers($processed, $include)
+            ) {
+                return true;
+            }
+
+            $include = $this->mergeInclude($processed ?: [], $include);
         }
 
-        $this->processedFields[$key][] = $field;
+        $this->processedFields[$key][$field->name] = $include ?? false;
 
         return false;
+    }
+
+    private function includeCovers(array $processed, array $include): bool
+    {
+        foreach ($include as $name => $nested) {
+            if (!isset($processed[$name]) || !$this->includeCovers($processed[$name], $nested)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function mergeInclude(array $processed, array $include): array
+    {
+        foreach ($include as $name => $nested) {
+            $processed[$name] = $this->mergeInclude($processed[$name] ?? [], $nested);
+        }
+
+        return $processed;
     }
 
     private function resolveDeferred(): void
