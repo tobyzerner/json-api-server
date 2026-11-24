@@ -2,8 +2,10 @@
 
 namespace Tobyz\JsonApiServer\Laravel\Filter;
 
+use Illuminate\Database\Eloquent\Builder;
 use LogicException;
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Laravel\Concerns\QueriesRelationExistence;
 use Tobyz\JsonApiServer\Laravel\EloquentResource;
 use Tobyz\JsonApiServer\Laravel\Field\ToMany;
 use Tobyz\JsonApiServer\Laravel\Field\ToOne;
@@ -14,6 +16,7 @@ use function Tobyz\JsonApiServer\apply_filters;
 
 class WhereHas extends Filter
 {
+    use QueriesRelationExistence;
     use SupportsOperators;
 
     protected const SUPPORTED_OPERATORS = ['eq', 'in', 'ne', 'notin', 'null', 'notnull'];
@@ -62,62 +65,63 @@ class WhereHas extends Filter
             );
         }
 
+        $name = $field->property ?: $field->name;
         $relatedCollection = $context->api->getCollection($field->collections[0]);
         $relatedContext = $context->withField($field);
 
         foreach ($value as $operator => $v) {
-            $method = match ($operator) {
-                'ne', 'notin' => 'whereDoesntHave',
-                'null', 'notnull' => (
-                    $operator === 'null'
-                    xor !filter_var($v, FILTER_VALIDATE_BOOLEAN)
-                )
-                        ? 'whereDoesntHave'
-                        : 'whereHas',
-                default => 'whereHas',
+            $exists = match ($operator) {
+                'ne', 'notin' => false,
+                'null', 'notnull' => $operator === 'null'
+                    xor filter_var($v, FILTER_VALIDATE_BOOLEAN),
+                default => true,
             };
 
-            $query->{$method}($field->property ?: $field->name, function ($query) use (
-                $operator,
-                $v,
-                $relatedCollection,
-                $field,
-                $context,
-                $relatedContext,
-            ) {
-                if ($relatedCollection instanceof EloquentResource) {
-                    $relatedCollection->scopeRelated($query, $field, $relatedContext);
-                }
+            $ids = in_array($operator, ['null', 'notnull']) ? [] : $this->extractIds($v);
 
-                if (($field instanceof ToMany || $field instanceof ToOne) && $field->scope) {
-                    ($field->scope)($query, $relatedContext);
-                }
-
-                if (in_array($operator, ['null', 'notnull'])) {
-                    return;
-                }
-
-                if ($ids = $this->extractIds($v)) {
-                    $resource = $context->resourceForModel(
-                        [$relatedCollection],
-                        $query->getModel(),
-                    );
-
-                    if ($resource instanceof EloquentResource) {
-                        $resource->whereIds($query, $ids);
-                    } else {
-                        $query->whereKey($ids);
-                    }
-                    return;
-                }
-
-                apply_filters(
-                    $query,
-                    (array) $v,
+            $this->whereRelationExists(
+                $query,
+                $name,
+                $exists,
+                function (Builder $query) use (
+                    $ids,
+                    $v,
                     $relatedCollection,
-                    $context->withCollection($relatedCollection),
-                );
-            });
+                    $field,
+                    $context,
+                    $relatedContext,
+                ) {
+                    if ($relatedCollection instanceof EloquentResource) {
+                        $relatedCollection->scopeRelated($query, $field, $relatedContext);
+                    }
+
+                    if (($field instanceof ToMany || $field instanceof ToOne) && $field->scope) {
+                        ($field->scope)($query, $relatedContext);
+                    }
+
+                    if ($ids === null) {
+                        apply_filters(
+                            $query,
+                            (array) $v,
+                            $relatedCollection,
+                            $context->withCollection($relatedCollection),
+                        );
+                    }
+                },
+                $ids
+                    ? function (Builder $query) use ($ids, $relatedCollection, $context) {
+                        $resource = $context->resourceForModel(
+                            [$relatedCollection],
+                            $query->getModel(),
+                        );
+
+                        if ($resource instanceof EloquentResource) {
+                            $resource->whereIds($query, $ids);
+                        } else {
+                            $query->whereKey($ids);
+                        }
+                    } : null,
+            );
         }
     }
 

@@ -114,6 +114,9 @@ and this project adheres to
 - The `ext` media type parameter in responses is now quoted
 - Only call `Countable::count()` for paginated lists; unpaginated list documents
   no longer include `meta.page.total`
+- Laravel: `WhereHas` and `WhereExists` check belongs-to and belongs-to-many
+  relationships through the foreign key or pivot table, instead of joining the
+  related table, for faster queries on MySQL
 
 ### Fixed
 

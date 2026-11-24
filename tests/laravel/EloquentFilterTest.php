@@ -23,6 +23,7 @@ use Tobyz\JsonApiServer\Schema\Id;
 use Tobyz\JsonApiServer\Schema\Type;
 use Tobyz\Tests\JsonApiServer\laravel\Models\Comment;
 use Tobyz\Tests\JsonApiServer\laravel\Models\Post;
+use Tobyz\Tests\JsonApiServer\laravel\Models\Tag;
 use Tobyz\Tests\JsonApiServer\laravel\Models\User;
 
 class EloquentFilterTest extends LaravelTestCase
@@ -337,6 +338,214 @@ class EloquentFilterTest extends LaravelTestCase
         $this->assertSame([], $this->filter('filter[comments]=1'));
     }
 
+    public function test_where_has_belongs_to_uses_the_foreign_key()
+    {
+        $this->posts([WhereHas::make('author')], [ToOne::make('author')->type('users')]);
+
+        $this->assertSame(['1', '2'], $this->filter('filter[author]=1,2'));
+        $this->assertSame(['2', '3'], $this->filter('filter[not][author]=1'));
+
+        [, $queries] = $this->queries(fn() => $this->filter('filter[author][ne]=1'));
+        $this->assertStringContainsString(
+            'not ("posts"."user_id" is not null and "posts"."user_id" in (?))',
+            $queries[0],
+        );
+
+        [, $queries] = $this->queries(fn() => $this->filter('filter[author][notnull]=true'));
+        $this->assertQueryCount(0, 'users', $queries);
+    }
+
+    public function test_where_has_belongs_to_applies_scopes_in_a_subquery()
+    {
+        $this->posts(
+            [WhereHas::make('author')],
+            [ToOne::make('author')->type('users')],
+            usersScope: fn($query) => $query->where('is_admin', false)->withExists('posts'),
+        );
+
+        // Toby (1) is an admin, so the scope hides him.
+        $this->assertSame([], $this->filter('filter[author]=1'));
+        $this->assertSame(['1', '2', '3'], $this->filter('filter[author][ne]=1'));
+        $this->assertSame(['2'], $this->filter('filter[author][notnull]=true'));
+
+        [, $queries] = $this->queries(fn() => $this->filter('filter[author]=2'));
+        $this->assertStringContainsString('in (select "users"."id" from "users"', $queries[0]);
+    }
+
+    public function test_where_has_belongs_to_respects_related_global_scopes()
+    {
+        $this->resources(
+            fields: ['comments' => [ToOne::make('post')->type('posts')]],
+            filters: ['comments' => [WhereHas::make('post')]],
+        );
+
+        Post::find(1)->delete();
+
+        $this->assertSame([], $this->ids($this->get('/comments?filter[post]=1')));
+        $this->assertSame(['1', '2'], $this->ids($this->get('/comments?filter[post][ne]=2')));
+    }
+
+    public function test_where_has_belongs_to_many_uses_the_pivot_table()
+    {
+        $this->tags();
+        $this->posts([WhereHas::make('tags')], [ToMany::make('tags')->type('tags')]);
+
+        $this->assertSame(['1', '2'], $this->filter('filter[tags]=2'));
+        $this->assertSame(['1'], $this->filter('filter[tags]=1,3'));
+        $this->assertSame(['2', '3'], $this->filter('filter[tags][ne]=1'));
+        $this->assertSame(['3'], $this->filter('filter[tags][null]=true'));
+        $this->assertSame(['3'], $this->filter('filter[not][tags]=2'));
+
+        [, $queries] = $this->queries(fn() => $this->filter('filter[tags]=1'));
+        $this->assertStringContainsString(
+            'exists (select 1 from "post_tag" where "post_tag"."post_id" = "posts"."id" and "post_tag"."tag_id" in (?))',
+            $queries[0],
+        );
+        $this->assertStringNotContainsString('join', $queries[0]);
+
+        [, $queries] = $this->queries(fn() => $this->filter('filter[tags][notnull]=true'));
+        $this->assertStringNotContainsString('"tags"', $queries[0]);
+    }
+
+    public function test_where_has_belongs_to_many_applies_scopes_in_a_subquery()
+    {
+        $this->tags();
+        $this->posts([WhereHas::make('tags')], [
+            ToMany::make('tags')
+                ->type('tags')
+                ->scope(fn($query) => $query->where('name', '!=', 'Tech')),
+        ]);
+
+        $this->assertSame([], $this->filter('filter[tags]=2'));
+        $this->assertSame(['1', '2', '3'], $this->filter('filter[tags][ne]=2'));
+        $this->assertSame(['1'], $this->filter('filter[tags][notnull]=true'));
+
+        [, $queries] = $this->queries(fn() => $this->filter('filter[tags]=1'));
+        $this->assertStringContainsString(
+            '"post_tag"."tag_id" in (?) and "post_tag"."tag_id" in (select "tags"."id" from "tags" where "name" != ?)',
+            $queries[0],
+        );
+    }
+
+    public function test_where_has_by_custom_id()
+    {
+        $this->tags();
+        $this->resources(
+            fields: ['posts' => [ToMany::make('tags')->type('tags')]],
+            filters: ['posts' => [WhereHas::make('tags')]],
+            ids: ['tags' => Id::make()->property('name')],
+        );
+
+        $this->assertSame(['3'], $this->filter('filter[tags][ne]=Tech'));
+    }
+
+    public function test_where_has_by_custom_where_ids()
+    {
+        $this->tags();
+        $this->posts([WhereHas::make('tags')], [ToMany::make('tags')->type('tags')]);
+
+        // Look tags up by lowercase name, which the pivot table doesn't hold.
+        $this->api->resource(
+            new class('tags', Tag::class) extends TestResource {
+                public function whereIds(Builder $query, array $ids): Builder
+                {
+                    return $query->whereIn('name', array_map('ucfirst', $ids));
+                }
+            },
+        );
+
+        [$ids, $queries] = $this->queries(fn() => $this->filter('filter[tags]=tech'));
+        $this->assertSame(['1', '2'], $ids);
+        $this->assertStringContainsString(
+            '"post_tag"."tag_id" in (select "tags"."id" from "tags" where "name" in (?))',
+            $queries[0],
+        );
+    }
+
+    public function test_where_has_by_where_ids_that_removes_global_scopes()
+    {
+        $this->resources(
+            fields: ['comments' => [ToOne::make('post')->type('posts')]],
+            filters: ['comments' => [WhereHas::make('post')]],
+        );
+
+        $this->api->resource(
+            new class('posts', Post::class) extends TestResource {
+                public function whereIds(Builder $query, array $ids): Builder
+                {
+                    return parent::whereIds($query->withTrashed(), $ids);
+                }
+            },
+        );
+
+        Post::find(1)->delete();
+
+        $this->assertSame(['1', '2'], $this->ids($this->get('/comments?filter[post]=1')));
+    }
+
+    public function test_where_has_nested_filters_use_the_pivot_table()
+    {
+        $this->tags();
+        $this->resources(
+            fields: ['posts' => [ToMany::make('tags')->type('tags')]],
+            filters: ['posts' => [WhereHas::make('tags')], 'tags' => [Where::make('name')]],
+        );
+
+        [$ids, $queries] = $this->queries(fn() => $this->filter('filter[tags][name]=News'));
+        $this->assertSame(['1'], $ids);
+        $this->assertStringContainsString(
+            '"post_tag"."tag_id" in (select "tags"."id" from "tags" where "name" in (?))',
+            $queries[0],
+        );
+    }
+
+    public function test_where_has_limited_scopes_join_the_related_table()
+    {
+        $this->tags();
+        $this->resources(
+            fields: ['posts' => [ToMany::make('tags')->type('tags')]],
+            listScopes: ['tags' => fn($query) => $query->limit(10)],
+            filters: ['posts' => [WhereHas::make('tags')]],
+        );
+
+        [$ids, $queries] = $this->queries(fn() => $this->filter('filter[tags]=2'));
+        $this->assertSame(['1', '2'], $ids);
+        $this->assertStringContainsString('inner join "post_tag"', $queries[0]);
+    }
+
+    public function test_where_has_scopes_ordered_by_selected_columns()
+    {
+        $this->posts(
+            [WhereHas::make('author')],
+            [ToOne::make('author')->type('users')],
+            usersScope: fn($query) => $query
+                ->where('is_admin', false)
+                ->withCount('posts')
+                ->orderByDesc('posts_count'),
+        );
+
+        $this->assertSame(['2'], $this->filter('filter[author]=1,2'));
+    }
+
+    public function test_where_exists_uses_the_foreign_key_or_pivot_table()
+    {
+        $this->tags();
+        $this->posts([
+            WhereExists::make('tags'),
+            WhereExists::make('hasNews')
+                ->relationship('tags')
+                ->scope(fn($query) => $query->where('name', 'News')),
+            WhereExists::make('hasAuthor')->relationship('author'),
+        ]);
+
+        [$ids, $queries] = $this->queries(fn() => $this->filter('filter[tags]=1'));
+        $this->assertSame(['1', '2'], $ids);
+        $this->assertStringNotContainsString('"tags"', $queries[0]);
+
+        $this->assertSame(['2', '3'], $this->filter('filter[hasNews]=0'));
+        $this->assertSame(['3'], $this->filter('filter[hasAuthor]=0'));
+    }
+
     public function test_where_count()
     {
         $this->posts([
@@ -427,6 +636,19 @@ class EloquentFilterTest extends LaravelTestCase
                 'filter[published]=1&filter[not][or][0][title]=Apple&filter[not][or][1][title]=Banana',
             ),
         );
+    }
+
+    /**
+     * Tag post 1 with News and Tech, and post 2 with Tech. Spare is unused.
+     */
+    private function tags(): void
+    {
+        foreach (['News', 'Tech', 'Spare'] as $name) {
+            Tag::create(['name' => $name]);
+        }
+
+        Post::find(1)->tags()->attach([1, 2]);
+        Post::find(2)->tags()->attach([2]);
     }
 
     /**

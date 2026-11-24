@@ -3,11 +3,13 @@
 namespace Tobyz\JsonApiServer\Laravel\Filter;
 
 use Tobyz\JsonApiServer\Context;
+use Tobyz\JsonApiServer\Laravel\Concerns\QueriesRelationExistence;
 use Tobyz\JsonApiServer\Schema\Filter;
 use Tobyz\JsonApiServer\Schema\Type;
 
 class WhereExists extends Filter
 {
+    use QueriesRelationExistence;
     use UsesRelationship;
 
     public function __construct(string $name)
@@ -24,10 +26,10 @@ class WhereExists extends Filter
 
     protected function applyValue(object $query, mixed $value, Context $context): void
     {
-        $method = $value ? 'whereHas' : 'whereDoesntHave';
-
-        $query->{$method}(
+        $this->whereRelationExists(
+            $query,
             $this->relationship ?: $this->name,
+            (bool) $value,
             $this->scope ? fn($query) => ($this->scope)($query, $context) : null,
         );
     }
