@@ -25,8 +25,9 @@ class FieldValidationTest extends AbstractTestCase
     }
 
     #[DataProvider('writeMethods')]
-    public function test_typed_attribute_can_deserialize_to_a_model_on_create_and_update(string $method): void
-    {
+    public function test_typed_attribute_can_deserialize_to_a_model_on_create_and_update(
+        string $method,
+    ): void {
         $product = (object) ['id' => 2];
         $this->api->resource(
             $resource = new MockResource(
